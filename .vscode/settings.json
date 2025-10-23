@@ -1,0 +1,10 @@
+{
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "typescript.preferences.quoteStyle": "single",
+  "javascript.preferences.quoteStyle": "single"
+}
