@@ -11,7 +11,7 @@ export const myCourses: Course[] = [
     rating: 0,
     lastEdited: '방금 전',
     instructor: '김강사',
-    image: '/photo/Fullstack.png'
+    image: '/photo/ccc.jpg' // 나중에 강의자가 직접 올린 사진으로 교체 예정
   }
 ]
 
@@ -26,7 +26,7 @@ export const jointCourses: Course[] = [
     lastEdited: '방금 전',
     instructor: '김강사',
     myRole: '공동 강의자',
-    image: '/photo/Fullstack.png'
+    image: '/photo/ccc.jpg' // 나중에 강의자가 직접 올린 사진으로 교체 예정
   }
 ]
 

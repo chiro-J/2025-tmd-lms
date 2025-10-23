@@ -1,0 +1,351 @@
+npm run build
+
+> lms@0.0.0 build
+> tsc -b && vite build
+
+src/components/editor/StableLexicalEditor.tsx:15:3 - error TS6133: '$isElementNode' is declared but its value is never read.
+
+15   $isElementNode,
+     ~~~~~~~~~~~~~~
+
+src/components/editor/StableLexicalEditor.tsx:285:12 - error TS2741: Property 'ErrorBoundary' is missing in type '{ contentEditable: Element; placeholder: Element | null; }' but required in type '{ contentEditable: JSX.Element; placeholder: any; ErrorBoundary: ErrorBoundaryType; }'.
+
+285           <RichTextPlugin
+               ~~~~~~~~~~~~~~
+
+  node_modules/@lexical/react/LexicalRichTextPlugin.d.ts:13:5
+    13     ErrorBoundary: ErrorBoundaryType;
+           ~~~~~~~~~~~~~
+    'ErrorBoundary' is declared here.
+
+src/components/modals/AskQuestionModal.tsx:13:44 - error TS6133: 'courseId' is declared but its value is never read.
+
+13 export default function AskQuestionModal({ courseId, courseTitle, onClose }: AskQuestionModalProps) {
+                                              ~~~~~~~~
+
+src/components/modals/AskQuestionModal.tsx:47:6 - error TS2739: Type '{ children: Element; onClose: () => void; }' is missing the following properties from type 'ModalBaseProps': open, title
+
+47     <ModalBase onClose={onClose}>
+        ~~~~~~~~~
+
+src/components/modals/QuizReviewModal.tsx:1:32 - error TS6133: 'Clock' is declared but its value is never read.
+
+1 import { CheckCircle, XCircle, Clock, Award } from 'lucide-react'
+                                 ~~~~~
+
+src/components/modals/QuizReviewModal.tsx:56:6 - error TS2739: Type '{ children: Element; onClose: () => void; }' is missing the following properties from type 'ModalBaseProps': open, title
+
+56     <ModalBase onClose={onClose}>
+        ~~~~~~~~~
+
+src/components/student/BasicInfoForm.tsx:31:27 - error TS6133: 'setCurrentPassword' is declared but its value is never read.
+
+31   const [currentPassword, setCurrentPassword] = useState('')
+                             ~~~~~~~~~~~~~~~~~~
+
+src/components/student/BasicInfoForm.tsx:32:23 - error TS6133: 'setNewPassword' is declared but its value is never read.
+
+32   const [newPassword, setNewPassword] = useState('')
+                         ~~~~~~~~~~~~~~
+
+src/components/student/BasicInfoForm.tsx:33:27 - error TS6133: 'setConfirmPassword' is declared but its value is never read.
+
+33   const [confirmPassword, setConfirmPassword] = useState('')
+                             ~~~~~~~~~~~~~~~~~~
+
+src/components/student/UserInfoCard.tsx:6:46 - error TS6133: 'stats' is declared but its value is never read.
+
+6 export default function UserInfoCard({ user, stats }: UserInfoCardProps) {
+                                               ~~~~~
+
+src/contexts/AuthContext.tsx:1:65 - error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.  
+
+1 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+                                                                  ~~~~~~~~~
+
+src/contexts/CourseCreationContext.tsx:1:47 - error TS1484: 'ReactNode' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is 
+enabled.
+
+1 import { createContext, useContext, useState, ReactNode } from 'react'
+                                                ~~~~~~~~~
+
+src/data/curriculum.ts:1:33 - error TS6196: 'LectureContent' is declared but never used.
+
+1 import type { CurriculumModule, LectureContent } from '../types'
+                                  ~~~~~~~~~~~~~~
+
+src/main.tsx:4:8 - error TS2307: Cannot find module '@fontsource/nanum-gothic' or its corresponding type declarations.
+
+4 import "@fontsource/nanum-gothic";
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/mocks.ts:10:3 - error TS6196: 'QuizQuestion' is declared but never used.
+
+10   QuizQuestion,
+     ~~~~~~~~~~~~
+
+src/mocks.ts:13:3 - error TS6196: 'QnAAnswer' is declared but never used.
+
+13   QnAAnswer,
+     ~~~~~~~~~
+
+src/mocks.ts:27:3 - error TS2322: Type 'number' is not assignable to type 'string'.
+
+27   id: 1,
+     ~~
+
+  src/types/index.ts:10:3
+    10   id: string
+         ~~
+    The expected type comes from property 'id' which is declared here on type 'User'
+
+src/mocks.ts:224:7 - error TS2322: Type 'boolean' is not assignable to type 'string | number'.
+
+224       correctAnswer: false,
+          ~~~~~~~~~~~~~
+
+  src/types/index.ts:377:3
+    377   correctAnswer: string | number
+          ~~~~~~~~~~~~~
+    The expected type comes from property 'correctAnswer' which is declared here on type 'QuizQuestion'
+
+src/pages/admin/MasterDashboard.tsx:1:1 - error TS6133: 'React' is declared but its value is never read.
+
+1 import React from 'react'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/admin/MasterDashboard.tsx:3:74 - error TS6133: 'Settings' is declared but its value is never read.
+
+3 import { Users, UserPlus, CheckCircle, AlertCircle, BookOpen, BarChart3, Settings, ArrowRight } from 'lucide-react'
+                                                                           ~~~~~~~~
+
+src/pages/instructor/AchievementAnalysis.tsx:2:58 - error TS6133: 'ChevronDown' is declared but its value is never read.
+
+2 import { Search, Download, Filter, CheckCircle, XCircle, ChevronDown } from 'lucide-react'
+                                                           ~~~~~~~~~~~
+
+src/pages/instructor/AchievementAnalysis.tsx:8:10 - error TS6133: 'filter' is declared but its value is never read.
+
+8   const [filter, setFilter] = useState('all')
+           ~~~~~~
+
+src/pages/instructor/AchievementAnalysis.tsx:8:18 - error TS6133: 'setFilter' is declared but its value is never read.
+
+8   const [filter, setFilter] = useState('all')
+                   ~~~~~~~~~
+
+src/pages/instructor/CoInstructorSettings.tsx:2:1 - error TS6133: 'Link' is declared but its value is never read.
+
+2 import { Link } from 'react-router-dom'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/instructor/CoInstructorSettings.tsx:3:10 - error TS6133: 'UserPlus' is declared but its value is never read.
+
+3 import { UserPlus, MoreVertical, HelpCircle } from 'lucide-react'
+           ~~~~~~~~
+
+src/pages/instructor/CoInstructorSettings.tsx:3:20 - error TS6133: 'MoreVertical' is declared but its value is never read.
+
+3 import { UserPlus, MoreVertical, HelpCircle } from 'lucide-react'
+                     ~~~~~~~~~~~~
+
+src/pages/instructor/CoInstructorSettings.tsx:5:1 - error TS6133: 'Button' is declared but its value is never read.
+
+5 import Button from '../../components/ui/Button'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/instructor/CoInstructorSettings.tsx:91:11 - error TS2322: Type '{ isCollapsed: boolean; onToggleCollapse: () => void; currentCourse: { id: string; title: string; status: string; }; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'isCollapsed' does not exist on type 'IntrinsicAttributes'.
+
+91           isCollapsed={isSidebarCollapsed}
+             ~~~~~~~~~~~
+
+src/pages/instructor/CoursePreview.tsx:27:55 - error TS6133: 'match' is declared but its value is never read.
+
+27     html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                                                         ~~~~~
+
+src/pages/instructor/CourseSettings.tsx:2:10 - error TS6133: 'Settings' is declared but its value is never read.
+
+2 import { Settings, Save, Eye, EyeOff, Users, Calendar, Lock, Globe } from 'lucide-react'
+           ~~~~~~~~
+
+src/pages/instructor/CourseSettings.tsx:2:26 - error TS6133: 'Eye' is declared but its value is never read.
+
+2 import { Settings, Save, Eye, EyeOff, Users, Calendar, Lock, Globe } from 'lucide-react'
+                           ~~~
+
+src/pages/instructor/CourseSettings.tsx:2:31 - error TS6133: 'EyeOff' is declared but its value is never read.
+
+2 import { Settings, Save, Eye, EyeOff, Users, Calendar, Lock, Globe } from 'lucide-react'
+                                ~~~~~~
+
+src/pages/instructor/CourseSettings.tsx:2:46 - error TS6133: 'Calendar' is declared but its value is never read.
+
+2 import { Settings, Save, Eye, EyeOff, Users, Calendar, Lock, Globe } from 'lucide-react'
+                                               ~~~~~~~~
+
+src/pages/instructor/CreateExam.tsx:2:1 - error TS6133: 'Link' is declared but its value is never read.
+
+2 import { Link } from 'react-router-dom'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/instructor/CreateExam.tsx:3:10 - error TS6133: 'ArrowLeft' is declared but its value is never read.
+
+3 import { ArrowLeft, Save, Calendar, Clock, Users, Settings, Plus, Trash2 } from 'lucide-react'
+           ~~~~~~~~~
+
+src/pages/instructor/CreateExam.tsx:3:21 - error TS6133: 'Save' is declared but its value is never read.
+
+3 import { ArrowLeft, Save, Calendar, Clock, Users, Settings, Plus, Trash2 } from 'lucide-react'
+                      ~~~~
+
+src/pages/instructor/CreateExam.tsx:3:37 - error TS6133: 'Clock' is declared but its value is never read.
+
+3 import { ArrowLeft, Save, Calendar, Clock, Users, Settings, Plus, Trash2 } from 'lucide-react'
+                                      ~~~~~
+
+src/pages/instructor/CreateExam.tsx:3:44 - error TS6133: 'Users' is declared but its value is never read.
+
+3 import { ArrowLeft, Save, Calendar, Clock, Users, Settings, Plus, Trash2 } from 'lucide-react'
+                                             ~~~~~
+
+src/pages/instructor/CreateExam.tsx:3:51 - error TS6133: 'Settings' is declared but its value is never read.
+
+3 import { ArrowLeft, Save, Calendar, Clock, Users, Settings, Plus, Trash2 } from 'lucide-react'
+                                                    ~~~~~~~~
+
+src/pages/instructor/CreateExam.tsx:3:61 - error TS6133: 'Plus' is declared but its value is never read.
+
+3 import { ArrowLeft, Save, Calendar, Clock, Users, Settings, Plus, Trash2 } from 'lucide-react'
+                                                              ~~~~
+
+src/pages/instructor/CreateExam.tsx:3:67 - error TS6133: 'Trash2' is declared but its value is never read.
+
+3 import { ArrowLeft, Save, Calendar, Clock, Users, Settings, Plus, Trash2 } from 'lucide-react'
+                                                                    ~~~~~~
+
+src/pages/instructor/CreateExam.tsx:51:11 - error TS2322: Type '{ isCollapsed: boolean; onToggleCollapse: () => void; currentCourse: { id: string; title: string; status: string; }; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'isCollapsed' does not exist on type 'IntrinsicAttributes'.
+
+51           isCollapsed={isSidebarCollapsed}
+             ~~~~~~~~~~~
+
+src/pages/instructor/GradeReport.tsx:2:30 - error TS6133: 'Filter' is declared but its value is never read.
+
+2 import { FileText, Download, Filter, Users, Award, TrendingUp } from 'lucide-react'
+                               ~~~~~~
+
+src/pages/instructor/InviteByEmail.tsx:2:21 - error TS6133: 'Mail' is declared but its value is never read.
+
+2 import { ArrowLeft, Mail, Plus, X, Send } from 'lucide-react'
+                      ~~~~
+
+src/pages/instructor/InviteStudents.tsx:2:34 - error TS6133: 'Key' is declared but its value is never read.
+
+2 import { ArrowLeft, Check, Mail, Key, ArrowRight } from 'lucide-react'
+                                   ~~~
+
+src/pages/instructor/NoticeManagement.tsx:2:1 - error TS6133: 'Link' is declared but its value is never read.
+
+2 import { Link } from 'react-router-dom'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/instructor/NoticeManagement.tsx:4:1 - error TS6133: 'Card' is declared but its value is never read.
+
+4 import Card from '../../components/ui/Card'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/instructor/NoticeManagement.tsx:18:10 - error TS6133: 'notices' is declared but its value is never read.
+
+18   const [notices, setNotices] = useState([]) // Empty for now
+            ~~~~~~~
+
+src/pages/instructor/NoticeManagement.tsx:18:19 - error TS6133: 'setNotices' is declared but its value is never read.
+
+18   const [notices, setNotices] = useState([]) // Empty for now
+                     ~~~~~~~~~~
+
+src/pages/instructor/NoticeManagement.tsx:30:11 - error TS2322: Type '{ isCollapsed: boolean; onToggleCollapse: () => void; currentCourse: { id: string; title: string; status: string; }; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'isCollapsed' does not exist on type 'IntrinsicAttributes'.
+
+30           isCollapsed={isSidebarCollapsed}
+             ~~~~~~~~~~~
+
+src/pages/instructor/Profile.tsx:4:1 - error TS6133: 'Button' is declared but its value is never read.
+
+4 import Button from '../../components/ui/Button'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/instructor/ResultsAnalysis.tsx:2:10 - error TS6133: 'BarChart3' is declared but its value is never read.
+
+2 import { BarChart3, Download, Filter, TrendingUp, Users, Award, Target } from 'lucide-react'
+           ~~~~~~~~~
+
+src/pages/instructor/StudentManagement.tsx:3:34 - error TS6133: 'MoreVertical' is declared but its value is never read.
+
+3 import { Search, Mail, Download, MoreVertical, UserPlus, Settings, ChevronDown } from 'lucide-react'
+                                   ~~~~~~~~~~~~
+
+src/pages/student/AssignmentSubmit.tsx:6:1 - error TS6133: 'Input' is declared but its value is never read.
+
+6 import Input from '../../components/ui/Input'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/student/CourseDetail.tsx:3:63 - error TS6133: 'Play' is declared but its value is never read.
+
+3 import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, Play, BookOpen, MessageSquare } from 'lucide-react'
+                                                                ~~~~
+
+src/pages/student/CourseDetail.tsx:260:54 - error TS6133: 'lessonIndex' is declared but its value is never read.
+
+260                           {item.lessons.map((lesson, lessonIndex) => (
+                                                         ~~~~~~~~~~~
+
+src/pages/student/CourseQnA.tsx:3:62 - error TS6133: 'Filter' is declared but its value is never read.
+
+3 import { Plus, MessageSquare, CheckCircle, ThumbsUp, Search, Filter } from 'lucide-react'
+                                                               ~~~~~~
+
+src/pages/student/CourseQnA.tsx:8:1 - error TS6133: 'QnAItem' is declared but its value is never read.
+
+8 import type { QnAItem } from '../../types'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/student/CourseResources.tsx:3:57 - error TS6133: 'Filter' is declared but its value is never read.
+
+3 import { Download, FileText, Image, Code, Link, Search, Filter } from 'lucide-react'
+                                                          ~~~~~~
+
+src/pages/student/CourseResources.tsx:11:9 - error TS6133: 'id' is declared but its value is never read.
+
+11   const { id } = useParams()
+           ~~~~~~
+
+src/pages/student/Help.tsx:7:1 - error TS6133: 'FAQItem' is declared but its value is never read.
+
+7 import type { FAQItem } from '../../types'
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/student/Notice.tsx:1:1 - error TS6133: 'React' is declared but its value is never read.
+
+1 import React from 'react';
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/pages/student/QuizPlayer.tsx:3:30 - error TS6133: 'XCircle' is declared but its value is never read.
+
+3 import { Clock, CheckCircle, XCircle, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
+                               ~~~~~~~
+
+src/pages/student/QuizPlayer.tsx:11:9 - error TS6133: 'id' is declared but its value is never read.
+
+11   const { id } = useParams()
+           ~~~~~~
+
+src/utils/safeHtml.ts:4:9 - error TS6133: 'allowedTags' is declared but its value is never read.
+
+4   const allowedTags = ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3'];
+          ~~~~~~~~~~~
+
+
+Found 65 errors.

@@ -377,6 +377,7 @@ export interface QuizQuestion {
   correctAnswer: string | number
   points: number
   timeLimit?: number // in seconds
+  explanation?: string
 }
 
 export interface Quiz {

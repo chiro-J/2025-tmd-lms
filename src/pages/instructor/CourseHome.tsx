@@ -13,10 +13,10 @@ export default function CourseHome() {
       <Card className="p-6 mb-8">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-6">
-            {/* Course Image */}
+            {/* Course Image - 나중에 강의자가 직접 올린 사진으로 교체 예정 */}
             <div className="w-32 h-24 rounded-lg overflow-hidden flex-shrink-0">
               <img
-                src="/photo/Fullstack.png"
+                src="/photo/aaa.jpg"
                 alt="풀스택 과정"
                 className="w-full h-full object-cover"
               />

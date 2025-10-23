@@ -10,7 +10,7 @@ export default function StudentDashboard() {
     <>
       {/* Hero Banner with Course Code Input - Full Screen */}
       <EnrollBanner
-        bgImage="/photo/Fullstack.png"
+        bgImage="/photo/aaa.jpg"
         title="LMS 테스트 페이지"
         subtitle="수강코드를 입력하여 강의에 참여"
         buttonText="수강코드 입력"
@@ -42,7 +42,7 @@ export default function StudentDashboard() {
                     {/* Course Thumbnail - 배너와 같은 이미지 사용 */}
                     <div 
                       className="w-40 h-24 rounded-lg relative overflow-hidden flex-shrink-0 bg-cover bg-center"
-                      style={{ backgroundImage: `url('/photo/Fullstack.png')` }}
+                      style={{ backgroundImage: `url('/photo/bbb.jpg')` }}
                     >
                       <div className="absolute inset-0 bg-black/20"></div>
                     </div>
@@ -84,7 +84,7 @@ export default function StudentDashboard() {
                     {/* Course Thumbnail - 배너와 같은 이미지 사용 */}
                     <div 
                       className="w-full h-24 rounded-lg relative overflow-hidden bg-cover bg-center"
-                      style={{ backgroundImage: `url('/photo/Fullstack.png')` }}
+                      style={{ backgroundImage: `url('/photo/ccc.jpg')` }}
                     >
                       <div className="absolute inset-0 bg-black/20"></div>
                     </div>

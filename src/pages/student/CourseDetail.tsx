@@ -123,7 +123,7 @@ export default function CourseDetail() {
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="w-full lg:w-80 h-48 rounded-xl overflow-hidden flex-shrink-0 relative">
               <img 
-                src="/photo/Fullstack.png" 
+                src="/photo/bbb.jpg" 
                 alt="풀스택 과정" 
                 className="w-full h-full object-cover"
               />

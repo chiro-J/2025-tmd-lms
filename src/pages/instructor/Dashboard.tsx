@@ -155,7 +155,7 @@ export default function InstructorDashboard() {
                         <div className="flex items-center space-x-4">
                           <div className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                             <img 
-                              src="/photo/Fullstack.png" 
+                              src="/photo/bbb.jpg" 
                               alt="풀스택 과정" 
                               className="w-full h-full object-cover rounded-lg"
                             />
@@ -183,7 +183,7 @@ export default function InstructorDashboard() {
                         <div className="flex items-center space-x-4">
                           <div className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                             <img 
-                              src="/photo/Fullstack.png" 
+                              src="/photo/bbb.jpg" 
                               alt="풀스택 과정" 
                               className="w-full h-full object-cover rounded-lg"
                             />

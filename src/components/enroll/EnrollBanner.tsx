@@ -10,7 +10,7 @@ interface EnrollBannerProps {
 }
 
 export default function EnrollBanner({
-  bgImage = '/photo/Fullstack.png',
+  bgImage = '/photo/aaa.jpg',
   title = 'LMS 테스트 페이지',
   subtitle = '수강코드를 입력하여 강의에 참여',
   buttonText = '수강코드 입력',
