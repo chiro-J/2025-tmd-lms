@@ -1,0 +1,198 @@
+# Cursor Rules Pack for LMS (React + Vite + TypeScript + Tailwind)
+
+Unified rule definitions for the LMS project.
+Stack: React 18, Vite, TypeScript, TailwindCSS, react-router-dom v6, lucide-react.
+
+---
+
+## rules-new
+### Purpose
+Bootstrap rules for the LMS repo.
+Encourage small, composable components and maintain visual parity with the PDF spec.
+
+### Stack
+- React 18
+- Vite + TypeScript
+- TailwindCSS (utility-first)
+- react-router-dom v6
+- lucide-react (icons)
+
+### Global Constraints
+- **Single BrowserRouter**: only in `src/main.tsx`.
+- **Accessibility-first**: proper semantic HTML and `aria-*` attributes.
+- **Mock-only data** in `src/mocks.ts` until real API integration.
+- **PDF parity**: dashboard → user info → learning now → recent → my courses.
+- Keep code modular and readable.
+
+---
+
+## clean-code.mdc
+### Component Design
+- Each component ≤ 200 lines.
+- Extract repeating UI into `/components`.
+- One file → one responsibility.
+- Use noun-based component names, verb-based handlers (e.g., `handleSubmit`).
+
+### Props & State
+- Explicit types; avoid `any`.
+- Local state only for UI logic.
+- Prevent deep prop drilling (>2 levels).
+
+### File Structure
+- Import order: React/libs → app libs → components → styles.
+- Prefer early returns; short ternary for conditional rendering.
+- Use stable IDs for `key`.
+
+### Comments & Naming
+- Comment *why*, not *what*.
+- Avoid cryptic abbreviations.
+
+### Effects & Performance
+- Follow exhaustive dependency rule.
+- Clean up side effects.
+- Memoize heavy computations.
+
+### Anti-Patterns
+- ❌ `any`, ❌ nested BrowserRouter, ❌ long files, ❌ magic numbers.
+
+---
+
+## codequality.mdc
+### TypeScript & Linting
+- No `any`, no unused imports, prefer `const`.
+- No `// @ts-ignore` without explanation.
+
+### Accessibility
+- Use semantic elements.
+- Tabs: `role="tablist"`, `aria-selected`, `aria-controls`.
+- Modals: `role="dialog"`, `aria-modal="true"`, ESC/backdrop close, focus return.
+
+### Tailwind Guidelines
+- Use Tailwind utilities + wrapper classes (`btn`, `card`, etc.).
+- Use theme tokens instead of hard-coded colors.
+- Maintain high contrast (≥4.5:1).
+
+### Router & Boundaries
+- Only one `<BrowserRouter>` in `main.tsx`.
+- Redirects with `<Navigate replace>`.
+- Pages compose; components render.
+- Modals = headless, a11y-friendly.
+
+---
+
+## nextjs.mdc
+### Context
+This project uses **Vite + React**, not Next.js.
+If migrating in the future:
+- Use the App Router and server components.
+- Keep Tailwind theme tokens identical.
+- Remove react-router; use `next/navigation`.
+- Replace `BrowserRouter` with Next's built-in router.
+
+---
+
+## node-express.mdc
+### Context
+No backend is included yet.
+When adding an API with Node/Express:
+- Separate `apps/web` and `apps/api`.
+- JSON-only API; no SSR.
+- Use validation (zod/joi).
+- Implement centralized error handler.
+- Secure CORS (no wildcard in production).
+- Define authentication boundaries before integrating with the LMS frontend.
+
+---
+
+## react.mdc
+### Router Rules
+- `main.tsx`:
+  ```tsx
+  <BrowserRouter><App/></BrowserRouter>
+  ```
+- `App.tsx`: return only `<Routes>`.
+
+### Student Pages
+- **Dashboard**: Notices + Enroll Modal → User Info → Learning Now (2) → Recent (2) → My Courses (2).
+- **CourseDetail**: tabs ("강좌 홈", "강좌 정보", "시험·과제").
+- **Notice**: list + modal (no route change).
+- **Profile**: PDF p7–8 layout.
+
+### Components
+- Use semantic landmarks (`<main>`, `<section>`, `<nav>`).
+- lucide-react icons with `aria-hidden` when decorative.
+- Progress bars: `role="progressbar"` when meaningful.
+
+### State
+- Guard `useParams` results: `const id = Number(params.id) || 1`.
+- Keep side effects mock-safe.
+
+### Accessibility
+- Tabs and modals use full `aria-*` attributes.
+- Icon-only buttons require `aria-label`.
+
+### Anti-patterns
+- ❌ Components > 250 LOC
+- ❌ Complex logic inline
+- ❌ Nested routers
+
+---
+
+## tailwind.mdc
+### Theme Tokens (tailwind.config.ts)
+- Colors:
+  - primary: `#3b82f6`, `#2563eb`, `#1d4ed8`
+  - neutral: gray `50–900`
+  - success: `#10b981`, warning: `#f59e0b`, danger: `#ef4444`
+- Radius: `rounded-xl`, `rounded-2xl`
+- Shadows: `shadow-card`, `shadow-soft`
+- Container max width: 1200px
+
+### Base Utility Classes
+`.btn`, `.card`, `.input`, `.modal-card`, `.tab`, `.tab-active`, `.progress`, `.progress-bar`, `.container-page`.
+
+### Usage Rules
+- Use standard spacing (4/6/8/12/16/24).
+- Avoid arbitrary pixel/color values.
+- Maintain contrast ≥ 4.5:1.
+
+### Anti-patterns
+- ❌ Multiple CSS files.
+- ❌ Inline color styles.
+- ❌ Arbitrary values when tokens exist.
+
+---
+
+## typescript.mdc
+### Compiler
+- `"strict": true`; disallow implicit any.
+- `// @ts-ignore` only with justification.
+
+### Typing
+- Explicit prop types.
+- Define domain types in `src/mocks.ts`:
+  ```ts
+  export type Notice = { id: number; title: string; date: string; content: string };
+  ```
+- Use literal unions for status fields: `"Upcoming" | "Done"`.
+
+### React Integration
+- Proper event types: `React.ChangeEvent<HTMLInputElement>`.
+- `useParams`: guard invalid IDs.
+- `const courseId = Number(id) || 1;`
+
+### Safety
+- Use `unknown` then narrow, never `any`.
+
+### Developer Experience
+- Keep imports clean and organized.
+- Use aliases only if project evolves into monorepo.
+
+---
+
+## summary
+This file defines all rules Cursor should follow when refactoring, generating, or suggesting code for this LMS project.
+Save as:
+> `.cursor/all-rules.mdc`
+
+Then open Cursor → **Settings → Rules → Enable** to activate them.

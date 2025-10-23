@@ -1,0 +1,19 @@
+.prose h1 { @apply text-2xl font-bold; }
+.prose h2 { @apply text-xl font-bold; }
+.prose p  { @apply leading-7; }
+.prose a  { @apply text-primary underline; }
+
+/* 한글 IME 지원을 위한 CSS */
+[data-testid="lexical-content-editable"] {
+  -webkit-user-modify: read-write-plaintext-only;
+  -moz-user-modify: read-write-plaintext-only;
+  user-modify: read-write-plaintext-only;
+}
+
+/* 한글 입력 시 깨짐 방지 */
+.prose * {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+

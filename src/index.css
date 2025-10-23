@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+  }
+  
+  html, body, #root {
+    height: 100%;
+    background-color: theme('colors.base-200');
+    color: theme('colors.neutral');
+    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+  }
+
+  :focus-visible {
+    outline: none;
+    @apply ring-2 ring-primary ring-offset-2;
+  }
+
+  a {
+    @apply text-accent transition-colors;
+  }
+
+  /* 강제 폰트 적용 */
+  input, textarea, select, button, div, span, p, h1, h2, h3, h4, h5, h6, label, li, ul, ol, table, td, th, tr {
+    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+  }
+
+  /* 모달 및 오버레이 폰트 */
+  .modal, .modal-box, .modal-backdrop, [role="dialog"] {
+    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+  }
+
+  /* 플레이스홀더 폰트 */
+  input::placeholder, textarea::placeholder {
+    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+  }
+
+  a:hover {
+    @apply text-accent;
+    opacity: 0.8;
+  }
+
+  h1 { @apply text-2xl font-semibold; }
+  h2 { @apply text-xl font-semibold; }
+  h3 { @apply text-lg font-semibold; }
+}
+
+@layer components {
+  .container-page { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+
+  .card { @apply bg-base-100 rounded-2xl shadow-card; }
+
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors; }
+  .btn-primary { 
+    @apply btn bg-primary text-primary-content focus-visible:ring-2 focus-visible:ring-primary;
+  }
+  .btn-primary:hover {
+    @apply bg-primary;
+    opacity: 0.9;
+  }
+  .btn-outline { 
+    @apply btn border border-base-300 hover:bg-base-200 focus-visible:ring-2 focus-visible:ring-primary;
+    color: hsl(var(--n));
+  }
+  .btn-secondary { 
+    @apply btn bg-base-300 focus-visible:ring-2 focus-visible:ring-primary;
+    color: hsl(var(--n));
+  }
+  .btn-secondary:hover {
+    @apply bg-base-300;
+    opacity: 0.8;
+  }
+
+  .input { @apply w-full rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-colors; }
+  .input-error { @apply input border-error focus:ring-error focus:border-error; }
+  .label { 
+    @apply block text-sm font-medium mb-1;
+    color: hsl(var(--n));
+  }
+
+  .tabbar { @apply flex gap-2 border-b border-base-300; }
+  .tab { 
+    @apply px-3 py-2 text-sm border-b-2 border-transparent transition-colors;
+    color: hsl(var(--n) / 0.7);
+  }
+  .tab:hover {
+    color: hsl(var(--n));
+  }
+  .tab-active { @apply border-primary text-primary; }
+
+  .progress { @apply w-full h-2 rounded-full bg-base-300; }
+  .progress-bar { @apply h-2 rounded-full bg-primary transition-all duration-300; }
+
+  .modal-backdrop { 
+    @apply fixed inset-0 flex items-center justify-center p-4 z-50;
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+  .modal-card { @apply card w-full max-w-lg max-h-[90vh] overflow-y-auto; }
+
+  .section-header { @apply flex items-center justify-between mb-4; }
+  .section-title { 
+    @apply text-lg font-semibold;
+    color: hsl(var(--n));
+  }
+
+  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+  .badge-primary { 
+    @apply badge bg-base-200;
+    color: hsl(var(--n));
+  }
+  .badge-success { 
+    @apply badge;
+    background-color: hsl(var(--su) / 0.1);
+    color: hsl(var(--suc));
+  }
+
+  .card-panel {
+    @apply bg-base-100 border border-base-300 rounded-xl shadow-card;
+  }
+  
+  .tile {
+    @apply bg-base-100 rounded-xl shadow-card hover:shadow-soft transition-all duration-200;
+    border: 1px solid hsl(var(--p) / 0.4);
+  }
+  
+  .tile-icon {
+    @apply stroke-primary;
+  }
+
+  /* Elementor-style animations */
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
