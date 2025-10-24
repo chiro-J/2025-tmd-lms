@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react'
-import { 
-  ArrowLeft, 
-  Save, 
-  Eye, 
+import {
+  ArrowLeft,
+  Save,
+  Eye,
   Settings,
   BookOpen,
   Play,
@@ -73,7 +73,7 @@ const EditCurriculum: React.FC = () => {
   const handleUpdateLecture = useCallback((updatedLecture: LectureContent) => {
     if (!editingLecture) return
 
-    setModules(prevModules => 
+    setModules(prevModules =>
       prevModules.map(module => ({
         ...module,
         lectures: module.lectures.map(lecture =>
@@ -120,9 +120,9 @@ const EditCurriculum: React.FC = () => {
       order: module.lectures.length
     }
 
-    setModules(prevModules => 
-      prevModules.map(m => 
-        m.id === selectedModule 
+    setModules(prevModules =>
+      prevModules.map(m =>
+        m.id === selectedModule
           ? { ...m, lectures: [...m.lectures, newLecture] }
           : m
       )
@@ -157,9 +157,9 @@ const EditCurriculum: React.FC = () => {
         case 'image':
           return (
             <div key={block.id} className="my-4">
-              <img 
-                src={block.content} 
-                alt="강의 이미지" 
+              <img
+                src={block.content}
+                alt="강의 이미지"
                 className="max-w-full h-auto rounded-lg shadow-md"
               />
             </div>
@@ -167,9 +167,9 @@ const EditCurriculum: React.FC = () => {
         case 'video':
           return (
             <div key={block.id} className="my-4">
-              <video 
-                src={block.content} 
-                controls 
+              <video
+                src={block.content}
+                controls
                 className="max-w-full h-auto rounded-lg shadow-md"
               >
                 브라우저가 동영상을 지원하지 않습니다.
@@ -179,8 +179,8 @@ const EditCurriculum: React.FC = () => {
         case 'pdf':
           return (
             <div key={block.id} className="my-4">
-              <iframe 
-                src={block.content} 
+              <iframe
+                src={block.content}
                 className="w-full h-96 border rounded-lg shadow-md"
                 title="PDF 문서"
               />
@@ -270,7 +270,7 @@ const EditCurriculum: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button 
+                    <button
                       onClick={() => {
                         const newModule: CurriculumModule = {
                           id: `module_${Date.now()}`,
@@ -288,7 +288,7 @@ const EditCurriculum: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   {modules.map((module) => (
                     <div key={module.id} className="border border-gray-200 rounded-lg p-4">
@@ -301,7 +301,7 @@ const EditCurriculum: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <button 
+                          <button
                             onClick={() => {
                               setSelectedModule(module.id)
                               setShowContentModal(true)
@@ -311,11 +311,11 @@ const EditCurriculum: React.FC = () => {
                             <Plus className="w-4 h-4 mr-1" />
                             강의 추가
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               const newTitle = prompt('모듈 이름을 입력하세요:', module.title)
                               if (newTitle && newTitle.trim()) {
-                                setModules(modules.map(m => 
+                                setModules(modules.map(m =>
                                   m.id === module.id ? { ...m, title: newTitle.trim() } : m
                                 ))
                               }
@@ -325,7 +325,7 @@ const EditCurriculum: React.FC = () => {
                           >
                             <Settings className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               if (confirm('모듈을 삭제하시겠습니까? 포함된 모든 강의도 함께 삭제됩니다.')) {
                                 setModules(modules.filter(m => m.id !== module.id))
@@ -338,7 +338,7 @@ const EditCurriculum: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                      
+
                       {module.lectures.length > 0 && (
                         <div className="space-y-2">
                           {module.lectures.map((lecture) => (
@@ -367,14 +367,14 @@ const EditCurriculum: React.FC = () => {
                                 </div>
                               </div>
                               <div className="flex items-center space-x-1">
-                                <button 
+                                <button
                                   onClick={() => handlePreviewLecture(lecture)}
                                   className="p-1 text-gray-400 hover:text-gray-600"
                                   title="미리보기"
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => handleEditLecture(lecture)}
                                   className="p-1 text-blue-400 hover:text-blue-600"
                                   title="편집"
@@ -405,7 +405,7 @@ const EditCurriculum: React.FC = () => {
           {currentView === 'content' && previewLecture && (
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">{previewLecture.title}</h2>
+                <h2 className="text-2xl font-bold text-base-content">{previewLecture.title}</h2>
                 <button
                   onClick={handleClosePreview}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

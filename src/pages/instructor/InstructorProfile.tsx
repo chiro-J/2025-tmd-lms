@@ -45,7 +45,7 @@ export default function InstructorProfile() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">강의자 프로필</h1>
+          <h1 className="text-2xl font-bold text-base-content">강의자 프로필</h1>
           <p className="text-gray-600 mt-2">강의자 정보를 관리하고 통계를 확인하세요</p>
         </div>
 
@@ -249,7 +249,6 @@ export default function InstructorProfile() {
     </div>
   )
 }
-
 
 
 

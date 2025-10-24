@@ -8,10 +8,9 @@ interface CourseHeaderProps {
     status: string
   }
   currentPageTitle?: string
-  rightActions?: React.ReactNode
 }
 
-export default function CourseHeader({ currentCourse, currentPageTitle, rightActions }: CourseHeaderProps) {
+export default function CourseHeader({ currentCourse, currentPageTitle }: CourseHeaderProps) {
   return (
     <div className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,7 +19,7 @@ export default function CourseHeader({ currentCourse, currentPageTitle, rightAct
             {/* Current Course Breadcrumb */}
             {currentCourse && (
               <div className="flex items-center space-x-2">
-                <Link 
+                <Link
                   to={`/instructor/course/${currentCourse.id}/home`}
                   className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
                 >
@@ -36,10 +35,9 @@ export default function CourseHeader({ currentCourse, currentPageTitle, rightAct
               </div>
             )}
           </div>
-          
+
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
-            {rightActions}
             <Link to="/instructor/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
               강의자 홈
             </Link>

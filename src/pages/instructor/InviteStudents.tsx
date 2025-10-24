@@ -19,15 +19,15 @@ export default function InviteStudents() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="수강생 추가하기"
       rightActions={rightActions}
     >
       {/* Breadcrumb */}
       <div className="mb-6">
         <nav className="flex items-center space-x-2 text-sm">
-          <Link 
-            to="/instructor/course/1/students" 
+          <Link
+            to="/instructor/course/1/students"
             className="px-3 py-1 bg-base-200 text-base-content/70 rounded-lg hover:bg-base-300 transition-colors"
           >
             수강자 관리 홈
@@ -58,17 +58,17 @@ export default function InviteStudents() {
 
       {/* Main Title */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-base-content">추가 방법 선택하기</h1>
+        <h1 className="text-2xl font-bold text-base-content">추가 방법 선택하기</h1>
       </div>
 
       {/* Method Selection Cards */}
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Email Invitation Card */}
-          <Card 
+          <Card
             className={`p-8 cursor-pointer transition-all duration-200 ${
-              selectedMethod === 'email' 
-                ? 'ring-2 ring-primary shadow-lg' 
+              selectedMethod === 'email'
+                ? 'ring-2 ring-primary shadow-lg'
                 : 'hover:shadow-md'
             }`}
             onClick={() => setSelectedMethod('email')}
@@ -79,10 +79,10 @@ export default function InviteStudents() {
                   <Check className="h-4 w-4 text-primary-content" />
                 </div>
               )}
-              
+
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-base-content mb-4">초대 메일 발송</h3>
-                
+
                 <div className="mb-6 flex justify-center">
                   <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center">
                     <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
@@ -90,7 +90,7 @@ export default function InviteStudents() {
                     </div>
                   </div>
                 </div>
-                
+
                 <p className="text-base-content/70 text-sm leading-relaxed">
                   초대 메일을 발송하여 수강생을 현재 강좌에 초대합니다
                 </p>
@@ -99,10 +99,10 @@ export default function InviteStudents() {
           </Card>
 
           {/* Course Code Card */}
-          <Card 
+          <Card
             className={`p-8 cursor-pointer transition-all duration-200 ${
-              selectedMethod === 'code' 
-                ? 'ring-2 ring-primary shadow-lg' 
+              selectedMethod === 'code'
+                ? 'ring-2 ring-primary shadow-lg'
                 : 'hover:shadow-md'
             }`}
             onClick={() => setSelectedMethod('code')}
@@ -113,10 +113,10 @@ export default function InviteStudents() {
                   <Check className="h-4 w-4 text-primary-content" />
                 </div>
               )}
-              
+
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-base-content mb-4">수강 코드 전달</h3>
-                
+
                 <div className="mb-6 flex justify-center">
                   <div className="w-24 h-24 bg-gradient-to-br from-base-300 to-base-300/80 rounded-2xl flex items-center justify-center">
                     <div className="w-16 h-16 bg-base-100 rounded-xl flex items-center justify-center shadow-sm">
@@ -126,7 +126,7 @@ export default function InviteStudents() {
                     </div>
                   </div>
                 </div>
-                
+
                 <p className="text-base-content/70 text-sm leading-relaxed">
                   강좌 고유 수강 코드를 수강생에게 전달하여 강좌에 초대합니다.
                 </p>
@@ -137,10 +137,10 @@ export default function InviteStudents() {
 
         {/* Next Button */}
         <div className="flex justify-end mt-8">
-          <Button 
+          <Button
             className={`px-8 py-3 rounded-xl ${
-              selectedMethod 
-                ? 'bg-primary hover:bg-primary/90 text-primary-content' 
+              selectedMethod
+                ? 'bg-primary hover:bg-primary/90 text-primary-content'
                 : 'bg-base-300 text-base-content/50 cursor-not-allowed'
             }`}
             disabled={!selectedMethod}

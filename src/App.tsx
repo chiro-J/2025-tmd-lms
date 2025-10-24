@@ -21,7 +21,6 @@ import Notice from "./pages/student/Notice";
 import Profile from "./pages/student/Profile";
 import AssignmentSubmit from "./pages/student/AssignmentSubmit";
 import QuizPlayer from "./pages/student/QuizPlayer";
-import CourseResources from "./pages/student/CourseResources";
 import CourseQnA from "./pages/student/CourseQnA";
 import Help from "./pages/student/Help";
 
@@ -55,6 +54,7 @@ import InviteByCode from "./pages/instructor/InviteByCode";
 import MasterDashboard from "./pages/admin/MasterDashboard";
 import SubDashboard from "./pages/admin/SubDashboard";
 import CreateSubAdmin from "./pages/admin/CreateSubAdmin";
+import SubAdminManagement from "./pages/admin/SubAdminManagement";
 import InstructorApproval from "./pages/admin/InstructorApproval";
 
 import NotFound from "./pages/NotFound";
@@ -84,7 +84,6 @@ export default function App() {
         <Route path="/student/profile" element={<Profile />} />
         <Route path="/student/assignment/:id" element={<AssignmentSubmit />} />
         <Route path="/student/quiz/:id" element={<QuizPlayer />} />
-        <Route path="/student/course/:id/resources" element={<CourseResources />} />
         <Route path="/student/course/:id/qna" element={<CourseQnA />} />
         <Route path="/student/help" element={<Help />} />
 
@@ -118,6 +117,7 @@ export default function App() {
         <Route path="/admin/master-dashboard" element={<MasterDashboard />} />
         <Route path="/admin/sub-dashboard" element={<SubDashboard />} />
         <Route path="/admin/create-sub-admin" element={<CreateSubAdmin />} />
+        <Route path="/admin/sub-admin-management" element={<SubAdminManagement />} />
         <Route path="/admin/instructor-approval" element={<InstructorApproval />} />
 
         {/* Defaults */}

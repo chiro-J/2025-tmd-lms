@@ -132,7 +132,7 @@ export default function CreateCourse() {
           <div className="space-y-6">
             {/* Header */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-3">
+              <h1 className="text-2xl font-bold text-base-content mb-3">
                 강좌의 기본 정보를 설정해주세요
               </h1>
               <p className="text-gray-600">

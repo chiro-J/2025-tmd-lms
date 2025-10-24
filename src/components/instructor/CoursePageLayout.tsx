@@ -8,7 +8,7 @@ interface CoursePageLayoutProps {
 }
 
 export default function CoursePageLayout({ currentPageTitle, rightActions, children }: CoursePageLayoutProps) {
-  
+
   // Mock current course data
   const currentCourse = {
     id: '1',
@@ -19,19 +19,25 @@ export default function CoursePageLayout({ currentPageTitle, rightActions, child
   return (
     <div className="min-h-screen bg-base-200">
       {/* Header */}
-      <CourseHeader 
+      <CourseHeader
         currentCourse={currentCourse}
         currentPageTitle={currentPageTitle}
-        rightActions={rightActions}
       />
 
       <div className="flex">
         <CourseSidebar />
-        
-        <div className="flex-1 p-2">
-          {/* Page Title */}
-          <div className="mb-4">
-            <h1 className="text-2xl font-bold text-base-content">{currentPageTitle}</h1>
+
+        <div className="flex-1 p-6">
+          {/* Page Title and Actions */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold text-base-content">{currentPageTitle}</h1>
+              {rightActions && (
+                <div className="flex items-center space-x-3">
+                  {rightActions}
+                </div>
+              )}
+            </div>
           </div>
 
           {children}

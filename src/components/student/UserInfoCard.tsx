@@ -3,7 +3,7 @@ import { User, ArrowRight } from 'lucide-react'
 import Card from '../ui/Card'
 import type { UserInfoCardProps } from '../../types'
 
-export default function UserInfoCard({ user, stats }: UserInfoCardProps) {
+export default function UserInfoCard({ user }: UserInfoCardProps) {
   return (
     <Card className="h-full border border-gray-300">
       <div className="p-6 h-full flex items-center justify-between">
@@ -11,10 +11,10 @@ export default function UserInfoCard({ user, stats }: UserInfoCardProps) {
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
             {user.avatar ? (
-              <img 
-                src={user.avatar} 
-                alt={user.name} 
-                className="w-full h-full rounded-full object-cover" 
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-full h-full rounded-full object-cover"
               />
             ) : (
               user.name.split(' ').map(n => n[0]).join('').toUpperCase()

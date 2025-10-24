@@ -12,7 +12,6 @@ import {
   type EditorState,
   $getSelection,
   $isRangeSelection,
-  $isElementNode,
   $getRoot,
 } from 'lexical';
 
@@ -93,11 +92,11 @@ function Toolbar({ readOnly }: { readOnly?: boolean }) {
           setItalic(sel.hasFormat('italic'));
           setUnderline(sel.hasFormat('underline'));
           setCode(sel.hasFormat('code'));
-          
+
           // 정렬 상태 감지
           const anchor = sel.anchor.getNode().getTopLevelElementOrThrow();
           const format = anchor.getFormat();
-          
+
           // Lexical의 정렬 포맷 비트 확인
           if (format & 0b10) { // center
             setAlign('center');
@@ -148,7 +147,7 @@ function Toolbar({ readOnly }: { readOnly?: boolean }) {
     editor.update(() => {
       const sel = $getSelection();
       if (!$isRangeSelection(sel)) return;
-      
+
       // FORMAT_ELEMENT_COMMAND 사용
       editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
     });

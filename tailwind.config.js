@@ -38,14 +38,14 @@ export default {
     themes: [
       {
         lmsnavy: {
-          primary: "#1e293b",
+          primary: colors.slate[800],
           "primary-content": "#ffffff",
-          secondary: "#475569",
-          accent: "#2563eb",
-          neutral: "#334155",
+          secondary: colors.slate[600],
+          accent: colors.blue[600],
+          neutral: colors.slate[700],
           "base-100": "#ffffff",
-          "base-200": "#f8fafc",
-          "base-300": "#e2e8f0",
+          "base-200": colors.slate[50],
+          "base-300": colors.slate[200],
           success: "#10b981",
           warning: "#f59e0b",
           error: "#ef4444",

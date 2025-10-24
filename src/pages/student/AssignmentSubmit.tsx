@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom'
 import { Upload, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
-import Input from '../../components/ui/Input'
 
 interface Assignment {
   id: string
@@ -128,7 +127,7 @@ export default function AssignmentSubmit() {
               <div className="p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">과제 설명</h2>
                 <p className="text-gray-700 mb-4">{assignment.description}</p>
-                
+
                 <h3 className="text-md font-medium text-gray-900 mb-3">요구사항</h3>
                 <ul className="space-y-2">
                   {assignment.instructions.map((instruction, index) => (
@@ -145,7 +144,7 @@ export default function AssignmentSubmit() {
             <Card>
               <div className="p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">파일 제출</h2>
-                
+
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 mb-2">파일을 드래그하거나 클릭하여 업로드하세요</p>
@@ -287,7 +286,6 @@ export default function AssignmentSubmit() {
     </div>
   )
 }
-
 
 
 

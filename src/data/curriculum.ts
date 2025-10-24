@@ -1,4 +1,4 @@
-import type { CurriculumModule, LectureContent } from '../types'
+import type { CurriculumModule } from '../types'
 
 // 공통 교육과정 데이터
 export const curriculumData: CurriculumModule[] = [
@@ -199,7 +199,6 @@ export const getCurriculumData = (): CurriculumModule[] => {
   }
   return curriculumData
 }
-
 
 
 

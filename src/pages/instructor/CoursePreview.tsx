@@ -63,8 +63,8 @@ export default function CoursePreview() {
 
     // Headers
     html = html.replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold text-gray-900 mt-6 mb-3">$1</h3>')
-    html = html.replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">$1</h2>')
-    html = html.replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold text-gray-900 mt-10 mb-5">$1</h1>')
+    html = html.replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-base-content mt-8 mb-4">$1</h2>')
+    html = html.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-base-content mt-10 mb-5">$1</h1>')
 
     // Bold
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
@@ -161,7 +161,7 @@ export default function CoursePreview() {
         <div className="mb-10 text-center">
           <div className="flex items-center justify-center space-x-2 mb-3">
             <Eye className="h-6 w-6 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-base-content">
               미리 보기
             </h1>
           </div>
@@ -277,7 +277,7 @@ export default function CoursePreview() {
             {/* Introduction Video */}
             {courseData.videoUrl && getYouTubeVideoId(courseData.videoUrl) && (
               <div className="mb-10">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">소개 영상</h3>
+                <h3 className="text-2xl font-bold text-base-content mb-6">소개 영상</h3>
                 <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
                   <iframe
                     width="100%"
@@ -294,7 +294,7 @@ export default function CoursePreview() {
 
             {/* Course Content */}
             <div className="mb-10">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">강좌 소개</h3>
+              <h3 className="text-2xl font-bold text-base-content mb-6">강좌 소개</h3>
               {courseData.content ? (
                 <div
                   className="prose prose-lg max-w-none text-gray-700"
@@ -308,7 +308,7 @@ export default function CoursePreview() {
             {/* Uploaded Images */}
             {courseData.uploadedImages && courseData.uploadedImages.length > 0 && (
               <div className="mb-10">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">첨부 이미지</h3>
+                <h3 className="text-2xl font-bold text-base-content mb-6">첨부 이미지</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {courseData.uploadedImages.map((image, index) => (
                     <div key={index} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
@@ -326,7 +326,7 @@ export default function CoursePreview() {
             {/* Uploaded Files */}
             {courseData.uploadedFiles && courseData.uploadedFiles.length > 0 && (
               <div className="mb-10">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">첨부 파일</h3>
+                <h3 className="text-2xl font-bold text-base-content mb-6">첨부 파일</h3>
                 <div className="space-y-3">
                   {courseData.uploadedFiles.map((file, index) => (
                     <div key={index} className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">

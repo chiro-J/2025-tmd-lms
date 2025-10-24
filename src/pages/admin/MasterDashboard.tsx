@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Users, UserPlus, CheckCircle, AlertCircle, BookOpen, BarChart3, Settings, ArrowRight } from 'lucide-react'
+import { Users, UserPlus, CheckCircle, AlertCircle, BookOpen, BarChart3, ArrowRight } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 
@@ -22,9 +22,9 @@ export default function MasterDashboard() {
                 대시보드
               </Button>
             </Link>
-            <Link to="/admin/create-sub-admin">
+            <Link to="/admin/sub-admin-management">
               <Button variant="outline">
-                서브 관리자 생성
+                서브 관리자 관리
               </Button>
             </Link>
             <Link to="/admin/instructor-approval">
@@ -100,7 +100,7 @@ export default function MasterDashboard() {
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">빠른 작업</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Link to="/admin/create-sub-admin">
+              <Link to="/admin/sub-admin-management">
                 <div className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -108,8 +108,8 @@ export default function MasterDashboard() {
                         <UserPlus className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900">서브 관리자 생성</h3>
-                        <p className="text-sm text-gray-500">새로운 서브 관리자 계정 생성</p>
+                        <h3 className="font-medium text-gray-900">서브 관리자 관리</h3>
+                        <p className="text-sm text-gray-500">서브 관리자 조회, 생성, 삭제</p>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />

@@ -8,7 +8,7 @@ import CourseHeader from '../../components/instructor/CourseHeader'
 
 export default function NoticeManagement() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  
+
   // Mock current course data
   const currentCourse = {
     id: '1',
@@ -20,22 +20,22 @@ export default function NoticeManagement() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <CourseHeader 
+      <CourseHeader
         currentCourse={currentCourse}
         currentPageTitle="공지 관리"
       />
 
       <div className="flex">
-        <CourseSidebar 
-          isCollapsed={isSidebarCollapsed} 
+        <CourseSidebar
+          isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           currentCourse={currentCourse}
         />
-        
+
         <div className="flex-1 p-8">
         {/* Page Title */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">공지 관리</h1>
+          <h1 className="text-2xl font-bold text-base-content">공지 관리</h1>
         </div>
 
         {/* Empty State */}
@@ -52,14 +52,14 @@ export default function NoticeManagement() {
             <div className="absolute top-4 -right-4 w-1 h-1 bg-gray-300 rounded-full"></div>
             <div className="absolute -bottom-4 left-4 w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
           </div>
-          
+
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             등록된 공지 사항이 없습니다.
           </h3>
           <p className="text-sm text-gray-500 mb-6">
             첫 번째 공지사항을 작성해보세요.
           </p>
-          
+
           <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
             <Plus className="h-4 w-4 mr-1" />
             첫 공지사항 작성하기

@@ -1,17 +1,15 @@
 // Enhanced types from com/lms-test
-import type { 
-  User, 
-  Course, 
-  Lecture, 
-  Notice, 
-  CalendarEvent, 
-  GradeItem, 
-  Quiz, 
-  QuizQuestion, 
-  Resource, 
-  QnAItem, 
-  QnAAnswer, 
-  FAQItem 
+import type {
+  User,
+  Course,
+  Lecture,
+  Notice,
+  CalendarEvent,
+  GradeItem,
+  Quiz,
+  Resource,
+  QnAItem,
+  FAQItem
 } from './types'
 
 export const mockNotices: Notice[] = [
@@ -23,20 +21,20 @@ export const mockNotices: Notice[] = [
   { id: 6, title: "시스템 점검 안내 #6", date: "2025-10-15", content: "점검 #6 내용..." },
 ]
 
-export const mockUser: User = { 
+export const mockUser: User = {
   id: 1,
   username: "alexkim",
-  name: "Alex Kim", 
-  email: "alex@example.com", 
+  name: "Alex Kim",
+  email: "alex@example.com",
   password: "password123",
   role: "student",
-  avatar: null 
+  avatar: null
 }
 
-export const mockUserStats = { 
-  totalCourses: 12, 
-  inProgress: 4, 
-  avgProgress: 56 
+export const mockUserStats = {
+  totalCourses: 12,
+  inProgress: 4,
+  avgProgress: 56
 }
 
 export const mockLearningNow = [
@@ -115,7 +113,7 @@ export const authenticateUser = (username: string, password: string): User | nul
     { id: '3', username: 'admin', password: 'admin1234', email: 'admin@example.com', role: 'admin' as const, name: '관리자' },
     { id: '4', username: 'subadmin', password: 'sub123', email: 'subadmin@example.com', role: 'sub-admin' as const, name: '서브관리자' }
   ];
-  
+
   const user = mockUsers.find(
     u => u.username === username && u.password === password
   );

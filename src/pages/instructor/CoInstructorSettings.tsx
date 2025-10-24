@@ -8,7 +8,7 @@ import CourseHeader from '../../components/instructor/CourseHeader'
 
 export default function CoInstructorSettings() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  
+
   // Mock current course data
   const currentCourse = {
     id: '1',
@@ -61,17 +61,17 @@ export default function CoInstructorSettings() {
   }
 
   const handleSelectInstructor = (id: number) => {
-    setSelectedInstructors(prev => 
-      prev.includes(id) 
+    setSelectedInstructors(prev =>
+      prev.includes(id)
         ? prev.filter(i => i !== id)
         : [...prev, id]
     )
   }
 
   const toggleNotification = (id: number) => {
-    setInstructors(prev => 
-      prev.map(instructor => 
-        instructor.id === id 
+    setInstructors(prev =>
+      prev.map(instructor =>
+        instructor.id === id
           ? { ...instructor, notificationEnabled: !instructor.notificationEnabled }
           : instructor
       )
@@ -81,22 +81,22 @@ export default function CoInstructorSettings() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <CourseHeader 
+      <CourseHeader
         currentCourse={currentCourse}
         currentPageTitle="공동 강의자 설정"
       />
 
       <div className="flex">
-        <CourseSidebar 
-          isCollapsed={isSidebarCollapsed} 
+        <CourseSidebar
+          isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           currentCourse={currentCourse}
         />
-        
+
         <div className="flex-1 p-8">
         {/* Page Title */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">공동 강의자 설정</h1>
+          <h1 className="text-2xl font-bold text-base-content">공동 강의자 설정</h1>
         </div>
 
         {/* Instructors Section */}
@@ -163,8 +163,8 @@ export default function CoInstructorSettings() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        instructor.role === '메인 강의자' 
-                          ? 'bg-blue-100 text-blue-800' 
+                        instructor.role === '메인 강의자'
+                          ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
                         {instructor.role}

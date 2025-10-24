@@ -27,16 +27,16 @@ export default function BasicInfoForm({
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+
+  const [currentPassword] = useState('')
+  const [newPassword] = useState('')
+  const [confirmPassword] = useState('')
 
   return (
     <Card>
       <div className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-6">기본 정보</h3>
-        
+
         <form onSubmit={onSave} className="space-y-6">
           {/* Name and Email */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -65,7 +65,7 @@ export default function BasicInfoForm({
           {/* Password Section */}
           <div className="space-y-4">
             <h4 className="text-md font-medium text-gray-900">비밀번호 변경</h4>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">현재 비밀번호</label>
               <div className="relative">

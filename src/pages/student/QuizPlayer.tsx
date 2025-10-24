@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Clock, CheckCircle, XCircle, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Clock, CheckCircle, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { mockQuiz } from '../../mocks'
@@ -8,7 +8,7 @@ import type { Quiz, QuizQuestion } from '../../types'
 import QuizReviewModal from '../../components/modals/QuizReviewModal'
 
 export default function QuizPlayer() {
-  const { id } = useParams()
+  const { } = useParams()
   const [quiz] = useState<Quiz>(mockQuiz)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
@@ -114,7 +114,7 @@ export default function QuizPlayer() {
                 <Clock className="h-4 w-4 mr-2" />
                 <span className="font-mono text-lg">{formatTime(timeLeft)}</span>
               </div>
-              
+
               {/* Progress */}
               <div className="text-sm text-gray-600">
                 {currentQuestionIndex + 1} / {quiz.questions.length}
@@ -342,7 +342,6 @@ export default function QuizPlayer() {
     </div>
   )
 }
-
 
 
 

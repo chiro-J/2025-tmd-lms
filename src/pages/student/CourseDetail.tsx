@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, Play, BookOpen, MessageSquare } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, BookOpen, MessageSquare, Download, Image, Code, Link, Search } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import Input from '../../components/ui/Input'
+import { mockResources } from '../../mocks'
+import type { Resource } from '../../types'
 
 interface CurriculumItem {
   id: string
@@ -23,7 +26,11 @@ export default function CourseDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'home' | 'info' | 'exam' | 'notice' | 'resources' | 'qna'>('home')
-  
+
+  // 강의 자료 관련 상태
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedType, setSelectedType] = useState<Resource['type'] | 'all'>('all')
+
   const [curriculum, setCurriculum] = useState<CurriculumItem[]>([
     {
       id: '1',
@@ -91,8 +98,84 @@ export default function CourseDetail() {
 
   const [allExpanded, setAllExpanded] = useState(false)
 
+  // 강의 자료 필터링
+  const filteredResources = mockResources.filter(resource => {
+    const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         resource.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesType = selectedType === 'all' || resource.type === selectedType
+    return matchesSearch && matchesType
+  })
+
+  // 강의 자료 타입별 아이콘
+  const getTypeIcon = (type: Resource['type']) => {
+    switch (type) {
+      case 'pdf':
+        return <FileText className="h-5 w-5 text-red-600" />
+      case 'slide':
+        return <Image className="h-5 w-5 text-blue-600" />
+      case 'code':
+        return <Code className="h-5 w-5 text-green-600" />
+      case 'link':
+        return <Link className="h-5 w-5 text-purple-600" />
+      default:
+        return <FileText className="h-5 w-5 text-gray-600" />
+    }
+  }
+
+  // 강의 자료 타입별 라벨
+  const getTypeLabel = (type: Resource['type']) => {
+    switch (type) {
+      case 'pdf':
+        return 'PDF'
+      case 'slide':
+        return '슬라이드'
+      case 'code':
+        return '코드'
+      case 'link':
+        return '링크'
+      default:
+        return '파일'
+    }
+  }
+
+  // 강의 자료 타입별 색상
+  const getTypeColor = (type: Resource['type']) => {
+    switch (type) {
+      case 'pdf':
+        return 'bg-red-100 text-red-800'
+      case 'slide':
+        return 'bg-blue-100 text-blue-800'
+      case 'code':
+        return 'bg-green-100 text-green-800'
+      case 'link':
+        return 'bg-purple-100 text-purple-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  // 파일 크기 포맷팅
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  // 다운로드 핸들러
+  const handleDownload = (resource: Resource) => {
+    if (resource.type === 'link') {
+      window.open(resource.url, '_blank')
+    } else {
+      // 실제 파일 다운로드 로직
+      console.log('다운로드:', resource.title)
+      // TODO: 실제 다운로드 구현
+    }
+  }
+
   const toggleCurriculum = (id: string) => {
-    setCurriculum(prev => prev.map(item => 
+    setCurriculum(prev => prev.map(item =>
       item.id === id ? { ...item, expanded: !item.expanded } : item
     ))
   }
@@ -122,9 +205,9 @@ export default function CourseDetail() {
         <div className="card p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="w-full lg:w-80 h-48 rounded-xl overflow-hidden flex-shrink-0 relative">
-              <img 
-                src="/photo/bbb.jpg" 
-                alt="풀스택 과정" 
+              <img
+                src="/photo/bbb.jpg"
+                alt="풀스택 과정"
                 className="w-full h-full object-cover"
               />
               <div className="absolute bottom-2 left-2 text-white font-bold text-sm">
@@ -144,7 +227,7 @@ export default function CourseDetail() {
                   <span className="text-sm text-gray-600">57.7%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: '57.7%' }}
                     role="progressbar"
@@ -156,7 +239,7 @@ export default function CourseDetail() {
               </div>
 
               <div className="flex space-x-3">
-                <Button 
+                <Button
                   onClick={() => navigate(`/student/learning/${id}`)}
                   className="btn-primary px-8 py-3"
                 >
@@ -209,7 +292,7 @@ export default function CourseDetail() {
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-base-content text-sm">교육 과정</h3>
                       <div className="flex items-center space-x-2">
-                        <button 
+                        <button
                           onClick={toggleAll}
                           className="text-xs text-base-content/70 hover:text-base-content transition-colors"
                         >
@@ -219,10 +302,10 @@ export default function CourseDetail() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {curriculum.map((item, index) => (
                     <div key={item.id}>
-                      <div 
+                      <div
                         className={`p-3 cursor-pointer hover:bg-base-200 transition-colors border-b border-base-300 last:border-b-0 ${
                           !item.expanded ? 'pl-6' : ''
                         }`}
@@ -257,7 +340,7 @@ export default function CourseDetail() {
 
                       {item.expanded && (
                         <div className="bg-base-200">
-                          {item.lessons.map((lesson, lessonIndex) => (
+                          {item.lessons.map((lesson) => (
                             <div
                               key={lesson.id}
                               className={`p-3 border-b border-base-300 last:border-b-0 cursor-pointer hover:bg-base-100 transition-colors ${
@@ -300,14 +383,14 @@ export default function CourseDetail() {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">강의자 소개</h4>
                       <p className="text-gray-700">
-                        김강사는 10년차 풀스택 개발자로, React, Node.js, TypeScript 등 다양한 기술 스택에 대한 
+                        김강사는 10년차 풀스택 개발자로, React, Node.js, TypeScript 등 다양한 기술 스택에 대한
                         깊은 이해를 바탕으로 실무 중심의 강의를 제공합니다.
                       </p>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">강좌 소개</h4>
                       <p className="text-gray-700">
-                        이 강좌는 React 기초부터 고급 개념까지 체계적으로 학습할 수 있도록 구성되었습니다. 
+                        이 강좌는 React 기초부터 고급 개념까지 체계적으로 학습할 수 있도록 구성되었습니다.
                         실습 위주의 학습으로 실제 프로젝트에 바로 적용할 수 있는 실무 능력을 기를 수 있습니다.
                       </p>
                     </div>
@@ -361,15 +444,98 @@ export default function CourseDetail() {
               <div id="tabpanel-resources" role="tabpanel" aria-labelledby="tab-resources">
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">강의 자료</h3>
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 mb-4">강의 자료를 확인하세요</p>
-                    <Button
-                      onClick={() => navigate(`/student/course/${id}/resources`)}
-                      className="btn-primary"
-                    >
-                      강의 자료 보기
-                    </Button>
+
+                  {/* 검색 및 필터 */}
+                  <div className="mb-6">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      {/* 검색 */}
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            type="text"
+                            placeholder="자료 검색..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 타입 필터 */}
+                      <div className="flex space-x-2">
+                        {[
+                          { value: 'all', label: '전체' },
+                          { value: 'pdf', label: 'PDF' },
+                          { value: 'slide', label: '슬라이드' },
+                          { value: 'code', label: '코드' },
+                          { value: 'link', label: '링크' }
+                        ].map(type => (
+                          <button
+                            key={type.value}
+                            onClick={() => setSelectedType(type.value as Resource['type'] | 'all')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              selectedType === type.value
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {type.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
+
+                  {/* 강의 자료 목록 */}
+                  {filteredResources.length > 0 ? (
+                    <div className="space-y-4">
+                      {filteredResources.map((resource) => (
+                        <div
+                          key={resource.id}
+                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              {getTypeIcon(resource.type)}
+                              <div>
+                                <h4 className="font-medium text-gray-900">{resource.title}</h4>
+                                {resource.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{resource.description}</p>
+                                )}
+                                <div className="flex items-center space-x-2 mt-2">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(resource.type)}`}>
+                                    {getTypeLabel(resource.type)}
+                                  </span>
+                                  {resource.fileSize && (
+                                    <span className="text-xs text-gray-500">
+                                      {formatFileSize(resource.fileSize)}
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-gray-500">
+                                    {new Date(resource.uploadedAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => handleDownload(resource)}
+                              className="btn-outline flex items-center space-x-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span>{resource.type === 'link' ? '열기' : '다운로드'}</span>
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">검색 결과가 없습니다</p>
+                      <p className="text-sm text-gray-500">다른 검색어나 필터를 시도해보세요</p>
+                    </div>
+                  )}
                 </Card>
               </div>
             )}

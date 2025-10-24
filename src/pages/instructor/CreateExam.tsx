@@ -8,7 +8,7 @@ import CourseHeader from '../../components/instructor/CourseHeader'
 
 export default function CreateExam() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  
+
   // Mock current course data
   const currentCourse = {
     id: '1',
@@ -41,22 +41,22 @@ export default function CreateExam() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <CourseHeader 
+      <CourseHeader
         currentCourse={currentCourse}
         currentPageTitle="시험 문제"
       />
 
       <div className="flex">
-        <CourseSidebar 
-          isCollapsed={isSidebarCollapsed} 
+        <CourseSidebar
+          isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           currentCourse={currentCourse}
         />
-        
+
         <div className="flex-1 p-8">
           {/* Page Title */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">시험 문제</h1>
+            <h1 className="text-2xl font-bold text-base-content">시험 문제</h1>
           </div>
 
           <Card className="p-6">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Search, Mail, MessageSquare, HelpCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Mail, MessageSquare, HelpCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -57,18 +57,34 @@ export default function Help() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* FAQ Section */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Search */}
+            {/* Categories */}
             <Card>
               <div className="p-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="FAQ 검색..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">카테고리</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      searchQuery === ''
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    전체
+                  </button>
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setSearchQuery(category)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        searchQuery === category
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
                 </div>
               </div>
             </Card>
@@ -102,7 +118,7 @@ export default function Help() {
                           )}
                         </div>
                       </button>
-                      
+
                       {isExpanded && (
                         <div className="px-6 pb-6 border-t border-gray-200">
                           <div className="pt-4">
@@ -147,7 +163,7 @@ export default function Help() {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       이메일 *
@@ -159,7 +175,7 @@ export default function Help() {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       제목 *
@@ -171,7 +187,7 @@ export default function Help() {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       문의 내용 *
@@ -184,7 +200,7 @@ export default function Help() {
                       required
                     />
                   </div>
-                  
+
                   <Button
                     type="submit"
                     disabled={isSubmitting}
@@ -226,29 +242,13 @@ export default function Help() {
               </div>
             </Card>
 
-            {/* FAQ Categories */}
-            <Card>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">카테고리</h3>
-                <div className="space-y-2">
-                  {categories.map(category => (
-                    <button
-                      key={category}
-                      onClick={() => setSearchQuery(category)}
-                      className="block w-full text-left p-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </Card>
           </div>
         </div>
       </div>
     </div>
   )
 }
+
 
 
 
