@@ -60,7 +60,13 @@ export default function NoticeManagement() {
             첫 번째 공지사항을 작성해보세요.
           </p>
 
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl" onClick={() => {
+            const w = window.open(`/instructor/course/${currentCourse.id}/notices/new`, '_blank', 'width=1200,height=800')
+            if (!w) {
+              // 팝업 차단 대비: 동일 탭 이동 fallback
+              window.location.href = `/instructor/course/${currentCourse.id}/notices/new`
+            }
+          }}>
             <Plus className="h-4 w-4 mr-1" />
             첫 공지사항 작성하기
           </Button>

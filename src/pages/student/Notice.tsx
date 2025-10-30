@@ -9,14 +9,14 @@ export default function StudentNotice() {
       <main className="container-page py-8">
         {/* 헤더 */}
         <div className="mb-8">
-          <Link 
+          <Link
             to="/student/dashboard"
             className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm font-medium">대시보드로 돌아가기</span>
           </Link>
-          
+
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <Bell className="h-5 w-5 text-blue-600" />
@@ -49,7 +49,7 @@ export default function StudentNotice() {
                   중요
                 </span>
               </div>
-              
+
               <div className="prose max-w-none">
                 <p className="text-gray-700 leading-relaxed">{notice.content}</p>
               </div>

@@ -44,22 +44,22 @@ export default function InviteByEmail() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="초대 메일 발송"
       rightActions={rightActions}
     >
       {/* Breadcrumb */}
       <div className="mb-6">
         <nav className="flex items-center space-x-2 text-sm">
-          <Link 
-            to="/instructor/course/1/students" 
+          <Link
+            to="/instructor/course/1/students"
             className="px-3 py-1 bg-base-200 text-base-content/70 rounded-lg hover:bg-base-300 transition-colors"
           >
             수강자 관리 홈
           </Link>
           <span className="text-base-content/50">/</span>
-          <Link 
-            to="/instructor/course/1/invite-students" 
+          <Link
+            to="/instructor/course/1/invite-students"
             className="px-3 py-1 bg-base-200 text-base-content/70 rounded-lg hover:bg-base-300 transition-colors"
           >
             수강생 추가하기
@@ -74,8 +74,8 @@ export default function InviteByEmail() {
         <Card className="p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-base-content">수신자 이메일</h3>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="text-primary border-primary hover:bg-primary hover:text-primary-content"
               onClick={addEmailField}
             >
@@ -83,7 +83,7 @@ export default function InviteByEmail() {
               이메일 추가
             </Button>
           </div>
-          
+
           <div className="space-y-3">
             {emails.map((email, index) => (
               <div key={index} className="flex items-center space-x-3">
@@ -113,7 +113,7 @@ export default function InviteByEmail() {
         {/* Email Content */}
         <Card className="p-6 mb-6">
           <h3 className="text-lg font-semibold text-base-content mb-4">메일 내용</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-base-content/80 mb-2">
@@ -126,7 +126,7 @@ export default function InviteByEmail() {
                 className="w-full px-4 py-2 border border-base-300 rounded-lg bg-base-100 text-base-content focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-base-content/80 mb-2">
                 메시지
@@ -144,7 +144,7 @@ export default function InviteByEmail() {
 
         {/* Send Button */}
         <div className="flex justify-end">
-          <Button 
+          <Button
             className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-content rounded-xl"
             onClick={handleSend}
           >
@@ -156,6 +156,14 @@ export default function InviteByEmail() {
     </CoursePageLayout>
   )
 }
+
+
+
+
+
+
+
+
 
 
 

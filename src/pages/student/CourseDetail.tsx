@@ -4,8 +4,8 @@ import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, BookOpen, MessageS
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { mockResources } from '../../mocks'
-import type { Resource } from '../../types'
+import { mockResources, mockQnA } from '../../mocks'
+import type { Resource, QnAItem } from '../../types'
 
 interface CurriculumItem {
   id: string
@@ -30,6 +30,11 @@ export default function CourseDetail() {
   // 강의 자료 관련 상태
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<Resource['type'] | 'all'>('all')
+
+  // QnA 관련 상태
+  const [qnaSearchQuery, setQnaSearchQuery] = useState('')
+  const [showAskInline, setShowAskInline] = useState(false)
+  const [askText, setAskText] = useState('')
 
   const [curriculum, setCurriculum] = useState<CurriculumItem[]>([
     {
@@ -104,6 +109,13 @@ export default function CourseDetail() {
                          resource.description?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesType = selectedType === 'all' || resource.type === selectedType
     return matchesSearch && matchesType
+  })
+
+  // QnA 필터링 로직
+  const filteredQnA = mockQnA.filter(qna => {
+    const matchesSearch = qna.question.toLowerCase().includes(qnaSearchQuery.toLowerCase()) ||
+                          qna.author.toLowerCase().includes(qnaSearchQuery.toLowerCase())
+    return matchesSearch
   })
 
   // 강의 자료 타입별 아이콘
@@ -377,25 +389,32 @@ export default function CourseDetail() {
 
             {activeTab === 'info' && (
               <div id="tabpanel-info" role="tabpanel" aria-labelledby="tab-info">
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">강좌 정보</h3>
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">강의자 소개</h4>
-                      <p className="text-gray-700">
-                        김강사는 10년차 풀스택 개발자로, React, Node.js, TypeScript 등 다양한 기술 스택에 대한
-                        깊은 이해를 바탕으로 실무 중심의 강의를 제공합니다.
-                      </p>
+                <div className="space-y-6">
+                  {/* Course Video */}
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">소개 영상</h3>
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src="https://www.youtube.com/embed/example"
+                        title="강좌 소개 영상"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
                     </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">강좌 소개</h4>
-                      <p className="text-gray-700">
-                        이 강좌는 React 기초부터 고급 개념까지 체계적으로 학습할 수 있도록 구성되었습니다.
-                        실습 위주의 학습으로 실제 프로젝트에 바로 적용할 수 있는 실무 능력을 기를 수 있습니다.
-                      </p>
+                  </Card>
+
+                  {/* Course Content */}
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">강좌 소개</h3>
+                    <div className="text-gray-700 prose max-w-none">
+                      <p>이 강좌는 React 기초부터 고급 개념까지 체계적으로 학습할 수 있도록 구성되었습니다.</p>
+                      <p>실습 위주의 학습으로 실제 프로젝트에 바로 적용할 수 있는 실무 능력을 기를 수 있습니다.</p>
                     </div>
-                  </div>
-                </Card>
+                  </Card>
+                </div>
               </div>
             )}
 
@@ -544,15 +563,106 @@ export default function CourseDetail() {
               <div id="tabpanel-qna" role="tabpanel" aria-labelledby="tab-qna">
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">질문과 답변</h3>
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 mb-4">강의 관련 질문을 하고 답변을 받아보세요</p>
-                    <Button
-                      onClick={() => navigate(`/student/course/${id}/qna`)}
-                      className="btn-primary"
-                    >
-                      Q&A 보기
+
+                  {/* 검색 */}
+                  <div className="mb-6">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="text"
+                        placeholder="질문 검색..."
+                        value={qnaSearchQuery}
+                        onChange={(e) => setQnaSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* QnA 목록 */}
+                  {filteredQnA.length > 0 ? (
+                    <div className="space-y-4">
+                      {filteredQnA.map((qna) => (
+                        <div
+                          key={qna.id}
+                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 mb-2">{qna.question}</h4>
+                              <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                                <span>{qna.author}</span>
+                                <span>{new Date(qna.createdAt).toLocaleDateString()}</span>
+                                <span>{qna.answers.length}개 답변</span>
+                              </div>
+
+                              {/* 답변 미리보기 */}
+                              {qna.answers.length > 0 && (
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <MessageSquare className="h-4 w-4 text-blue-600" />
+                                    <span className="text-sm font-medium text-gray-700">답변</span>
+                                  </div>
+                                  <p className="text-sm text-gray-600 line-clamp-2">
+                                    {qna.answers[0].content}
+                                  </p>
+                                  <div className="mt-2">
+                                    <span className="text-xs text-gray-500">
+                                      {qna.answers[0].author} • {new Date(qna.answers[0].createdAt).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">검색 결과가 없습니다</p>
+                      <p className="text-sm text-gray-500">다른 검색어나 필터를 시도해보세요</p>
+                    </div>
+                  )}
+
+                  {/* 새 질문 작성 버튼 */}
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setShowAskInline(!showAskInline)}>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      {showAskInline ? '작성 창 닫기' : '새 질문 작성하기'}
                     </Button>
                   </div>
+                  {showAskInline && (
+                    <div className="mt-4 p-4 border border-base-300 rounded-lg bg-base-100">
+                      <label className="block text-sm font-medium text-base-content mb-2">질문 내용 *</label>
+                      <textarea
+                        value={askText}
+                        onChange={(e) => setAskText(e.target.value)}
+                        placeholder="질문을 자세히 작성해주세요. (최소 10자 이상)"
+                        className="w-full px-3 py-2 border border-base-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+                        rows={5}
+                        maxLength={1000}
+                      />
+                      <div className="flex items-center justify-between text-xs text-base-content/70 mt-1">
+                        <span>최소 10자 이상 작성해주세요</span>
+                        <span>{askText.length}/1000</span>
+                      </div>
+                      <div className="flex justify-end space-x-2 mt-3">
+                        <Button variant="outline" className="rounded-xl" onClick={() => { setAskText(''); setShowAskInline(false) }}>취소</Button>
+                        <Button
+                          className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl"
+                          disabled={askText.length < 10}
+                          onClick={() => {
+                            console.log('질문 제출:', { text: askText })
+                            setAskText('')
+                            setShowAskInline(false)
+                          }}
+                        >
+                          질문 등록
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               </div>
             )}

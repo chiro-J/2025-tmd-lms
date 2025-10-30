@@ -50,16 +50,16 @@ export default function GradeReport() {
     const doc = new jsPDF()
     doc.text('성적 보고서', 20, 30)
     doc.text(`생성일: ${new Date().toLocaleDateString('ko-KR')}`, 20, 45)
-    
+
     let yPosition = 60
     doc.text('학생 성적', 20, yPosition)
     yPosition += 10
-    
+
     students.forEach((student, index) => {
       doc.text(`${index + 1}. ${student.name} - ${student.average}점 (${student.grade})`, 20, yPosition)
       yPosition += 10
     })
-    
+
     doc.save('성적보고서.pdf')
   }
 
@@ -71,7 +71,7 @@ export default function GradeReport() {
       '평균': student.average,
       '등급': student.grade
     }))
-    
+
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '성적보고서')
@@ -92,7 +92,7 @@ export default function GradeReport() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="성적 보고서 만들기"
       rightActions={rightActions}
     >
@@ -156,7 +156,7 @@ export default function GradeReport() {
         <div className="px-3 py-2 border-b border-base-300 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-base-content">학생 성적</h2>
           <div className="flex space-x-2">
-            <select 
+            <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
               className="text-sm border border-base-300 rounded-lg px-3 py-1 bg-base-100 text-base-content"
@@ -240,6 +240,14 @@ export default function GradeReport() {
     </CoursePageLayout>
   )
 }
+
+
+
+
+
+
+
+
 
 
 

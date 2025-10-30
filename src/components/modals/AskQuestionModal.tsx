@@ -3,6 +3,7 @@ import { Plus, X as RemoveIcon } from 'lucide-react'
 import ModalBase from './ModalBase'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import MarkdownEditor from '../../components/editor/MarkdownEditor'
 
 interface AskQuestionModalProps {
   courseTitle: string
@@ -49,27 +50,20 @@ export default function AskQuestionModal({ courseTitle, onClose }: AskQuestionMo
   }
 
   return (
-    <ModalBase 
+    <ModalBase
       open={true}
       onClose={onClose}
       title="질문하기"
     >
       <div className="space-y-6">
         <div className="text-sm text-gray-500 mb-4">{courseTitle}</div>
-        
+
         {/* Question */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             질문 내용 *
           </label>
-          <textarea
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="질문을 자세히 작성해주세요. (최소 10자 이상)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            rows={6}
-            maxLength={1000}
-          />
+          <MarkdownEditor initialValue={question} onChange={setQuestion} height={300} />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>최소 10자 이상 작성해주세요</span>
             <span>{question.length}/1000</span>

@@ -89,8 +89,7 @@ export default function QuizPlayer() {
     return (
       <QuizReviewModal
         quiz={quiz}
-        answers={answers}
-        score={calculateScore()}
+        userAnswers={answers}
         onClose={() => setShowReview(false)}
       />
     )

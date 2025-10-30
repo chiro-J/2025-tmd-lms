@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Download, Filter, CheckCircle, XCircle, ChevronDown } from 'lucide-react'
+import { Search, Download, Filter, CheckCircle, XCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
@@ -10,43 +10,43 @@ export default function AchievementAnalysis() {
 
   // Mock data
   const students = [
-    { 
-      id: 1, 
-      name: '김학생', 
-      email: 'student1@example.com', 
-      progress: 100, 
+    {
+      id: 1,
+      name: '김학생',
+      email: 'student1@example.com',
+      progress: 100,
       completed: true,
       lectures: [true, true, true, true, true, true, true]
     },
-    { 
-      id: 2, 
-      name: '이학생', 
-      email: 'student2@example.com', 
-      progress: 88, 
+    {
+      id: 2,
+      name: '이학생',
+      email: 'student2@example.com',
+      progress: 88,
       completed: false,
       lectures: [true, true, true, false, true, false, true]
     },
-    { 
-      id: 3, 
-      name: '박학생', 
-      email: 'student3@example.com', 
-      progress: 81, 
+    {
+      id: 3,
+      name: '박학생',
+      email: 'student3@example.com',
+      progress: 81,
       completed: false,
       lectures: [true, true, true, true, false, true, false]
     },
-    { 
-      id: 4, 
-      name: '최학생', 
-      email: 'student4@example.com', 
-      progress: 77, 
+    {
+      id: 4,
+      name: '최학생',
+      email: 'student4@example.com',
+      progress: 77,
       completed: false,
       lectures: [true, true, false, true, true, false, true]
     },
-    { 
-      id: 5, 
-      name: '정학생', 
-      email: 'student5@example.com', 
-      progress: 73, 
+    {
+      id: 5,
+      name: '정학생',
+      email: 'student5@example.com',
+      progress: 73,
       completed: false,
       lectures: [true, false, true, true, false, true, false]
     },
@@ -70,7 +70,7 @@ export default function AchievementAnalysis() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="성취도 분석"
       rightActions={rightActions}
     >
@@ -207,3 +207,8 @@ export default function AchievementAnalysis() {
     </CoursePageLayout>
   )
 }
+
+
+
+
+

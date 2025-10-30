@@ -1,9 +1,19 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Bell, Home, BookOpen, ClipboardList, Users, Settings, MessageCircle } from 'lucide-react'
+import { ChevronDown, ChevronRight, Bell, Home, BookOpen, ClipboardList, Users, Settings, MessageCircle, FileText, HelpCircle, Edit3 } from 'lucide-react'
 
-export default function CourseSidebar() {
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['students', 'exams', 'community', 'settings'])
+interface CourseSidebarProps {
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  currentCourse?: {
+    id: string;
+    title: string;
+    status: string;
+  };
+}
+
+export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCourse }: CourseSidebarProps) {
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'exams', 'community', 'settings'])
   const location = useLocation()
 
   const toggleMenu = (menu: string) => {
@@ -56,8 +66,26 @@ export default function CourseSidebar() {
             </button>
             {expandedMenus.includes('curriculum') && (
               <div className="ml-6 mt-2 space-y-1">
-                <Link to="/instructor/course/1/edit" className="block px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded">
+                <Link to="/instructor/course/1/edit" className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === '/instructor/course/1/edit'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
                   교육 과정 편집
+                </Link>
+                <Link to="/instructor/course/1/info" className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === '/instructor/course/1/info'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  강좌 정보 편집
+                </Link>
+                <Link to="/instructor/course/1/resources" className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === '/instructor/course/1/resources'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  강의 자료 관리
                 </Link>
               </div>
             )}
@@ -129,6 +157,13 @@ export default function CourseSidebar() {
                 }`}>
                   공지 관리
                 </Link>
+                <Link to="/instructor/course/1/qna" className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === '/instructor/course/1/qna'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  Q&A 관리
+                </Link>
                 <Link to="/instructor/course/1/reviews" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   후기 관리
                 </Link>
@@ -186,9 +221,7 @@ export default function CourseSidebar() {
             </button>
             {expandedMenus.includes('settings') && (
               <div className="ml-6 mt-2 space-y-1">
-                <Link to="/instructor/course/1/settings" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
-                  강좌 설정
-                </Link>
+                {/* 강좌 설정 링크 제거: 강좌 정보 편집과 중복 */}
                 <Link to="/instructor/course/1/co-instructors" className={`block px-4 py-2 text-sm rounded ${
                   location.pathname === '/instructor/course/1/co-instructors'
                     ? 'text-primary bg-primary/10'

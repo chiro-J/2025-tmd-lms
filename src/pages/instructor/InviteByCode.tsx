@@ -8,7 +8,7 @@ import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 export default function InviteByCode() {
   const [copied, setCopied] = useState(false)
   const courseCode = 'LMS2024-001'
-  
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(courseCode)
@@ -29,22 +29,22 @@ export default function InviteByCode() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="수강 코드 전달"
       rightActions={rightActions}
     >
       {/* Breadcrumb */}
       <div className="mb-6">
         <nav className="flex items-center space-x-2 text-sm">
-          <Link 
-            to="/instructor/course/1/students" 
+          <Link
+            to="/instructor/course/1/students"
             className="px-3 py-1 bg-base-200 text-base-content/70 rounded-lg hover:bg-base-300 transition-colors"
           >
             수강자 관리 홈
           </Link>
           <span className="text-base-content/50">/</span>
-          <Link 
-            to="/instructor/course/1/invite-students" 
+          <Link
+            to="/instructor/course/1/invite-students"
             className="px-3 py-1 bg-base-200 text-base-content/70 rounded-lg hover:bg-base-300 transition-colors"
           >
             수강생 추가하기
@@ -74,10 +74,10 @@ export default function InviteByCode() {
             </div>
           </div>
 
-          <Button 
+          <Button
             className={`px-8 py-3 rounded-xl ${
-              copied 
-                ? 'bg-success hover:bg-success/90 text-success-content' 
+              copied
+                ? 'bg-success hover:bg-success/90 text-success-content'
                 : 'bg-primary hover:bg-primary/90 text-primary-content'
             }`}
             onClick={copyToClipboard}
@@ -99,7 +99,7 @@ export default function InviteByCode() {
         {/* Course Information */}
         <Card className="p-6 mb-6">
           <h3 className="text-lg font-semibold text-base-content mb-4">강좌 정보</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -110,7 +110,7 @@ export default function InviteByCode() {
                 <div className="font-medium text-base-content">풀스택 웹 개발 과정</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Calendar className="h-5 w-5 text-primary" />
@@ -120,7 +120,7 @@ export default function InviteByCode() {
                 <div className="font-medium text-base-content">2024.01.01 - 2024.12.31</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Clock className="h-5 w-5 text-primary" />
@@ -130,7 +130,7 @@ export default function InviteByCode() {
                 <div className="font-medium text-base-content">26강</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Key className="h-5 w-5 text-primary" />
@@ -146,7 +146,7 @@ export default function InviteByCode() {
         {/* Instructions */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-base-content mb-4">사용 방법</h3>
-          
+
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-primary text-primary-content rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
@@ -157,7 +157,7 @@ export default function InviteByCode() {
                 <div className="text-sm text-base-content/70">위의 "코드 복사하기" 버튼을 클릭하여 수강 코드를 클립보드에 복사합니다.</div>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-primary text-primary-content rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                 2
@@ -167,7 +167,7 @@ export default function InviteByCode() {
                 <div className="text-sm text-base-content/70">복사한 수강 코드를 메신저, 이메일, 문자 등을 통해 수강생에게 전달합니다.</div>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-primary text-primary-content rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                 3
@@ -183,6 +183,14 @@ export default function InviteByCode() {
     </CoursePageLayout>
   )
 }
+
+
+
+
+
+
+
+
 
 
 

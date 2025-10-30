@@ -11,11 +11,11 @@ interface ModalBaseProps {
   maxWidth?: string
 }
 
-export default function ModalBase({ 
-  open, 
-  onClose, 
-  title, 
-  children, 
+export default function ModalBase({
+  open,
+  onClose,
+  title,
+  children,
   footer,
   maxWidth = 'max-w-lg'
 }: ModalBaseProps) {
@@ -26,16 +26,16 @@ export default function ModalBase({
     if (open) {
       // Store the currently focused element
       previousActiveElement.current = document.activeElement as HTMLElement
-      
+
       // Focus the modal
       modalRef.current?.focus()
-      
+
       // Prevent body scroll
       document.body.style.overflow = 'hidden'
     } else {
       // Restore body scroll
       document.body.style.overflow = 'unset'
-      
+
       // Return focus to the previously focused element
       if (previousActiveElement.current) {
         previousActiveElement.current.focus()
@@ -63,20 +63,20 @@ export default function ModalBase({
   if (!open) return null
 
   const modalContent = (
-    <div 
+    <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       {/* Backdrop - 전체화면으로 어둡게 */}
-      <div 
+      <div
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
-      <div 
+      <div
         ref={modalRef}
         className={`relative bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-hidden focus:outline-none z-10`}
         tabIndex={-1}

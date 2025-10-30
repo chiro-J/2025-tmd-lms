@@ -33,7 +33,7 @@ export default function Login() {
 
       // Use AuthContext login
       login(user);
-      
+
       // navigate to appropriate dashboard based on role
       if (user.role === 'instructor') {
         navigate('/instructor/dashboard');
@@ -206,7 +206,7 @@ export default function Login() {
             type="submit"
             className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg"
           >
-            {userType === 'student' ? '수강생 로그인' : 
+            {userType === 'student' ? '수강생 로그인' :
              userType === 'instructor' ? '강의자 로그인' :
              userType === 'admin' ? '마스터 관리자 로그인' : '서브 관리자 로그인'}
           </button>
@@ -308,4 +308,12 @@ export default function Login() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 

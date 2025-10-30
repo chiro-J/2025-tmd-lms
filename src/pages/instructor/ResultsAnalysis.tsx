@@ -82,7 +82,7 @@ export default function ResultsAnalysis() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="결과 분석"
       rightActions={rightActions}
     >
@@ -142,7 +142,7 @@ export default function ResultsAnalysis() {
         <div className="px-3 py-2 border-b border-base-300 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-base-content">시험 결과</h2>
           <div className="flex space-x-2">
-            <select 
+            <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
               className="text-sm border border-base-300 rounded-lg px-3 py-1 bg-base-100 text-base-content"
@@ -264,8 +264,8 @@ export default function ResultsAnalysis() {
                   <td className="px-3 py-2 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-16 bg-base-300 rounded-full h-2 mr-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
+                        <div
+                          className="bg-primary h-2 rounded-full"
                           style={{ width: `${(student.completedExams / student.totalExams) * 100}%` }}
                         ></div>
                       </div>
@@ -283,6 +283,14 @@ export default function ResultsAnalysis() {
     </CoursePageLayout>
   )
 }
+
+
+
+
+
+
+
+
 
 
 

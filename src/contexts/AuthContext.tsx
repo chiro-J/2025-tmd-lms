@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import type { User } from '../types'
 
 interface AuthContextType {
@@ -31,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
     const savedLoginStatus = localStorage.getItem('isLoggedIn')
-    
+
     if (savedUser && savedLoginStatus === 'true') {
       try {
         const parsedUser = JSON.parse(savedUser)

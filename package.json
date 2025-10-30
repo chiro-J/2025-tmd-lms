@@ -8,9 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "changelog": "node scripts/update-changelog.js",
-    "changelog:auto": "node scripts/auto-changelog.js",
-    "capture": "node capture-pages.js"
+    "pack:share": "pwsh -NoProfile -File scripts/pack-share.ps1",
+    "sync:backend": "pwsh -NoProfile -File scripts/sync-backend.ps1"
   },
   "dependencies": {
     "@fontsource/nanum-gothic": "^5.2.7",
@@ -20,14 +19,19 @@
     "@lexical/list": "0.13.1",
     "@lexical/react": "0.13.1",
     "@lexical/rich-text": "0.13.1",
+    "@tinymce/tinymce-react": "^6.3.0",
     "daisyui": "^5.3.7",
     "jspdf": "^3.0.3",
     "lexical": "0.13.1",
     "lucide-react": "^0.545.0",
-    "puppeteer": "^24.25.0",
+    "marked": "^16.4.1",
+    "pdfjs-dist": "^3.11.174",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-pdf": "^10.2.0",
     "react-router-dom": "^7.9.4",
+    "tinymce": "^8.2.0",
+    "tinymce-i18n": "^25.10.6",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

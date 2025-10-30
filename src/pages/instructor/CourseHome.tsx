@@ -1,9 +1,11 @@
+import { Link, useParams } from 'react-router-dom'
 import { ClipboardList, Edit3, AlertCircle, Star, Users, Play } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 
 export default function CourseHome() {
+  const { id } = useParams()
 
   return (
     <CoursePageLayout
@@ -41,10 +43,12 @@ export default function CourseHome() {
 
               {/* Action Buttons */}
               <div className="flex items-center space-x-3">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  강좌 편집
-                </Button>
+                <Link to={`/instructor/course/${id}/info`}>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    강좌 정보 편집
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

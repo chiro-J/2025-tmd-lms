@@ -231,13 +231,6 @@ export default function Help() {
                     <MessageSquare className="h-5 w-5 mr-3 text-green-600" />
                     <span>전화 지원</span>
                   </a>
-                  <a
-                    href="/student/help"
-                    className="flex items-center p-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <HelpCircle className="h-5 w-5 mr-3 text-purple-600" />
-                    <span>온라인 채팅</span>
-                  </a>
                 </div>
               </div>
             </Card>

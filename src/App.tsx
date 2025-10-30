@@ -5,6 +5,7 @@ import MainLayout from "./layout/MainLayout";
 
 // Contexts
 import { CourseCreationProvider } from "./contexts/CourseCreationContext";
+import { NoticeProvider } from "./contexts/NoticeContext";
 
 // Auth pages
 import Login from "./pages/auth/Login";
@@ -21,8 +22,8 @@ import Notice from "./pages/student/Notice";
 import Profile from "./pages/student/Profile";
 import AssignmentSubmit from "./pages/student/AssignmentSubmit";
 import QuizPlayer from "./pages/student/QuizPlayer";
-import CourseQnA from "./pages/student/CourseQnA";
 import Help from "./pages/student/Help";
+import Calendar from "./pages/student/Calendar";
 
 // Instructor pages
 import InstructorDashboard from "./pages/instructor/Dashboard";
@@ -31,20 +32,25 @@ import CreateCourse from "./pages/instructor/CreateCourse";
 import CourseIntroduction from "./pages/instructor/CourseIntroduction";
 import CourseHome from "./pages/instructor/CourseHome";
 import EditCurriculum from "./pages/instructor/EditCurriculum";
-import StudentManagement from "./pages/instructor/StudentManagement";
+import ManageStudents from "./pages/instructor/ManageStudents";
 import AchievementAnalysis from "./pages/instructor/AchievementAnalysis";
+import ResourceManagement from "./pages/instructor/ResourceManagement";
+import QnAManagement from "./pages/instructor/QnAManagement";
+import CourseInfoEdit from "./pages/instructor/CourseInfoEdit";
 import CoInstructorSettings from "./pages/instructor/CoInstructorSettings";
 import ExamManagement from "./pages/instructor/ExamManagement";
 import CreateExam from "./pages/instructor/CreateExam";
+import QuestionManagement from "./pages/instructor/QuestionManagement";
 import NoticeManagement from "./pages/instructor/NoticeManagement";
+import NoticeEditor from "./pages/instructor/NoticeEditor";
 import InstructorProfile from "./pages/instructor/Profile";
-import InstructorProfilePage from "./pages/instructor/InstructorProfile";
 import CoursePreview from "./pages/instructor/CoursePreview";
 import RealtimeProctoring from "./pages/instructor/RealtimeProctoring.tsx";
 import ResultsAnalysis from "./pages/instructor/ResultsAnalysis.tsx";
+import ExamDetail from "./pages/instructor/ExamDetail";
 import GradeReport from "./pages/instructor/GradeReport.tsx";
 import ReviewManagement from "./pages/instructor/ReviewManagement.tsx";
-import CourseSettings from "./pages/instructor/CourseSettings.tsx";
+// import CourseSettings from "./pages/instructor/CourseSettings.tsx";
 import ActivityHistory from "./pages/instructor/ActivityHistory.tsx";
 import InviteStudents from "./pages/instructor/InviteStudents";
 import InviteByEmail from "./pages/instructor/InviteByEmail";
@@ -73,7 +79,9 @@ export default function App() {
       {/* Main app with layout */}
       <Route element={
         <CourseCreationProvider>
-          <MainLayout />
+          <NoticeProvider>
+            <MainLayout />
+          </NoticeProvider>
         </CourseCreationProvider>
       }>
         {/* Student */}
@@ -81,37 +89,42 @@ export default function App() {
         <Route path="/student/course/:id" element={<CourseDetail />} />
         <Route path="/student/learning/:id" element={<Learning />} />
         <Route path="/student/notice" element={<Notice />} />
+        <Route path="/student/calendar" element={<Calendar />} />
         <Route path="/student/profile" element={<Profile />} />
         <Route path="/student/assignment/:id" element={<AssignmentSubmit />} />
         <Route path="/student/quiz/:id" element={<QuizPlayer />} />
-        <Route path="/student/course/:id/qna" element={<CourseQnA />} />
         <Route path="/student/help" element={<Help />} />
 
              {/* Instructor */}
              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
              <Route path="/instructor/courses" element={<CourseList />} />
-             <Route path="/instructor/create" element={<CreateCourse />} />
-             <Route path="/instructor/create/introduction" element={<CourseIntroduction />} />
+             <Route path="/instructor/create" element={<CourseIntroduction />} />
+             <Route path="/instructor/create/introduction" element={<Navigate to="/instructor/create" replace />} />
              <Route path="/instructor/course/:id/home" element={<CourseHome />} />
              <Route path="/instructor/course/:id/edit" element={<EditCurriculum />} />
-             <Route path="/instructor/course/:id/students" element={<StudentManagement />} />
+             <Route path="/instructor/course/:id/info" element={<CourseInfoEdit />} />
+             <Route path="/instructor/course/:id/resources" element={<ResourceManagement />} />
+             <Route path="/instructor/course/:id/students" element={<ManageStudents />} />
+             <Route path="/instructor/course/:id/qna" element={<QnAManagement />} />
              <Route path="/instructor/course/:id/invite-students" element={<InviteStudents />} />
              <Route path="/instructor/course/:id/invite-email" element={<InviteByEmail />} />
              <Route path="/instructor/course/:id/invite-code" element={<InviteByCode />} />
              <Route path="/instructor/course/:id/achievement" element={<AchievementAnalysis />} />
              <Route path="/instructor/course/:id/co-instructors" element={<CoInstructorSettings />} />
              <Route path="/instructor/course/:id/exams" element={<ExamManagement />} />
+             <Route path="/instructor/course/:id/exam/:examId" element={<ExamDetail />} />
              <Route path="/instructor/course/:id/create-exam" element={<CreateExam />} />
+             <Route path="/instructor/course/:id/question-management" element={<QuestionManagement />} />
              <Route path="/instructor/course/:id/notices" element={<NoticeManagement />} />
+             <Route path="/instructor/course/:id/notices/new" element={<NoticeEditor />} />
              <Route path="/instructor/course/:id/proctoring" element={<RealtimeProctoring />} />
              <Route path="/instructor/course/:id/results" element={<ResultsAnalysis />} />
              <Route path="/instructor/course/:id/grade-report" element={<GradeReport />} />
              <Route path="/instructor/course/:id/reviews" element={<ReviewManagement />} />
-             <Route path="/instructor/course/:id/settings" element={<CourseSettings />} />
+            {/* Removed duplicated settings (overlaps with course info edit) */}
              <Route path="/instructor/course/:id/activity" element={<ActivityHistory />} />
              <Route path="/instructor/profile" element={<InstructorProfile />} />
-             <Route path="/instructor/profile-page" element={<InstructorProfilePage />} />
-             <Route path="/instructor/create/preview" element={<CoursePreview />} />
+             {/* <Route path="/instructor/profile-page" element={<InstructorProfilePage />} /> */}
 
         {/* Admin with layout */}
         <Route path="/admin/master-dashboard" element={<MasterDashboard />} />

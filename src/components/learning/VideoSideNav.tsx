@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { List, MessageCircle, HelpCircle, ClipboardList, Smile, Subtitles, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { getCurriculumData } from '../../data/curriculum'
 
 interface VideoSideNavProps {
   onTabChange: (tab: string) => void
@@ -84,101 +85,41 @@ export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExp
 
 // Curriculum Content Component
 function CurriculumContent() {
-  const [expandedSection, setExpandedSection] = useState<number | null>(1)
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
-  const curriculum = [
-    {
-      id: 1,
-      title: '섹션 1 퀴즈',
-      subtitle: 'AI 퀴즈 · 서학철',
-      progress: { current: 1, total: 45 },
-      percentage: 2,
-      subItems: [
-        { id: 1, title: '진도율 1/45', duration: '', completed: true },
-        { id: 2, title: '퀴즈 0/7', duration: '', completed: false }
-      ]
-    },
-    {
-      id: 2,
-      title: '섹션 1. 오리엔테이션',
-      duration: '5강 · 33분',
-      subItems: [
-        { id: 1, title: '1. 0.1 지식 공유자 소개', duration: '03:04', completed: false },
-        { id: 2, title: '2. 0.2 Why Python?', duration: '10:53', completed: false },
-        { id: 3, title: '3. 0.3 수업스케 및 목표', duration: '10:45', completed: false },
-        { id: 4, title: '4. 0.4 FAQ & wrap-up', duration: '08:50', completed: false }
-      ]
-    },
-    {
-      id: 3,
-      title: '섹션 1 퀴즈',
-      subtitle: 'AI 퀴즈 · 서학철',
-      subItems: []
-    },
-    {
-      id: 4,
-      title: '섹션 2. 개발 환경 세팅',
-      duration: '8강 · 1시간 21분',
-      subItems: [
-        { id: 1, title: '5. 1.1 Anaconda 소개', duration: '11:12', completed: false },
-        { id: 2, title: '6. 1.2 Anacona 설치(Mac OS)', duration: '05:34', completed: false },
-        { id: 3, title: '7. 1.3 Anacona 설치(Windows)', duration: '05:48', completed: false },
-        { id: 4, title: '8. 1.4 컨덴션 시스템 명령어', duration: '13:04', completed: false }
-      ]
-    }
-  ]
+  // 통합 데이터 소스: data/curriculum.ts
+  const modules = useMemo(() => getCurriculumData(), [])
+
+  // 임시 진행률(목업). 실제로는 사용자 진행 데이터와 결합
+  const totalLectures = modules.reduce((acc, m) => acc + (m.lectures?.length || 0), 0)
+  const completedLectures = 1
+  const percentage = totalLectures > 0 ? Math.floor((completedLectures / totalLectures) * 100) : 0
 
   return (
     <div className="space-y-3">
       {/* Course Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-2">
+        <h3 className="text-lg font-bold text-gray-900 mb-2 whitespace-normal break-words leading-snug">
           문과생도, 비전공자도, 누구나 배울 수 있는 파이썬 (Python)!
         </h3>
-        <p className="text-sm text-gray-600 mb-4">수강 기한 무제한</p>
-        <div className="flex items-center space-x-3 mb-2">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-sm font-semibold text-gray-900">진도율 1/45</span>
-          </div>
-          <span className="text-sm text-gray-500">2%</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div className="bg-green-500 h-2 rounded-full" style={{ width: '2%' }}></div>
-        </div>
+        {/* 부가 설명/진도율 바 제거 요청에 따라 미노출 */}
       </div>
 
       {/* Sections */}
-      {curriculum.map((section) => (
-        <div key={section.id} className="border border-gray-200 rounded-xl overflow-hidden">
+      {modules.map((module) => (
+        <div key={module.id} className="border border-gray-200 rounded-xl overflow-hidden">
           <button
-            onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+            onClick={() => setExpandedSection(expandedSection === module.id ? null : module.id)}
             className="w-full p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
           >
-            <div className="text-left flex-1">
-              <h4 className="font-semibold text-gray-900 text-sm mb-1">{section.title}</h4>
-              {section.subtitle && (
-                <p className="text-xs text-gray-600">{section.subtitle}</p>
-              )}
-              {section.duration && (
-                <p className="text-xs text-gray-600">{section.duration}</p>
-              )}
-              {section.progress && (
-                <div className="flex items-center space-x-2 mt-2">
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs font-semibold text-gray-900">
-                      진도율 {section.progress.current}/{section.progress.total}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500">{section.percentage}%</span>
-                </div>
-              )}
+            <div className="text-left flex-1 flex items-center space-x-2 min-w-0">
+              <span className="text-blue-500 font-medium text-sm whitespace-nowrap">
+                {String((modules.findIndex(m => m.id === module.id)) + 1).padStart(2, '0')}
+              </span>
+              <h4 className="font-medium text-gray-900 text-sm truncate">{module.title}</h4>
             </div>
             <svg
-              className={`h-5 w-5 text-gray-400 transition-transform ${
-                expandedSection === section.id ? 'rotate-180' : ''
-              }`}
+              className={`h-5 w-5 text-gray-400 transition-transform ${expandedSection === module.id ? 'rotate-180' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -187,28 +128,17 @@ function CurriculumContent() {
             </svg>
           </button>
 
-          {expandedSection === section.id && section.subItems.length > 0 && (
+          {expandedSection === module.id && (module.lectures?.length || 0) > 0 && (
             <div className="bg-white">
-              {section.subItems.map((item) => (
+              {module.lectures!.map((lecture, idx) => (
                 <button
-                  key={item.id}
+                  key={lecture.id}
                   className="w-full p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
                 >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    item.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'
-                  }`}>
-                    {item.completed && (
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
+                  <div className="flex-1 text-left flex items-center space-x-2 min-w-0">
+                    <span className="text-blue-500 font-medium text-xs whitespace-nowrap">{String(idx + 1).padStart(2, '0')}</span>
+                    <p className="text-sm font-medium text-gray-900 truncate">{lecture.title}</p>
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                  </div>
-                  {item.duration && (
-                    <span className="text-xs text-gray-500">{item.duration}</span>
-                  )}
                 </button>
               ))}
             </div>

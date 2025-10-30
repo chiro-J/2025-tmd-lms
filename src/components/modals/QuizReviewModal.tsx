@@ -36,7 +36,7 @@ export default function QuizReviewModal({ quiz, userAnswers, onClose }: QuizRevi
   const totalQuestions = quiz.questions.length
 
   return (
-    <ModalBase 
+    <ModalBase
       open={true}
       onClose={onClose}
       title="퀴즈 결과"
@@ -61,7 +61,7 @@ export default function QuizReviewModal({ quiz, userAnswers, onClose }: QuizRevi
             </div>
             <div className="text-2xl font-bold text-green-600">{correctAnswers}</div>
           </div>
-          
+
           <div className="bg-gray-50 rounded-lg p-4 text-center">
             <div className="flex items-center justify-center mb-2">
               <XCircle className="h-5 w-5 text-red-600 mr-2" />
@@ -69,7 +69,7 @@ export default function QuizReviewModal({ quiz, userAnswers, onClose }: QuizRevi
             </div>
             <div className="text-2xl font-bold text-red-600">{totalQuestions - correctAnswers}</div>
           </div>
-          
+
           <div className="bg-gray-50 rounded-lg p-4 text-center">
             <div className="flex items-center justify-center mb-2">
               <Award className="h-5 w-5 text-blue-600 mr-2" />
@@ -85,7 +85,7 @@ export default function QuizReviewModal({ quiz, userAnswers, onClose }: QuizRevi
           {quiz.questions.map((question, index) => {
             const userAnswer = userAnswers[question.id]
             const isCorrectAnswer = isCorrect(question)
-            
+
             return (
               <div key={question.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
@@ -100,14 +100,14 @@ export default function QuizReviewModal({ quiz, userAnswers, onClose }: QuizRevi
                     )}
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   {question.options?.map((option, optionIndex) => {
                     const isUserAnswer = userAnswer === option
                     const isCorrectOption = option === question.correctAnswer
-                    
+
                     let className = "p-3 rounded-lg text-sm border "
-                    
+
                     if (isCorrectOption) {
                       className += "bg-green-50 border-green-200 text-green-800"
                     } else if (isUserAnswer && !isCorrectAnswer) {
@@ -115,7 +115,7 @@ export default function QuizReviewModal({ quiz, userAnswers, onClose }: QuizRevi
                     } else {
                       className += "bg-gray-50 border-gray-200 text-gray-700"
                     }
-                    
+
                     return (
                       <div key={optionIndex} className={className}>
                         <div className="flex items-center">
@@ -134,7 +134,7 @@ export default function QuizReviewModal({ quiz, userAnswers, onClose }: QuizRevi
                     )
                   })}
                 </div>
-                
+
                 {!isCorrectAnswer && (
                   <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm text-yellow-800">

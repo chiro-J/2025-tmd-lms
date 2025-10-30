@@ -261,19 +261,46 @@ export const mockQnA: QnAItem[] = [
     author: '김학생',
     authorId: 'student1',
     createdAt: '2024-11-15T14:30:00',
-    isSolved: true,
     answers: [
       {
         id: 'a1',
         content: 'useEffect의 의존성 배열은 두 번째 인자로 전달되며, 배열 안의 값들이 변경될 때만 effect가 실행됩니다.',
         author: '김강사',
         authorId: 'instructor1',
-        createdAt: '2024-11-15T15:00:00',
-        isAccepted: true,
-        upvotes: 5
+        createdAt: '2024-11-15T15:00:00'
       }
     ],
     tags: ['react', 'hooks']
+  },
+  {
+    id: '2',
+    courseId: '1',
+    courseTitle: '(1회차) 풀스택 과정',
+    question: 'React에서 state와 props의 차이점은 무엇인가요?',
+    author: '이학생',
+    authorId: 'student2',
+    createdAt: '2024-11-16T10:20:00',
+    answers: [
+      {
+        id: 'a2',
+        content: 'state는 컴포넌트 내부에서 관리되는 데이터이고, props는 부모 컴포넌트에서 자식 컴포넌트로 전달되는 데이터입니다.',
+        author: '김강사',
+        authorId: 'instructor1',
+        createdAt: '2024-11-16T11:00:00'
+      }
+    ],
+    tags: ['react', 'state', 'props']
+  },
+  {
+    id: '3',
+    courseId: '1',
+    courseTitle: '(1회차) 풀스택 과정',
+    question: 'TypeScript에서 타입 정의는 어떻게 하나요?',
+    author: '박학생',
+    authorId: 'student3',
+    createdAt: '2024-11-17T14:15:00',
+    answers: [],
+    tags: ['typescript', 'types']
   }
 ]
 

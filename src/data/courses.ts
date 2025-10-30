@@ -45,7 +45,7 @@ export const getCoursesByStatus = (status: Course['status']) => {
 // 강좌 검색
 export const searchCourses = (query: string) => {
   const allCourses = [...myCourses, ...jointCourses]
-  return allCourses.filter(course => 
+  return allCourses.filter(course =>
     course.title.toLowerCase().includes(query.toLowerCase()) ||
     course.instructor.toLowerCase().includes(query.toLowerCase())
   )

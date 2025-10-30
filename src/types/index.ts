@@ -160,11 +160,6 @@ export interface ProgressBarProps {
   label?: string
 }
 
-export interface PillProps {
-  children: React.ReactNode
-  variant?: 'default' | 'success' | 'warning' | 'error'
-  size?: 'sm' | 'md'
-}
 
 // ========================================
 // 테이블 관련 타입
@@ -264,7 +259,6 @@ export type CourseStatus = 'active' | 'inactive' | 'pending'
 export type AssessmentStatus = 'Upcoming' | 'Done' | 'completed' | 'pending'
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl'
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost'
-export type PillVariant = 'default' | 'success' | 'warning' | 'error' | 'info'
 
 // ========================================
 // 컴포넌트별 Props 타입
@@ -272,7 +266,6 @@ export type PillVariant = 'default' | 'success' | 'warning' | 'error' | 'info'
 
 export interface UserInfoCardProps {
   user: User
-  stats: UserStats
 }
 
 
@@ -316,28 +309,6 @@ export interface CurriculumModule {
   isExpanded: boolean
 }
 
-export interface ContentEditorProps {
-  content: LectureContent
-  onUpdate: (content: LectureContent) => void
-  onSave: () => void
-  onCancel: () => void
-}
-
-export interface MediaUploadProps {
-  type: 'image' | 'video' | 'pdf'
-  onUpload: (file: File) => Promise<string>
-  onRemove: (url: string) => void
-  existingFiles: string[]
-  maxFiles?: number
-  maxSize?: number // in MB
-}
-
-export interface RichTextEditorProps {
-  content: string
-  onChange: (content: string) => void
-  placeholder?: string
-  className?: string
-}
 
 // ========================================
 // 학생 페이지 관련 타입
@@ -413,7 +384,6 @@ export interface QnAItem {
   author: string
   authorId: string
   createdAt: string
-  isSolved: boolean
   answers: QnAAnswer[]
   tags?: string[]
 }
@@ -424,8 +394,6 @@ export interface QnAAnswer {
   author: string
   authorId: string
   createdAt: string
-  isAccepted: boolean
-  upvotes: number
 }
 
 export interface FAQItem {

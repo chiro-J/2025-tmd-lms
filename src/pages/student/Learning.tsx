@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Play, Pause, SkipBack, SkipForward, Volume2, Settings, PanelRight, Maximize, PictureInPicture, Camera, Subtitles } from 'lucide-react'
 import VideoSideNav from '../../components/learning/VideoSideNav'
 
@@ -6,6 +6,7 @@ export default function Learning() {
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const hideControlsTimeoutRef = useRef<number | null>(null)
+  const [searchParams, setSearchParams] = useState(() => new URLSearchParams(window.location.search))
   const [sideNavTab, setSideNavTab] = useState('curriculum')
   const [isSideNavExpanded, setIsSideNavExpanded] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -19,6 +20,29 @@ export default function Learning() {
   const [showPlaybackRateSlider, setShowPlaybackRateSlider] = useState(false)
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // 선택된 강의별 임시 콘텐츠 맵 (DB 연동 전)
+  type ContentType = 'video' | 'slide' | 'text' | 'link' | 'code'
+  const lessonContent: Record<string, { type: ContentType; title: string; src?: string; text?: string; code?: string; linkUrl?: string }> = {
+    '4-1': { type: 'video', title: '타입스크립트 소개', src: '/videos/sample.mp4' },
+    '4-2': { type: 'text', title: '타입스크립트 기초 개념', text: '타입, 인터페이스, 유니온, 제네릭의 핵심 개념을 간단 요약합니다.' },
+    '4-3': { type: 'code', title: 'ES6 예제 코드', code: 'const sum = (a: number, b: number): number => a + b;\nconsole.log(sum(2, 3));' },
+    '2-1': { type: 'slide', title: 'HTML/CSS 기초 슬라이드', src: '/photo/Fullstack.png' },
+    '2-2': { type: 'link', title: 'JavaScript 기초 문서 링크', linkUrl: 'https://developer.mozilla.org/ko/docs/Web/JavaScript' }
+  }
+
+  const selectedLesson = useMemo(() => searchParams.get('lesson') || '', [searchParams])
+  const selectedContent = useMemo(() => {
+    const content = selectedLesson ? lessonContent[selectedLesson] : undefined
+    return content || { type: 'text', title: '학습 자료를 선택해 주세요', text: '강의 내용이 이쪽에 표시됩니다.' }
+  }, [selectedLesson])
+
+  // URL 변경 감지 (뒤로가기 등)
+  useEffect(() => {
+    const onPop = () => setSearchParams(new URLSearchParams(window.location.search))
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseInt(e.target.value)
@@ -254,8 +278,7 @@ export default function Learning() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-white text-xl font-bold mb-1">3. 원하는 경로에서 jupyter 설명하기</h1>
-              <p className="text-gray-300 text-sm">문과생도, 비전공자도, 누구나 배울 수 있는 파이썬 (Python)!</p>
+              <h1 className="text-white text-xl font-bold mb-1 whitespace-normal break-words leading-snug">{selectedContent.title}</h1>
             </div>
             <button
               onClick={() => window.history.back()}
@@ -267,45 +290,73 @@ export default function Learning() {
         </div>
       </div>
 
-      {/* Video Container */}
+      {/* Content Container */}
       <div
         ref={videoContainerRef}
         className={`fixed top-0 bottom-0 left-0 bg-gray-900 transition-all duration-300 group ${
-          !showControls && isPlaying ? 'cursor-none' : 'cursor-default'
+          selectedContent.type === 'video' && !showControls && isPlaying ? 'cursor-none' : 'cursor-default'
         }`}
         style={{
           width: isSideNavExpanded ? 'calc(100vw - 448px)' : '100vw'
         }}
       >
-        {/* Video Element */}
-        <video
-          ref={videoRef}
-          className="w-full h-full object-contain bg-black"
-          src="/videos/sample.mp4"
-          onClick={togglePlayPause}
-          onError={(e) => {
-            console.error('비디오 로드 오류:', e)
-            console.log('비디오 소스:', videoRef.current?.src)
-          }}
-          onLoadStart={() => console.log('비디오 로딩 시작')}
-          onLoadedData={() => console.log('비디오 데이터 로드 완료')}
-          onCanPlay={() => console.log('비디오 재생 가능')}
-          preload="metadata"
-          controls={false}
-        >
-          {subtitlesEnabled && (
-            <track
-              kind="subtitles"
-              src="/videos/sample.vtt"
-              srcLang="ko"
-              label="Korean"
-              default
-            />
-          )}
-        </video>
+        {/* Content Switch */}
+        {selectedContent.type === 'video' && (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-contain bg-black"
+            src={selectedContent.src}
+            onClick={togglePlayPause}
+            onError={(e) => {
+              console.error('비디오 로드 오류:', e)
+              console.log('비디오 소스:', videoRef.current?.src)
+            }}
+            onLoadStart={() => console.log('비디오 로딩 시작')}
+            onLoadedData={() => console.log('비디오 데이터 로드 완료')}
+            onCanPlay={() => console.log('비디오 재생 가능')}
+            preload="metadata"
+            controls={false}
+          >
+            {subtitlesEnabled && (
+              <track
+                kind="subtitles"
+                src="/videos/sample.vtt"
+                srcLang="ko"
+                label="Korean"
+                default
+              />
+            )}
+          </video>
+        )}
+        {selectedContent.type === 'slide' && (
+          <div className="w-full h-full bg-black flex items-center justify-center">
+            <img src={selectedContent.src} alt="slide" className="max-w-[95%] max-h-[95%] object-contain rounded-lg shadow-2xl" />
+          </div>
+        )}
+        {selectedContent.type === 'text' && (
+          <div className="w-full h-full bg-black flex items-center justify-center p-8">
+            <div className="max-w-2xl w-full bg-white rounded-xl p-6 shadow-2xl">
+              <h2 className="text-lg font-semibold mb-3">요약</h2>
+              <p className="text-sm text-gray-700 leading-6">{selectedContent.text}</p>
+            </div>
+          </div>
+        )}
+        {selectedContent.type === 'link' && (
+          <div className="w-full h-full bg-black flex items-center justify-center p-8">
+            <div className="max-w-xl w-full bg-white rounded-xl p-6 text-center shadow-2xl">
+              <p className="text-sm text-gray-700 mb-4">외부 자료로 이동합니다.</p>
+              <a href={selectedContent.linkUrl} target="_blank" rel="noreferrer" className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">열기</a>
+            </div>
+          </div>
+        )}
+        {selectedContent.type === 'code' && (
+          <div className="w-full h-full bg-black flex items-center justify-center p-8">
+            <pre className="max-w-3xl w-full bg-[#0b1021] text-[#e6edf3] rounded-xl p-6 overflow-auto text-sm shadow-2xl"><code>{selectedContent.code}</code></pre>
+          </div>
+        )}
 
         {/* Sidebar Toggle Button - Top Right (Only visible when not in fullscreen) */}
-        {!isFullscreen && (
+        {selectedContent.type === 'video' && !isFullscreen && (
           <div className={`absolute top-20 right-6 z-10 transition-opacity duration-300 ${
             showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
           }`}>
@@ -320,6 +371,7 @@ export default function Learning() {
         )}
 
         {/* Video Controls Overlay */}
+        {selectedContent.type === 'video' && (
         <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 pointer-events-none ${
           showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
         }`}>
@@ -520,6 +572,7 @@ export default function Learning() {
           </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Side Navigation */}

@@ -32,7 +32,7 @@ export default function CourseSettings() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="강좌 설정"
       rightActions={rightActions}
     >
@@ -51,7 +51,7 @@ export default function CourseSettings() {
                 placeholder="강좌명을 입력하세요"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-base-content mb-2">강좌 설명</label>
               <textarea
@@ -127,7 +127,7 @@ export default function CourseSettings() {
                   placeholder="50"
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Users className="h-5 w-5 text-base-content/70" />
@@ -157,7 +157,7 @@ export default function CourseSettings() {
                   onChange={(e) => setSettings({...settings, startDate: e.target.value})}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-base-content mb-2">종료일</label>
                 <Input
@@ -173,6 +173,14 @@ export default function CourseSettings() {
     </CoursePageLayout>
   )
 }
+
+
+
+
+
+
+
+
 
 
 

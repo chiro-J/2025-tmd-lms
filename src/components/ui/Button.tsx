@@ -3,13 +3,13 @@ import { cn } from '../../core/utils/classNames'
 import { COMMON_STYLES } from '../../core/constants/styles'
 import type { ButtonProps } from '../../types'
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
-  className = '', 
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
+  children,
+  variant = 'primary',
+  size = 'md',
+  className = '',
   asChild = false,
-  ...props 
+  ...props
 }, ref) => {
   const variantClasses = {
     primary: COMMON_STYLES.button.primary,

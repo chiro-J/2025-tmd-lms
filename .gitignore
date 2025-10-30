@@ -1,7 +1,44 @@
-# 내 로컬 규칙 유지
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+**/dist/
+release/
+.eslintcache
+.tsbuildinfo
+.turbo/
+.vite/
+.cache/
+*.local
+
+# IDE
 .cursor/
-node_modules
-SUBADMIN_MANAGEMENT_UPDATE.md
-capture-pages.js
-SUBADMIN_MANAGEMENT_UPDATE.md
-capture-pages.js
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+
+# Temporary files
+*.tmp
+*.temp
+
+# Public assets (large)
+public/
+# You can whitelist small assets if needed, e.g.:
+#!public/vite.svg

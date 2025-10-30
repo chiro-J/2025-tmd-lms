@@ -56,10 +56,10 @@ export default function RealtimeProctoring() {
         <Settings className="h-4 w-4 mr-1" />
         감독 설정
       </Button>
-      <Button 
+      <Button
         className={`rounded-xl ${
-          isMonitoring 
-            ? 'bg-error hover:bg-error/90 text-error-content' 
+          isMonitoring
+            ? 'bg-error hover:bg-error/90 text-error-content'
             : 'bg-success hover:bg-success/90 text-success-content'
         }`}
         onClick={() => setIsMonitoring(!isMonitoring)}
@@ -80,7 +80,7 @@ export default function RealtimeProctoring() {
   )
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="실시간 감독"
       rightActions={rightActions}
     >
@@ -160,8 +160,8 @@ export default function RealtimeProctoring() {
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      student.status === 'online' 
-                        ? 'bg-success/10 text-success' 
+                      student.status === 'online'
+                        ? 'bg-success/10 text-success'
                         : 'bg-base-300 text-base-content/70'
                     }`}>
                       {student.status === 'online' ? '온라인' : '오프라인'}

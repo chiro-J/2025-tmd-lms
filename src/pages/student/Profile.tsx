@@ -121,7 +121,7 @@ export default function Profile() {
           {/* Profile Details */}
           <div className="lg:col-span-2">
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-base-content">개인 정보</h3>
                 {!isEditing ? (
                   <Button
@@ -150,10 +150,13 @@ export default function Profile() {
                   </div>
                 )}
               </div>
+              <div className="border-t border-base-300 mb-4" />
 
               <div className="space-y-6">
                 {/* Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-base-content/80 mb-3">기본 정보</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="label">이름</label>
                     {isEditing ? (
@@ -172,70 +175,89 @@ export default function Profile() {
                     <label className="label">이메일</label>
                     <p className="text-base-content py-2">{formData.email}</p> {/* 이메일은 편집 불가 */}
                   </div>
-                  <div>
-                    <label className="label">전화번호</label>
-                    {isEditing ? (
-                      <Input
-                        type="text"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className="input"
-                      />
-                    ) : (
-                      <p className="text-base-content py-2">{formData.phone}</p>
-                    )}
+                </div>
+                {/* close grid */}
+                </div>
+
+                {/* Contact */}
+                <div>
+                  <div className="border-t border-base-300 my-2" />
+                  <h4 className="text-sm font-medium text-base-content/80 mb-3">연락처</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">전화번호</label>
+                      {isEditing ? (
+                        <Input
+                          type="text"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          className="input"
+                        />
+                      ) : (
+                        <p className="text-base-content py-2">{formData.phone}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="label">주소</label>
+                      {isEditing ? (
+                        <Input
+                          type="text"
+                          name="address"
+                          value={formData.address}
+                          onChange={handleInputChange}
+                          className="input"
+                        />
+                      ) : (
+                        <p className="text-base-content py-2">{formData.address}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="label">주소</label>
-                    {isEditing ? (
-                      <Input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        className="input"
-                      />
-                    ) : (
-                      <p className="text-base-content py-2">{formData.address}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="label">직업</label>
-                    {isEditing ? (
-                      <Input
-                        type="text"
-                        name="job"
-                        value={formData.job}
-                        onChange={handleInputChange}
-                        className="input"
-                      />
-                    ) : (
-                      <p className="text-base-content py-2">{formData.job}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="label">선호 언어</label>
-                    {isEditing ? (
-                      <select
-                        name="language"
-                        value={formData.language}
-                        onChange={handleInputChange}
-                        className="input"
-                      >
-                        <option value="한국어">한국어</option>
-                        <option value="English">English</option>
-                        <option value="日本語">日本語</option>
-                      </select>
-                    ) : (
-                      <p className="text-base-content py-2">{formData.language}</p>
-                    )}
+                </div>
+
+                {/* Preferences */}
+                <div>
+                  <div className="border-t border-base-300 my-2" />
+                  <h4 className="text-sm font-medium text-base-content/80 mb-3">학습 선호</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">직업</label>
+                      {isEditing ? (
+                        <Input
+                          type="text"
+                          name="job"
+                          value={formData.job}
+                          onChange={handleInputChange}
+                          className="input"
+                        />
+                      ) : (
+                        <p className="text-base-content py-2">{formData.job}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="label">선호 언어</label>
+                      {isEditing ? (
+                        <select
+                          name="language"
+                          value={formData.language}
+                          onChange={handleInputChange}
+                          className="input"
+                        >
+                          <option value="한국어">한국어</option>
+                          <option value="English">English</option>
+                          <option value="日本語">日本語</option>
+                        </select>
+                      ) : (
+                        <p className="text-base-content py-2">{formData.language}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Bio */}
                 <div>
-                  <label className="label">자기소개</label>
+                  <div className="border-t border-base-300 my-2" />
+                  <h4 className="text-sm font-medium text-base-content/80 mb-3">자기소개</h4>
                   {isEditing ? (
                     <textarea
                       name="bio"
@@ -251,7 +273,8 @@ export default function Profile() {
 
                 {/* Programming Languages */}
                 <div>
-                  <label className="label">프로그래밍 언어</label>
+                  <div className="border-t border-base-300 my-2" />
+                  <h4 className="text-sm font-medium text-base-content/80 mb-3">보유 기술</h4>
                   <div className="flex flex-wrap gap-2">
                     {formData.languages.map((lang, index) => (
                       <span

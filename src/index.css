@@ -2,163 +2,457 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Animations */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    @apply appearance-none bg-transparent border-0 outline-none;
+  }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary; }
+  .btn-primary { @apply btn bg-primary text-white hover:bg-primary/90; }
+  .btn-outline { @apply btn border border-neutral-300 text-neutral-700 hover:bg-neutral-50; }
+  .card { @apply bg-base-100 rounded-2xl border border-base-300 shadow-card; }
+  .section { @apply card; }
+  .input { @apply w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:outline-none; }
+  .tab { @apply px-3 py-2 -mb-px border-b-2 border-transparent text-neutral-600 hover:text-neutral-900; }
+  .tab-active { @apply border-primary text-primary; }
+  .progress { @apply w-full bg-neutral-200 rounded-full h-2; }
+  .progress-bar { @apply bg-primary h-2 rounded-full; }
+  .container-page { @apply max-w-container mx-auto px-4 sm:px-6 lg:px-8; }
+}
+
+:root {
+  --animate-spin: spin 1s linear infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 1s var(--animation-delay, 0s) ease forwards;
+}
+
+.animate-fade-up {
+  animation: fade-up 1s var(--animation-delay, 0s) ease forwards;
+}
+
+.animate-marquee {
+  animation: marquee var(--duration) infinite linear;
+}
+
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration) linear infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 8s infinite;
+}
+
+.animate-spin {
+  animation: var(--animate-spin);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes image-glow {
+  0% {
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.74, 0.25, 0.76, 1);
+  }
+
+  10% {
+    opacity: 0.7;
+    animation-timing-function: cubic-bezier(0.12, 0.01, 0.08, 0.99);
+  }
+
+  to {
+    opacity: 0.4;
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  90%,
+  to {
+    background-position: calc(-100% - var(--shimmer-width)) 0;
+  }
+
+  30%,
+  60% {
+    background-position: calc(100% + var(--shimmer-width)) 0;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translate(0);
+  }
+
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes marquee-vertical {
+  0% {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes marquee-scroll {
+  0%, 10% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(100% - 120px));
+  }
+}
+
+.memo-preview-item:hover .memo-preview-text {
+  animation: marquee-scroll 3.5s ease-in-out forwards;
+}
+
 @layer base {
   * {
-    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+    font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
   }
-  
+
   html, body, #root {
     height: 100%;
     background-color: theme('colors.base-200');
-    color: theme('colors.neutral');
-    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+    color: theme('colors.base-content');
+    font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
   }
 
   :focus-visible {
     outline: none;
-    @apply ring-2 ring-primary ring-offset-2;
+    ring: 2px;
+    ring-color: #3b82f6;
+    ring-offset: 2px;
   }
 
   a {
-    @apply text-accent transition-colors;
+    color: #374151;
   }
 
-  /* 강제 폰트 적용 */
+  a:hover {
+    color: #111827;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  /* 강제 폰트 적용 - 나눔고딕 메인 */
   input, textarea, select, button, div, span, p, h1, h2, h3, h4, h5, h6, label, li, ul, ol, table, td, th, tr {
-    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+    font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
   }
 
   /* 모달 및 오버레이 폰트 */
   .modal, .modal-box, .modal-backdrop, [role="dialog"] {
-    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+    font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
   }
 
   /* 플레이스홀더 폰트 */
   input::placeholder, textarea::placeholder {
-    font-family: 'Nanum Gothic', '나눔고딕', 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+    font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
   }
-
-  a:hover {
-    @apply text-accent;
-    opacity: 0.8;
-  }
-
-  h1 { @apply text-2xl font-semibold; }
-  h2 { @apply text-xl font-semibold; }
-  h3 { @apply text-lg font-semibold; }
 }
 
 @layer components {
-  .container-page { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
-
-  .card { @apply bg-base-100 rounded-2xl shadow-card; }
-
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors; }
-  .btn-primary { 
-    @apply btn bg-primary text-primary-content focus-visible:ring-2 focus-visible:ring-primary;
-  }
-  .btn-primary:hover {
-    @apply bg-primary;
-    opacity: 0.9;
-  }
-  .btn-outline { 
-    @apply btn border border-base-300 hover:bg-base-200 focus-visible:ring-2 focus-visible:ring-primary;
-    color: hsl(var(--n));
-  }
-  .btn-secondary { 
-    @apply btn bg-base-300 focus-visible:ring-2 focus-visible:ring-primary;
-    color: hsl(var(--n));
-  }
-  .btn-secondary:hover {
-    @apply bg-base-300;
-    opacity: 0.8;
+  .container-page {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 
-  .input { @apply w-full rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-colors; }
-  .input-error { @apply input border-error focus:ring-error focus:border-error; }
-  .label { 
-    @apply block text-sm font-medium mb-1;
-    color: hsl(var(--n));
+  .container-page-full {
+    @apply max-w-7xl mx-auto;
   }
 
-  .tabbar { @apply flex gap-2 border-b border-base-300; }
-  .tab { 
-    @apply px-3 py-2 text-sm border-b-2 border-transparent transition-colors;
-    color: hsl(var(--n) / 0.7);
-  }
-  .tab:hover {
-    color: hsl(var(--n));
-  }
-  .tab-active { @apply border-primary text-primary; }
-
-  .progress { @apply w-full h-2 rounded-full bg-base-300; }
-  .progress-bar { @apply h-2 rounded-full bg-primary transition-all duration-300; }
-
-  .modal-backdrop { 
-    @apply fixed inset-0 flex items-center justify-center p-4 z-50;
-    background-color: rgba(0, 0, 0, 0.4);
-  }
-  .modal-card { @apply card w-full max-w-lg max-h-[90vh] overflow-y-auto; }
-
-  .section-header { @apply flex items-center justify-between mb-4; }
-  .section-title { 
-    @apply text-lg font-semibold;
-    color: hsl(var(--n));
+  .card {
+    @apply bg-white rounded-2xl border border-neutral-200 shadow-card;
   }
 
-  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
-  .badge-primary { 
-    @apply badge bg-base-200;
-    color: hsl(var(--n));
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors;
   }
-  .badge-success { 
-    @apply badge;
-    background-color: hsl(var(--su) / 0.1);
-    color: hsl(var(--suc));
+
+  .btn-primary {
+    @apply btn bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500;
+  }
+
+  .btn-outline {
+    @apply btn border border-gray-300 text-gray-700 hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-gray-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200 focus-visible:ring-2 focus-visible:ring-gray-500;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors;
+  }
+
+  .input-error {
+    @apply input border-red-500 focus:ring-red-500 focus:border-red-500;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  .tabbar {
+    @apply flex gap-2 border-b border-gray-200;
+  }
+
+  .tab {
+    @apply px-3 py-2 text-sm border-b-2 border-transparent text-gray-600 hover:text-gray-900 transition-colors;
+  }
+
+  .tab-active {
+    @apply border-blue-600 text-blue-700;
+  }
+
+  .progress {
+    @apply w-full h-2 rounded-full bg-gray-200;
+  }
+
+  .progress-bar {
+    @apply h-2 rounded-full bg-blue-500 transition-all duration-300;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50;
+  }
+
+  .modal-card {
+    @apply card w-full max-w-lg max-h-[90vh] overflow-y-auto;
+  }
+
+  .section-header {
+    @apply flex items-center justify-between mb-4;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-gray-900;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply badge bg-gray-100 text-gray-800;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-800;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-800;
   }
 
   .card-panel {
     @apply bg-base-100 border border-base-300 rounded-xl shadow-card;
   }
-  
+
   .tile {
-    @apply bg-base-100 rounded-xl shadow-card hover:shadow-soft transition-all duration-200;
-    border: 1px solid hsl(var(--p) / 0.4);
+    @apply bg-base-100 border border-primary/40 rounded-xl shadow-card hover:shadow-soft transition-all duration-200;
   }
-  
+
   .tile-icon {
     @apply stroke-primary;
   }
 
-  /* Elementor-style animations */
-  .animate-fade-in {
-    animation: fadeIn 0.8s ease-out forwards;
-    opacity: 0;
+  .rich-text-editor .ql-editor {
+    min-height: 200px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
-  .animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out forwards;
-    opacity: 0;
-    transform: translateY(30px);
+  .rich-text-editor .ql-toolbar {
+    border-top: 1px solid #e5e7eb;
+    border-left: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    border-radius: 0.75rem 0.75rem 0 0;
   }
 
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+  .rich-text-editor .ql-container {
+    border-bottom: 1px solid #e5e7eb;
+    border-left: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    border-radius: 0 0 0.75rem 0.75rem;
   }
 
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .rich-text-editor .ql-snow .ql-tooltip {
+    z-index: 1000;
   }
+
+  /* Simple Rich Text Editor Styles */
+  [contenteditable]:empty:before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    font-style: italic;
+    pointer-events: none;
+  }
+
+  [contenteditable]:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  [contenteditable] {
+    line-height: 1.6;
+    font-size: 14px;
+    color: #374151;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  [contenteditable] p {
+    margin: 0.5rem 0;
+    min-height: 1.2em;
+  }
+
+  [contenteditable] p:first-child {
+    margin-top: 0;
+  }
+
+  [contenteditable] p:last-child {
+    margin-bottom: 0;
+  }
+
+  [contenteditable] ul, [contenteditable] ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+  }
+
+  [contenteditable] li {
+    margin: 0.25rem 0;
+  }
+
+  [contenteditable] a {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  [contenteditable] a:hover {
+    color: #1d4ed8;
+  }
+
+  [contenteditable] strong {
+    font-weight: 600;
+  }
+
+  [contenteditable] em {
+    font-style: italic;
+  }
+
+  [contenteditable] u {
+    text-decoration: underline;
+  }
+}
+
+/* TinyMCE Editor Styles - 나눔고딕 통일 */
+.tox {
+  font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+}
+
+.tox .tox-edit-area__iframe {
+  font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+}
+
+.tox-menubar,
+.tox-toolbar,
+.tox-toolbar-overlord,
+.tox-listbox,
+.tox-menu,
+.tox-textarea {
+  font-family: 'Nanum Gothic', '나눔고딕', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
 }

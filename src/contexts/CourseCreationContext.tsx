@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 
 export interface CourseCreationData {
   // Step 1 - Essential Settings
@@ -52,16 +52,16 @@ const CourseCreationContext = createContext<CourseCreationContextType | undefine
 export function CourseCreationProvider({ children }: { children: ReactNode }) {
   const [courseData, setCourseData] = useState<CourseCreationData>(initialData)
 
-  const updateCourseData = (data: Partial<CourseCreationData>) => {
+  const updateCourseData = useCallback((data: Partial<CourseCreationData>) => {
     setCourseData(prev => ({
       ...prev,
       ...data
     }))
-  }
+  }, [])
 
-  const resetCourseData = () => {
+  const resetCourseData = useCallback(() => {
     setCourseData(initialData)
-  }
+  }, [])
 
   return (
     <CourseCreationContext.Provider value={{ courseData, updateCourseData, resetCourseData }}>
@@ -77,6 +77,7 @@ export function useCourseCreation() {
   }
   return context
 }
+
 
 
 

@@ -291,6 +291,7 @@ export default function StableLexicalEditor({
             placeholder={
               !readOnly ? <div className="text-base-content/50 px-3 py-2 select-none">{placeholder}</div> : null
             }
+            ErrorBoundary={({ children }) => <div>{children}</div>}
           />
           <HistoryPlugin />
           <ListPlugin />

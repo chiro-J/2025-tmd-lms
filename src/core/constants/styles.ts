@@ -8,28 +8,28 @@ export const COMMON_STYLES = {
     ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100',
     danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md hover:shadow-lg',
   },
-  
+
   // 카드 스타일
   card: {
     base: 'bg-white rounded-2xl shadow-sm border border-gray-200 transition-all duration-200',
     hover: 'hover:shadow-lg hover:border-gray-300',
     interactive: 'cursor-pointer hover:shadow-lg hover:border-gray-300 transform hover:scale-[1.02]',
   },
-  
+
   // 입력 필드 스타일
   input: {
     base: 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
     error: 'border-red-300 focus:ring-red-500',
     success: 'border-green-300 focus:ring-green-500',
   },
-  
+
   // 탭 스타일
   tab: {
     base: 'px-4 py-2 text-sm font-medium transition-colors',
     active: 'bg-white text-blue-600 shadow-sm',
     inactive: 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
   },
-  
+
   // 모달 스타일
   modal: {
     backdrop: 'fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300',

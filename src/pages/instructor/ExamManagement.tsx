@@ -1,36 +1,41 @@
-import { Plus, Eye, Edit, Trash2, Upload } from 'lucide-react'
+import { useMemo } from 'react'
+import { Plus, Upload, FileText, AlertCircle } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
+import ExamFilters from '../../components/exam/ExamFilters'
+import ExamTableHeader from '../../components/exam/ExamTableHeader'
+import ExamRow from '../../components/exam/ExamRow'
+import { useExamFilters } from '../../hooks/useExamFilters'
+import { useExamSort } from '../../hooks/useExamSort'
+import { mockExams } from '../../data/mockExams'
 
 export default function ExamManagement() {
-  // Mock exam data - will be replaced with actual data later
-  const exams = [
-    {
-      id: 1,
-      title: '중간고사',
-      type: '시험',
-      status: '진행중',
-      startDate: '2024-10-15',
-      endDate: '2024-10-20',
-      participants: 25,
-      totalQuestions: 50
-    },
-    {
-      id: 2,
-      title: '과제 1',
-      type: '과제',
-      status: '완료',
-      startDate: '2024-10-01',
-      endDate: '2024-10-10',
-      participants: 25,
-      totalQuestions: 0
-    }
-  ]
+  const navigate = useNavigate()
+  const { id: courseId } = useParams()
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0]
+
+  // Separate today's exams and other exams
+  const todayExams = useMemo(() => mockExams.filter(exam => exam.startDate === today), [today])
+  const otherExams = useMemo(() => mockExams.filter(exam => exam.startDate !== today), [today])
+
+  // Today's exams filters and sorting
+  const todayFiltersState = useExamFilters(todayExams)
+  const todaySortState = useExamSort(todayFiltersState.filteredExams, 'startDate', 'desc')
+
+  // All exams filters and sorting
+  const filtersState = useExamFilters(otherExams)
+  const sortState = useExamSort(filtersState.filteredExams, 'startDate', 'desc')
 
   const rightActions = (
     <>
-      <Button className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl">
+      <Button
+        className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl"
+        onClick={() => navigate(`/instructor/course/${courseId}/create-exam`)}
+      >
         <Plus className="h-4 w-4 mr-1" />
         시험/과제 생성
       </Button>
@@ -38,149 +43,166 @@ export default function ExamManagement() {
         <Upload className="h-4 w-4 mr-1" />
         시험 가져오기
       </Button>
-      <Button variant="outline" className="text-base-content/70 rounded-xl">
-        <Eye className="h-4 w-4 mr-1" />
-        미리보기
-      </Button>
-      <Button variant="outline" className="text-base-content/70 rounded-xl">
-        <Edit className="h-4 w-4 mr-1" />
-        편집하기
-      </Button>
-      <Button variant="outline" className="text-error rounded-xl">
-        <Trash2 className="h-4 w-4 mr-1" />
-        삭제
-      </Button>
     </>
   )
 
   return (
-    <CoursePageLayout 
-      currentPageTitle="전체 시험"
+    <CoursePageLayout
+      currentPageTitle="시험/과제 관리"
       rightActions={rightActions}
     >
+      {/* Info Message */}
+      <div className="mb-4">
+        <p className="text-sm text-base-content/70">
+          강좌에 시험과 과제를 추가할 수 있습니다. 이 강좌에 시험과 과제를 추가하여 학생들의 성취도를 측정해보세요.
+        </p>
+      </div>
 
-        {/* Info Message */}
-        <div className="mb-4">
-          <p className="text-sm text-base-content/70">
-            강좌에 시험과 과제를 추가할 수 있습니다. 이 강좌에 시험과 과제를 추가하여 학생들의 성취도를 측정해보세요.
-          </p>
-        </div>
+      {/* Today's Exams Highlight Section */}
+      {todayExams.length > 0 && (
+        <Card className="mb-6 overflow-hidden border-2 border-warning bg-warning/5">
+          <div className="px-6 py-4 bg-warning/10 border-b border-warning/20">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-warning mr-2" />
+              <h3 className="text-lg font-semibold text-base-content">
+                오늘 시작하는 시험/과제
+              </h3>
+              <span className="ml-2 px-2 py-0.5 bg-warning text-warning-content text-xs font-bold rounded-full">
+                {todayExams.length}
+              </span>
+            </div>
+          </div>
 
-        {/* Exams Table */}
-        <Card className="overflow-hidden">
+          {/* Today's Filters */}
+          <ExamFilters
+            filterType={todayFiltersState.filterType}
+            filterStatus={todayFiltersState.filterStatus}
+            filterAuthor={todayFiltersState.filterAuthor}
+            filterGroup={todayFiltersState.filterGroup}
+            uniqueAuthors={todayFiltersState.uniqueAuthors}
+            uniqueGroups={todayFiltersState.uniqueGroups}
+            hasActiveFilters={todayFiltersState.hasActiveFilters}
+            onFilterTypeChange={todayFiltersState.setFilterType}
+            onFilterStatusChange={todayFiltersState.setFilterStatus}
+            onFilterAuthorChange={todayFiltersState.setFilterAuthor}
+            onFilterGroupChange={todayFiltersState.setFilterGroup}
+            onClearFilters={todayFiltersState.clearFilters}
+          />
+
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-base-300">
-              <thead className="bg-base-200">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    분류
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    유형
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    제목
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    작성자
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    그룹
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    상태
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    시작 날짜
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    종료 날짜
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                    관리
-                  </th>
-                </tr>
-              </thead>
+              <ExamTableHeader
+                sortField={todaySortState.sortField}
+                sortOrder={todaySortState.sortOrder}
+                onSort={todaySortState.handleSort}
+              />
               <tbody className="bg-base-100 divide-y divide-base-300">
-                {exams.length === 0 ? (
+                {todaySortState.sortedExams.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-3 py-8 text-center">
+                    <td colSpan={8} className="px-3 py-8 text-center">
                       <div className="text-base-content/70">
-                        <p className="text-lg font-medium mb-2">No data available in table</p>
-                        <p className="text-sm">시험과 과제를 추가해보세요.</p>
+                        <p className="text-lg font-medium mb-2">필터 조건에 맞는 항목이 없습니다</p>
+                        <button
+                          onClick={todayFiltersState.clearFilters}
+                          className="text-sm text-primary hover:text-primary/80 underline"
+                        >
+                          필터 초기화
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  exams.map((exam) => (
-                    <tr key={exam.id} className="hover:bg-base-200">
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-base-content">
-                        {exam.type}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-base-content">
-                        {exam.type}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-base-content">
-                        {exam.title}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-base-content/70">
-                        김강사
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-base-content/70">
-                        전체
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          exam.status === '진행중' 
-                            ? 'bg-success/10 text-success' 
-                            : 'bg-base-300 text-base-content/70'
-                        }`}>
-                          {exam.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-base-content/70">
-                        {exam.startDate}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-base-content/70">
-                        {exam.endDate}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button className="text-primary hover:text-primary/80">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button className="text-base-content/70 hover:text-base-content">
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button className="text-error hover:text-error/80">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                  todaySortState.sortedExams.map((exam) => (
+                    <ExamRow key={exam.id} exam={exam} courseId={courseId!} />
                   ))
                 )}
               </tbody>
             </table>
           </div>
+        </Card>
+      )}
 
-          {/* Pagination */}
-          <div className="bg-base-100 px-3 py-2 flex items-center justify-between border-t border-base-300">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button className="relative inline-flex items-center px-4 py-2 border border-base-300 text-sm font-medium rounded-md text-base-content/70 bg-base-100 hover:bg-base-200">
-                «
-              </button>
-              <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-base-300 text-sm font-medium rounded-md text-base-content/70 bg-base-100 hover:bg-base-200">
-                »
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-base-content/70">10 개씩 보기</span>
-              </div>
+      {/* All Exams Table */}
+      <Card className="overflow-hidden">
+        {/* Filters */}
+        <ExamFilters
+          filterType={filtersState.filterType}
+          filterStatus={filtersState.filterStatus}
+          filterAuthor={filtersState.filterAuthor}
+          filterGroup={filtersState.filterGroup}
+          uniqueAuthors={filtersState.uniqueAuthors}
+          uniqueGroups={filtersState.uniqueGroups}
+          hasActiveFilters={filtersState.hasActiveFilters}
+          onFilterTypeChange={filtersState.setFilterType}
+          onFilterStatusChange={filtersState.setFilterStatus}
+          onFilterAuthorChange={filtersState.setFilterAuthor}
+          onFilterGroupChange={filtersState.setFilterGroup}
+          onClearFilters={filtersState.clearFilters}
+        />
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-base-300">
+            <ExamTableHeader
+              sortField={sortState.sortField}
+              sortOrder={sortState.sortOrder}
+              onSort={sortState.handleSort}
+            />
+            <tbody className="bg-base-100 divide-y divide-base-300">
+              {mockExams.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-8 text-center">
+                    <div className="text-base-content/70">
+                      <p className="text-lg font-medium mb-2">No data available in table</p>
+                      <p className="text-sm">시험과 과제를 추가해보세요.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : sortState.sortedExams.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-8 text-center">
+                    <div className="text-base-content/70">
+                      <p className="text-lg font-medium mb-2">필터 조건에 맞는 항목이 없습니다</p>
+                      <button
+                        onClick={filtersState.clearFilters}
+                        className="text-sm text-primary hover:text-primary/80 underline"
+                      >
+                        필터 초기화
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                sortState.sortedExams.map((exam) => (
+                  <ExamRow key={exam.id} exam={exam} courseId={courseId!} />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="bg-base-100 px-3 py-2 flex items-center justify-between border-t border-base-300">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button className="relative inline-flex items-center px-4 py-2 border border-base-300 text-sm font-medium rounded-md text-base-content/70 bg-base-100 hover:bg-base-200">
+              «
+            </button>
+            <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-base-300 text-sm font-medium rounded-md text-base-content/70 bg-base-100 hover:bg-base-200">
+              »
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-base-content/70">
+                {filtersState.hasActiveFilters ? (
+                  <>총 {mockExams.length}개 중 {sortState.sortedExams.length}개 표시</>
+                ) : (
+                  <>총 {mockExams.length}개 항목</>
+                )}
+              </span>
             </div>
           </div>
-        </Card>
+        </div>
+      </Card>
     </CoursePageLayout>
   )
 }

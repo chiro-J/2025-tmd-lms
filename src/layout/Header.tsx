@@ -9,7 +9,7 @@ export default function Header() {
   const { user, isLoggedIn, logout, switchRole } = useAuth()
   const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/signup')
   const [showRoleMenu, setShowRoleMenu] = useState(false)
-  
+
   const handleLogout = () => {
     logout()
     navigate('/login')
@@ -18,7 +18,7 @@ export default function Header() {
   const handleRoleSwitch = (role: 'student' | 'instructor' | 'admin' | 'sub-admin') => {
     switchRole(role)
     setShowRoleMenu(false)
-    
+
     // 권한에 맞는 페이지로 리다이렉트
     switch (role) {
       case 'student':
@@ -76,7 +76,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <button 
+            <button
               onClick={() => {
                 if (isLoggedIn && user) {
                   // 로그인된 사용자는 역할에 맞는 대시보드로 이동
@@ -108,38 +108,38 @@ export default function Header() {
             <div className="h-6 w-px bg-gray-300" />
             <span className="text-sm text-gray-500 font-medium">학습 관리 시스템</span>
           </div>
-          
+
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
             {!isAuthPage && isLoggedIn && user && (
               <>
                 {user.role === 'student' && (
                   <>
-                    <Link 
-                      to="/student/dashboard" 
+                    <Link
+                      to="/student/dashboard"
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        location.pathname.startsWith('/student/dashboard') 
-                          ? 'bg-gray-100 text-gray-900' 
+                        location.pathname.startsWith('/student/dashboard')
+                          ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
                       대시보드
                     </Link>
-                    <Link 
-                      to="/student/notice" 
+                    <Link
+                      to="/student/notice"
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        location.pathname.startsWith('/student/notice') 
-                          ? 'bg-gray-100 text-gray-900' 
+                        location.pathname.startsWith('/student/notice')
+                          ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
                       시스템 공지사항
                     </Link>
-                    <Link 
-                      to="/student/help" 
+                    <Link
+                      to="/student/help"
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        location.pathname.startsWith('/student/help') 
-                          ? 'bg-gray-100 text-gray-900' 
+                        location.pathname.startsWith('/student/help')
+                          ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
@@ -149,21 +149,21 @@ export default function Header() {
                 )}
                 {user.role === 'instructor' && (
                   <>
-                    <Link 
-                      to="/instructor/dashboard" 
+                    <Link
+                      to="/instructor/dashboard"
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        location.pathname.startsWith('/instructor/dashboard') 
-                          ? 'bg-gray-100 text-gray-900' 
+                        location.pathname.startsWith('/instructor/dashboard')
+                          ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
                       대시보드
                     </Link>
-                    <Link 
-                      to="/student/notice" 
+                    <Link
+                      to="/student/notice"
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        location.pathname.startsWith('/student/notice') 
-                          ? 'bg-gray-100 text-gray-900' 
+                        location.pathname.startsWith('/student/notice')
+                          ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                     >
@@ -172,11 +172,11 @@ export default function Header() {
                   </>
                 )}
                 {(user.role === 'admin' || user.role === 'sub-admin') && (
-                  <Link 
+                  <Link
                     to={user.role === 'admin' ? '/admin/master-dashboard' : '/admin/sub-dashboard'}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      location.pathname.startsWith('/admin') 
-                        ? 'bg-gray-100 text-gray-900' 
+                      location.pathname.startsWith('/admin')
+                        ? 'bg-gray-100 text-gray-900'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                   >
@@ -192,7 +192,7 @@ export default function Header() {
             <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell className="h-5 w-5" />
             </button>
-            
+
             {isLoggedIn && user ? (
               <>
                 {/* Role Switch Dropdown */}
@@ -209,13 +209,13 @@ export default function Header() {
                       </>
                     )}
                   </button>
-                  
+
                   {showRoleMenu && (
                     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                         권한 전환
                       </div>
-                      
+
                       <button
                         onClick={() => handleRoleSwitch('student')}
                         className={`w-full flex items-center space-x-3 px-3 py-2 text-sm hover:bg-gray-50 ${
@@ -226,7 +226,7 @@ export default function Header() {
                         <span>수강생</span>
                         {user.role === 'student' && <span className="text-xs text-blue-600 ml-auto">현재</span>}
                       </button>
-                      
+
                       <button
                         onClick={() => handleRoleSwitch('instructor')}
                         className={`w-full flex items-center space-x-3 px-3 py-2 text-sm hover:bg-gray-50 ${
@@ -237,7 +237,7 @@ export default function Header() {
                         <span>강의자</span>
                         {user.role === 'instructor' && <span className="text-xs text-green-600 ml-auto">현재</span>}
                       </button>
-                      
+
                       <button
                         onClick={() => handleRoleSwitch('admin')}
                         className={`w-full flex items-center space-x-3 px-3 py-2 text-sm hover:bg-gray-50 ${
@@ -248,7 +248,7 @@ export default function Header() {
                         <span>마스터 관리자</span>
                         {user.role === 'admin' && <span className="text-xs text-red-600 ml-auto">현재</span>}
                       </button>
-                      
+
                       <button
                         onClick={() => handleRoleSwitch('sub-admin')}
                         className={`w-full flex items-center space-x-3 px-3 py-2 text-sm hover:bg-gray-50 ${
@@ -274,7 +274,7 @@ export default function Header() {
                     <User className="h-4 w-4 text-gray-600" />
                   </Link>
                 )}
-                
+
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-1 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
@@ -292,7 +292,7 @@ export default function Header() {
                 <span>로그인</span>
               </Link>
             )}
-            
+
             <button className="md:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
               <Menu className="h-5 w-5" />
             </button>

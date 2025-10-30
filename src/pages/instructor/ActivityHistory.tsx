@@ -88,7 +88,7 @@ export default function ActivityHistory() {
   }
 
   return (
-    <CoursePageLayout 
+    <CoursePageLayout
       currentPageTitle="활동 내역"
       rightActions={rightActions}
     >
@@ -145,7 +145,7 @@ export default function ActivityHistory() {
         <div className="px-3 py-2 border-b border-base-300 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-base-content">활동 내역</h2>
           <div className="flex space-x-2">
-            <select 
+            <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="text-sm border border-base-300 rounded-lg px-3 py-1 bg-base-100 text-base-content"
@@ -171,7 +171,7 @@ export default function ActivityHistory() {
                     {getActivityIcon(activity)}
                   </div>
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <div>
@@ -207,6 +207,14 @@ export default function ActivityHistory() {
     </CoursePageLayout>
   )
 }
+
+
+
+
+
+
+
+
 
 
 
