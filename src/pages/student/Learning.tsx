@@ -34,7 +34,11 @@ export default function Learning() {
   const selectedLesson = useMemo(() => searchParams.get('lesson') || '', [searchParams])
   const selectedContent = useMemo(() => {
     const content = selectedLesson ? lessonContent[selectedLesson] : undefined
-    return content || { type: 'text', title: '학습 자료를 선택해 주세요', text: '강의 내용이 이쪽에 표시됩니다.' }
+    return (
+      content || ({ type: 'text', title: '학습 자료를 선택해 주세요', text: '오른쪽 커리큘럼에서 학습 항목을 선택하면 해당 자료가 표시됩니다.' } as {
+        type: ContentType; title: string; src?: string; text?: string; code?: string; linkUrl?: string
+      })
+    )
   }, [selectedLesson])
 
   // URL 변경 감지 (뒤로가기 등)

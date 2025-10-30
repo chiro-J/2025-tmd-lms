@@ -16,8 +16,8 @@ export function useExamSort(exams: Exam[], initialField: SortField = 'startDate'
 
   const sortedExams = useMemo(() => {
     return [...exams].sort((a, b) => {
-      let aValue = a[sortField]
-      let bValue = b[sortField]
+      let aValue: any = a[sortField]
+      let bValue: any = b[sortField]
 
       // Handle date sorting
       if (sortField === 'startDate' || sortField === 'endDate') {
@@ -38,7 +38,6 @@ export function useExamSort(exams: Exam[], initialField: SortField = 'startDate'
     handleSort
   }
 }
-
 
 
 

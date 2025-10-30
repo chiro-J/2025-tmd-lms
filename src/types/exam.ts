@@ -14,6 +14,7 @@ export interface Exam {
   totalQuestions: number
   author: string
   group: string
+  timeLimit?: number
 }
 
 export interface ExamFormData {
@@ -31,7 +32,6 @@ export interface ExamFormData {
   problemSelection: 'manual' | 'conditional'
   selectedQuestions: string[]
 }
-
 
 
 

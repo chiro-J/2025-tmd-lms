@@ -9,7 +9,7 @@ export default function ExamDetail() {
   const navigate = useNavigate()
   const { id: courseId, examId } = useParams()
 
-  const exam = mockExams.find(e => e.id === String(examId))
+  const exam = mockExams.find(e => e.id === Number(examId))
 
   const rightActions = (
     <>
@@ -41,7 +41,7 @@ export default function ExamDetail() {
             <Card className="p-6">
               <div className="mb-4 flex items-center gap-2">
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${exam.type === '시험' ? 'bg-primary/10 text-primary' : 'bg-info/10 text-info'}`}>{exam.type}</span>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${exam.status === '진행중' ? 'bg-success/10 text-success' : exam.status === '대기' ? 'bg-warning/10 text-warning' : 'bg-base-300 text-base-content'}`}>{exam.status}</span>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${exam.status === '진행중' ? 'bg-success/10 text-success' : exam.status === '예정' ? 'bg-warning/10 text-warning' : 'bg-base-300 text-base-content'}`}>{exam.status}</span>
               </div>
               <h1 className="text-2xl font-bold text-base-content mb-2">{exam.title}</h1>
               <p className="text-sm text-base-content/70">작성자: {exam.author} · 그룹: {exam.group}</p>
@@ -70,7 +70,6 @@ export default function ExamDetail() {
     </CoursePageLayout>
   )
 }
-
 
 
 

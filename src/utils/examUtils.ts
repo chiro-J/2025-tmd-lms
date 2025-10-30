@@ -17,4 +17,3 @@ export const getStatusColor = (status: ExamStatus): string => {
 
 
 
-

@@ -68,4 +68,3 @@ export default function ExamRow({ exam, courseId }: ExamRowProps) {
 
 
 
-

@@ -7,7 +7,7 @@
 // ========================================
 
 export interface User {
-  id: string
+  id: string | number
   username: string
   password: string
   email: string
@@ -79,6 +79,11 @@ export interface Notice {
   title: string
   date: string
   content: string
+  // 확장 필드 (관리자/컨텍스트 사용 대응)
+  author?: string
+  createdDate?: string
+  status?: 'active' | 'inactive'
+  priority?: 'low' | 'medium' | 'high'
 }
 
 // ========================================
@@ -158,6 +163,12 @@ export interface ProgressBarProps {
   className?: string
   showLabel?: boolean
   label?: string
+}
+
+export interface PillProps {
+  children: React.ReactNode
+  variant?: 'default' | 'success' | 'warning' | 'error'
+  size?: 'sm' | 'md'
 }
 
 
@@ -345,7 +356,7 @@ export interface QuizQuestion {
   question: string
   type: 'multiple-choice' | 'true-false' | 'short-answer'
   options?: string[]
-  correctAnswer: string | number
+  correctAnswer: string | number | boolean
   points: number
   timeLimit?: number // in seconds
   explanation?: string
