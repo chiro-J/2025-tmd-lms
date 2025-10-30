@@ -38,6 +38,15 @@ lerna-debug.log*
 *.tmp
 *.temp
 
+# Markdown: ignore all, but keep README.md
+*.md
+!README.md
+!**/README.md
+
+# Local docs and folders to ignore
+2025 TMD 몬스테라텍 LMS 기획 서류.xlsx
+asd/
+
 # Public assets (large)
 public/
 # You can whitelist small assets if needed, e.g.:
