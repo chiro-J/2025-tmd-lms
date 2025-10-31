@@ -10,7 +10,7 @@ export default function Profile() {
 
   const handleRoleSelect = (role: 'instructor' | 'student') => {
     if (role === 'instructor') {
-      navigate('/instructor/profile-page')
+      navigate('/instructor/profile')
     } else {
       navigate('/student/profile')
     }

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import MarkdownEditor from '../../components/editor/MarkdownEditor'
 import { useParams, useNavigate } from 'react-router-dom'
 
 export default function NoticeEditor() {
@@ -29,7 +28,7 @@ export default function NoticeEditor() {
               disabled={!title.trim() || content.trim().length < 5}
               onClick={() => {
                 console.log('공지 등록', { courseId: id, title, content })
-                window.close()
+                navigate(-1)
               }}
             >
               등록
@@ -44,8 +43,16 @@ export default function NoticeEditor() {
 
         <Card className="p-4">
           <label className="block text-sm font-medium mb-2">내용</label>
-          <MarkdownEditor initialValue={content} onChange={setContent} height={360} />
-          <p className="text-xs text-base-content/70 mt-2">간단한 Markdown 입력을 지원합니다.</p>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="공지 내용을 입력하세요."
+            className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            rows={15}
+          />
+          <p className="text-xs text-base-content/70 mt-2">
+            {content.length}자 / 최소 5자 이상 입력해주세요.
+          </p>
         </Card>
       </div>
     </div>

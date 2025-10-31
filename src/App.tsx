@@ -43,13 +43,14 @@ import CreateExam from "./pages/instructor/CreateExam";
 import QuestionManagement from "./pages/instructor/QuestionManagement";
 import NoticeManagement from "./pages/instructor/NoticeManagement";
 import NoticeEditor from "./pages/instructor/NoticeEditor";
-import InstructorProfile from "./pages/instructor/Profile";
+import InstructorProfile from "./pages/instructor/InstructorProfile";
 import CoursePreview from "./pages/instructor/CoursePreview";
 import RealtimeProctoring from "./pages/instructor/RealtimeProctoring.tsx";
 import ResultsAnalysis from "./pages/instructor/ResultsAnalysis.tsx";
 import ExamDetail from "./pages/instructor/ExamDetail";
 import GradeReport from "./pages/instructor/GradeReport.tsx";
 import ReviewManagement from "./pages/instructor/ReviewManagement.tsx";
+import AssignmentManagement from "./pages/instructor/AssignmentManagement";
 // import CourseSettings from "./pages/instructor/CourseSettings.tsx";
 import ActivityHistory from "./pages/instructor/ActivityHistory.tsx";
 import InviteStudents from "./pages/instructor/InviteStudents";
@@ -112,6 +113,7 @@ export default function App() {
              <Route path="/instructor/course/:id/achievement" element={<AchievementAnalysis />} />
              <Route path="/instructor/course/:id/co-instructors" element={<CoInstructorSettings />} />
              <Route path="/instructor/course/:id/exams" element={<ExamManagement />} />
+             <Route path="/instructor/course/:id/assignments" element={<AssignmentManagement />} />
              <Route path="/instructor/course/:id/exam/:examId" element={<ExamDetail />} />
              <Route path="/instructor/course/:id/create-exam" element={<CreateExam />} />
              <Route path="/instructor/course/:id/question-management" element={<QuestionManagement />} />

@@ -1,19 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Upload, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import { getAssignmentById } from '../../data/assignments'
 
-interface Assignment {
-  id: string
-  title: string
-  description: string
-  dueDate: string
-  maxScore: number
-  instructions: string[]
-  allowedFileTypes: string[]
-  maxFileSize: number // in MB
-}
+type Assignment = ReturnType<typeof getAssignmentById>
 
 interface Submission {
   id: string
@@ -30,23 +22,7 @@ export default function AssignmentSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionSuccess, setSubmissionSuccess] = useState(false)
 
-  // Mock assignment data
-  const assignment: Assignment = {
-    id: id || '1',
-    title: 'React 컴포넌트 개발 과제',
-    description: 'React를 사용하여 재사용 가능한 컴포넌트를 개발하고, 이를 활용한 간단한 애플리케이션을 구현하세요.',
-    dueDate: '2024-11-25T23:59:00',
-    maxScore: 100,
-    instructions: [
-      '최소 3개의 재사용 가능한 컴포넌트를 만들어야 합니다.',
-      '각 컴포넌트는 props를 통해 다양한 설정을 받을 수 있어야 합니다.',
-      'TypeScript를 사용하여 타입 안전성을 보장해야 합니다.',
-      '코드에 주석을 적절히 작성해야 합니다.',
-      'README.md 파일에 프로젝트 설명과 실행 방법을 작성해야 합니다.'
-    ],
-    allowedFileTypes: ['.zip', '.rar', '.7z'],
-    maxFileSize: 50
-  }
+  const assignment = useMemo(() => getAssignmentById(Number(id) || 1), [id])
 
   // Mock submission history
   const submissionHistory: Submission[] = [
@@ -88,8 +64,8 @@ export default function AssignmentSubmit() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const isOverdue = new Date(assignment.dueDate) < new Date()
-  const timeLeft = new Date(assignment.dueDate).getTime() - new Date().getTime()
+  const isOverdue = assignment ? new Date(assignment.dueDate) < new Date() : false
+  const timeLeft = assignment ? new Date(assignment.dueDate).getTime() - new Date().getTime() : 0
   const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24))
 
   return (
@@ -97,11 +73,11 @@ export default function AssignmentSubmit() {
       <div className="container-page py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{assignment.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{assignment?.title ?? '과제'}</h1>
           <div className="flex items-center space-x-4 text-sm text-gray-600">
             <div className="flex items-center">
               <Clock className="h-4 w-4 mr-1" />
-              <span>마감: {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}</span>
+              <span>마감: {assignment ? new Date(assignment.dueDate).toLocaleDateString('ko-KR') : '-'}</span>
             </div>
             <div className={`flex items-center ${isOverdue ? 'text-red-600' : 'text-gray-600'}`}>
               {isOverdue ? (
@@ -112,7 +88,7 @@ export default function AssignmentSubmit() {
               ) : (
                 <>
                   <Clock className="h-4 w-4 mr-1" />
-                  <span>{daysLeft}일 남음</span>
+                  <span>{assignment ? `${daysLeft}일 남음` : '-'}</span>
                 </>
               )}
             </div>
@@ -126,11 +102,11 @@ export default function AssignmentSubmit() {
             <Card>
               <div className="p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">과제 설명</h2>
-                <p className="text-gray-700 mb-4">{assignment.description}</p>
+                <p className="text-gray-700 mb-4">{assignment?.description ?? ''}</p>
 
                 <h3 className="text-md font-medium text-gray-900 mb-3">요구사항</h3>
                 <ul className="space-y-2">
-                  {assignment.instructions.map((instruction, index) => (
+                  {(assignment?.instructions ?? []).map((instruction, index) => (
                     <li key={index} className="flex items-start">
                       <span className="text-blue-600 mr-2">•</span>
                       <span className="text-gray-700">{instruction}</span>
@@ -149,12 +125,12 @@ export default function AssignmentSubmit() {
                   <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 mb-2">파일을 드래그하거나 클릭하여 업로드하세요</p>
                   <p className="text-sm text-gray-500 mb-4">
-                    허용 형식: {assignment.allowedFileTypes.join(', ')} (최대 {assignment.maxFileSize}MB)
+                    허용 형식: {(assignment?.allowedFileTypes ?? []).join(', ')} (최대 {assignment?.maxFileSize ?? 0}MB)
                   </p>
                   <input
                     type="file"
                     multiple
-                    accept={assignment.allowedFileTypes.join(',')}
+                    accept={(assignment?.allowedFileTypes ?? []).join(',')}
                     onChange={handleFileSelect}
                     className="hidden"
                     id="file-upload"
@@ -224,7 +200,7 @@ export default function AssignmentSubmit() {
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">과제 정보</h3>
                 <div className="space-y-3">
-                  <div>
+                  {assignment && (<div>
                     <p className="text-sm font-medium text-gray-600">마감일</p>
                     <p className="text-sm text-gray-900">
                       {new Date(assignment.dueDate).toLocaleDateString('ko-KR', {
@@ -235,14 +211,14 @@ export default function AssignmentSubmit() {
                         minute: '2-digit'
                       })}
                     </p>
-                  </div>
+                  </div>)}
                   <div>
                     <p className="text-sm font-medium text-gray-600">최대 점수</p>
-                    <p className="text-sm text-gray-900">{assignment.maxScore}점</p>
+                    <p className="text-sm text-gray-900">{assignment?.maxScore ?? 0}점</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">파일 크기 제한</p>
-                    <p className="text-sm text-gray-900">{assignment.maxFileSize}MB</p>
+                    <p className="text-sm text-gray-900">{assignment?.maxFileSize ?? 0}MB</p>
                   </div>
                 </div>
               </div>

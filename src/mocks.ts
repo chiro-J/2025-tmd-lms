@@ -9,7 +9,8 @@ import type {
   Quiz,
   Resource,
   QnAItem,
-  FAQItem
+  FAQItem,
+  Notification
 } from './types'
 
 export const mockNotices: Notice[] = [
@@ -316,5 +317,109 @@ export const mockFAQ: FAQItem[] = [
     question: '과제 제출은 어떻게 하나요?',
     answer: '과제 페이지에서 파일을 업로드하고 제출 버튼을 클릭하시면 됩니다.',
     category: '과제'
+  }
+]
+
+// 알림 Mock 데이터
+
+export const mockNotifications: Notification[] = [
+  {
+    id: 1,
+    type: 'assignment',
+    title: '새로운 과제가 등록되었습니다',
+    message: '[파이썬 기초] 과제 1이 등록되었습니다. 제출 기한: 2025-11-05',
+    createdAt: '2025-10-30T10:30:00',
+    read: false,
+    link: '/student/assignment/1',
+    courseId: 1,
+    courseTitle: '파이썬 기초'
+  },
+  {
+    id: 2,
+    type: 'exam',
+    title: '시험이 등록되었습니다',
+    message: '[자바스크립트 실전] 중간고사가 등록되었습니다. 응시 기한: 2025-11-10',
+    createdAt: '2025-10-29T14:20:00',
+    read: false,
+    link: '/student/quiz/1',
+    courseId: 2,
+    courseTitle: '자바스크립트 실전'
+  },
+  {
+    id: 3,
+    type: 'question',
+    title: '질문에 답변이 등록되었습니다',
+    message: '[React 고급] 강의에 대한 질문에 강의자가 답변을 남겼습니다.',
+    createdAt: '2025-10-28T16:45:00',
+    read: false,
+    link: '/student/course/3',
+    courseId: 3,
+    courseTitle: 'React 고급'
+  },
+  {
+    id: 4,
+    type: 'notice',
+    title: '새로운 공지사항이 있습니다',
+    message: '시스템 점검 안내가 등록되었습니다.',
+    createdAt: '2025-10-27T09:00:00',
+    read: true,
+    link: '/student/notice'
+  },
+  {
+    id: 5,
+    type: 'review',
+    title: '강의 후기가 등록되었습니다',
+    message: '[파이썬 기초] 강의에 새로운 후기가 등록되었습니다.',
+    createdAt: '2025-10-26T11:15:00',
+    read: true,
+    link: '/instructor/course/1/reviews',
+    courseId: 1,
+    courseTitle: '파이썬 기초'
+  }
+]
+
+// 강의자용 알림 Mock 데이터
+export const mockInstructorNotifications: Notification[] = [
+  {
+    id: 1,
+    type: 'question',
+    title: '새로운 질문이 등록되었습니다',
+    message: '[파이썬 기초] 수강생이 새로운 질문을 등록했습니다.',
+    createdAt: '2025-10-30T15:20:00',
+    read: false,
+    link: '/instructor/course/1/qna',
+    courseId: 1,
+    courseTitle: '파이썬 기초'
+  },
+  {
+    id: 2,
+    type: 'review',
+    title: '강의 후기가 등록되었습니다',
+    message: '[React 고급] 새로운 후기가 등록되었습니다.',
+    createdAt: '2025-10-29T10:30:00',
+    read: false,
+    link: '/instructor/course/3/reviews',
+    courseId: 3,
+    courseTitle: 'React 고급'
+  },
+  {
+    id: 3,
+    type: 'assignment',
+    title: '과제 제출이 있습니다',
+    message: '[자바스크립트 실전] 과제 1에 5명의 수강생이 제출했습니다.',
+    createdAt: '2025-10-28T14:00:00',
+    read: false,
+    link: '/instructor/course/2/assignments',
+    courseId: 2,
+    courseTitle: '자바스크립트 실전'
+  },
+  {
+    id: 4,
+    type: 'announcement',
+    title: '시스템 공지사항',
+    message: '새로운 기능이 추가되었습니다. 확인해주세요.',
+    createdAt: '2025-10-27T09:00:00',
+    read: true,
+    link: '/student/notice'
   }
 ]

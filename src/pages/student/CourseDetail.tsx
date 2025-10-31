@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, BookOpen, MessageSquare, Download, Image, Code, Link, Search } from 'lucide-react'
 import Card from '../../components/ui/Card'
@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { mockResources, mockQnA } from '../../mocks'
 import type { Resource, QnAItem } from '../../types'
+import { getCurriculumForCourseDetail } from '../../data/curriculum'
 
 interface CurriculumItem {
   id: string
@@ -36,70 +37,39 @@ export default function CourseDetail() {
   const [showAskInline, setShowAskInline] = useState(false)
   const [askText, setAskText] = useState('')
 
-  const [curriculum, setCurriculum] = useState<CurriculumItem[]>([
-    {
-      id: '1',
-      title: '오리엔테이션',
-      completed: 1,
-      total: 1,
-      expanded: false,
-      lessons: [
-        { id: '1-1', title: '강의 소개 및 환경 설정', completed: true, date: '25. 10. 13.' }
-      ]
-    },
-    {
-      id: '2',
-      title: '권혁진_풀스택',
-      completed: 7,
-      total: 7,
-      expanded: false,
-      lessons: [
-        { id: '2-1', title: 'HTML/CSS 기초', completed: true, date: '25. 10. 14.' },
-        { id: '2-2', title: 'JavaScript 기초', completed: true, date: '25. 10. 15.' },
-        { id: '2-3', title: 'DOM 조작', completed: true, date: '25. 10. 16.' },
-        { id: '2-4', title: 'ES6 문법', completed: true, date: '25. 10. 17.' },
-        { id: '2-5', title: '비동기 프로그래밍', completed: true, date: '25. 10. 18.' },
-        { id: '2-6', title: 'API 연동', completed: true, date: '25. 10. 19.' },
-        { id: '2-7', title: '프로젝트 실습', completed: true, date: '25. 10. 20.' }
-      ]
-    },
-    {
-      id: '3',
-      title: '정보통신개론 및 IT 기본 실습',
-      completed: 6,
-      total: 6,
-      expanded: false,
-      lessons: [
-        { id: '3-1', title: '컴퓨터 구조', completed: true, date: '25. 10. 21.' },
-        { id: '3-2', title: '네트워크 기초', completed: true, date: '25. 10. 22.' },
-        { id: '3-3', title: '데이터베이스 기초', completed: true, date: '25. 10. 23.' },
-        { id: '3-4', title: '운영체제 기초', completed: true, date: '25. 10. 24.' },
-        { id: '3-5', title: '보안 기초', completed: true, date: '25. 10. 25.' },
-        { id: '3-6', title: 'IT 실습', completed: true, date: '25. 10. 26.' }
-      ]
-    },
-    {
-      id: '4',
-      title: '리엑트 NEW',
-      completed: 1,
-      total: 12,
-      expanded: true,
-      lessons: [
-        { id: '4-1', title: '타입스크립트', completed: true, date: '25. 10. 13.', isLastViewed: true },
-        { id: '4-2', title: '타입스크립트 기초 연습문제', completed: false },
-        { id: '4-3', title: 'ES6', completed: false },
-        { id: '4-4', title: '리엑트 설명', completed: false },
-        { id: '4-5', title: '컴포넌트 기초', completed: false },
-        { id: '4-6', title: 'JSX 문법', completed: false },
-        { id: '4-7', title: 'Props와 State', completed: false },
-        { id: '4-8', title: '이벤트 처리', completed: false },
-        { id: '4-9', title: '조건부 렌더링', completed: false },
-        { id: '4-10', title: '리스트와 키', completed: false },
-        { id: '4-11', title: '폼 처리', completed: false },
-        { id: '4-12', title: '라이프사이클', completed: false }
-      ]
+  // curriculum.ts에서 공통 데이터 가져오기
+  const initialCurriculum = useMemo(() => {
+    const data = getCurriculumForCourseDetail()
+    // 첫 번째 강의와 마지막 강의 일부 완료 처리 (임시)
+    if (data.length > 0) {
+      data[0].completed = 1
+      data[0].lessons[0].completed = true
+      data[0].lessons[0].date = '25. 10. 13.'
     }
-  ])
+    if (data.length > 1) {
+      data[1].completed = 7
+      data[1].lessons.forEach((lesson, idx) => {
+        lesson.completed = true
+        lesson.date = `25. 10. ${14 + idx}.`
+      })
+    }
+    if (data.length > 2) {
+      data[2].completed = 6
+      data[2].lessons.forEach((lesson, idx) => {
+        lesson.completed = true
+        lesson.date = `25. 10. ${21 + idx}.`
+      })
+    }
+    if (data.length > 3) {
+      data[3].completed = 1
+      data[3].lessons[0].completed = true
+      data[3].lessons[0].date = '25. 10. 13.'
+      data[3].lessons[0].isLastViewed = true
+    }
+    return data
+  }, [])
+
+  const [curriculum, setCurriculum] = useState<CurriculumItem[]>(initialCurriculum)
 
   const [allExpanded, setAllExpanded] = useState(false)
 

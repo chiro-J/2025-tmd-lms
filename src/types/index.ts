@@ -414,3 +414,19 @@ export interface FAQItem {
   category: string
   isExpanded?: boolean
 }
+
+// ========================================
+// 알림 관련 타입
+// ========================================
+
+export interface Notification {
+  id: number
+  type: 'assignment' | 'exam' | 'question' | 'notice' | 'review' | 'announcement'
+  title: string
+  message: string
+  createdAt: string
+  read: boolean
+  link?: string
+  courseId?: string | number
+  courseTitle?: string
+}

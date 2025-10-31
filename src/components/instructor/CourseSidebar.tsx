@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronRight, Bell, Home, BookOpen, ClipboardList, Users, Settings, MessageCircle, FileText, HelpCircle, Edit3 } from 'lucide-react'
+import { mockInstructorNotifications } from '../../mocks'
+import type { Notification } from '../../types'
 
 interface CourseSidebarProps {
   isCollapsed?: boolean;
@@ -14,7 +16,28 @@ interface CourseSidebarProps {
 
 export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCourse }: CourseSidebarProps) {
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'exams', 'community', 'settings'])
+  const [showNotificationMenu, setShowNotificationMenu] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    setNotifications(mockInstructorNotifications)
+  }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showNotificationMenu && !target.closest('[data-notification-menu]')) {
+        setShowNotificationMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showNotificationMenu])
 
   const toggleMenu = (menu: string) => {
     setExpandedMenus(prev =>
@@ -22,6 +45,53 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
         ? prev.filter(m => m !== menu)
         : [...prev, menu]
     )
+  }
+
+  const unreadCount = notifications.filter(n => !n.read).length
+
+  const handleNotificationClick = (notification: Notification) => {
+    setNotifications(prev =>
+      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+    )
+    setShowNotificationMenu(false)
+
+    if (notification.link) {
+      navigate(notification.link)
+    }
+  }
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return '방금 전'
+    if (minutes < 60) return `${minutes}분 전`
+    if (hours < 24) return `${hours}시간 전`
+    if (days < 7) return `${days}일 전`
+    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+  }
+
+  const getNotificationIcon = (type: Notification['type']) => {
+    switch (type) {
+      case 'assignment':
+        return '📝'
+      case 'exam':
+        return '📋'
+      case 'question':
+        return '❓'
+      case 'review':
+        return '⭐'
+      case 'notice':
+        return '📢'
+      case 'announcement':
+        return '🔔'
+      default:
+        return '🔔'
+    }
   }
 
 
@@ -35,11 +105,87 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
         </div>
 
         <nav className="space-y-2">
-          <Link to="#" className="flex items-center space-x-3 px-4 py-3 text-gray-900 hover:bg-gray-100 rounded-lg font-medium">
-            <Bell className="h-5 w-5 flex-shrink-0" />
-            <span className="flex-1">알림</span>
-            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">0</span>
-          </Link>
+          <div className="relative" data-notification-menu>
+            <button
+              onClick={() => setShowNotificationMenu(!showNotificationMenu)}
+              className="flex items-center space-x-3 px-4 py-3 text-gray-900 hover:bg-gray-100 rounded-lg font-medium w-full"
+            >
+              <Bell className="h-5 w-5 flex-shrink-0" />
+              <span className="flex-1 text-left">알림</span>
+              {unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>
+              )}
+            </button>
+
+            {showNotificationMenu && (
+              <div className="absolute left-full ml-2 top-0 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col">
+                {/* 헤더 */}
+                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">알림</h3>
+                  {unreadCount > 0 && (
+                    <span className="text-xs text-gray-500">{unreadCount}개의 읽지 않은 알림</span>
+                  )}
+                </div>
+
+                {/* 알림 목록 */}
+                <div className="overflow-y-auto max-h-80">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                      알림이 없습니다
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          onClick={() => handleNotificationClick(notification)}
+                          className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
+                            !notification.read ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <span className="text-lg flex-shrink-0 mt-0.5">
+                              {getNotificationIcon(notification.type)}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className={`text-sm font-medium truncate ${
+                                  !notification.read ? 'text-gray-900' : 'text-gray-700'
+                                }`}>
+                                  {notification.title}
+                                </p>
+                                {!notification.read && (
+                                  <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-600 line-clamp-2 mb-1">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {formatTimeAgo(notification.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 푸터 */}
+                <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => {
+                      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    모두 읽음 처리
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <Link to={`/instructor/course/1/home`} className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium ${
             location.pathname === '/instructor/course/1/home'
@@ -113,6 +259,13 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   전체 시험
+                </Link>
+                <Link to="/instructor/course/1/assignments" className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === '/instructor/course/1/assignments'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  과제 관리
                 </Link>
                 <Link to="/instructor/course/1/create-exam" className={`block px-4 py-2 text-sm rounded ${
                   location.pathname === '/instructor/course/1/create-exam'

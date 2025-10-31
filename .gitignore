@@ -17,6 +17,9 @@ release/
 .vscode/
 .idea/
 
+# AI
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -42,10 +45,11 @@ lerna-debug.log*
 *.md
 !README.md
 !**/README.md
+!docs/ARCHITECTURE_DATA_MAP.md
 
 # Local docs and folders to ignore
 2025 TMD 몬스테라텍 LMS 기획 서류.xlsx
-asd/
+
 
 
 # Public assets (large)

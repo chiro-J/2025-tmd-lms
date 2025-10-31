@@ -90,6 +90,7 @@ function CurriculumContent() {
   // 통합 데이터 소스: data/curriculum.ts
   const modules = useMemo(() => getCurriculumData(), [])
 
+
   // 임시 진행률(목업). 실제로는 사용자 진행 데이터와 결합
   const totalLectures = modules.reduce((acc, m) => acc + (m.lectures?.length || 0), 0)
   const completedLectures = 1
@@ -113,7 +114,7 @@ function CurriculumContent() {
             className="w-full p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
           >
             <div className="text-left flex-1 flex items-center space-x-2 min-w-0">
-              <span className="text-blue-500 font-medium text-sm whitespace-nowrap">
+              <span className="bg-blue-500 text-white font-bold text-sm px-2 py-0.5 rounded whitespace-nowrap">
                 {String((modules.findIndex(m => m.id === module.id)) + 1).padStart(2, '0')}
               </span>
               <h4 className="font-medium text-gray-900 text-sm truncate">{module.title}</h4>
@@ -136,7 +137,7 @@ function CurriculumContent() {
                   className="w-full p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
                 >
                   <div className="flex-1 text-left flex items-center space-x-2 min-w-0">
-                    <span className="text-blue-500 font-medium text-xs whitespace-nowrap">{String(idx + 1).padStart(2, '0')}</span>
+                    <span className="text-gray-500 font-normal text-xs whitespace-nowrap ml-1">{String(idx + 1).padStart(2, '0')}</span>
                     <p className="text-sm font-medium text-gray-900 truncate">{lecture.title}</p>
                   </div>
                 </button>
