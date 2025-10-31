@@ -17,9 +17,6 @@ release/
 .vscode/
 .idea/
 
-# AI
-.claude/
-
 # OS
 .DS_Store
 Thumbs.db
@@ -41,18 +38,29 @@ lerna-debug.log*
 *.tmp
 *.temp
 
-# Markdown: ignore all, but keep README.md
+# Public assets (large files)
+public/
+
+# Documentation (keep only README.md)
+docs/
 *.md
 !README.md
 !**/README.md
-!docs/ARCHITECTURE_DATA_MAP.md
-
-# Local docs and folders to ignore
-2025 TMD 몬스테라텍 LMS 기획 서류.xlsx
 
 
+# Ignore everything in root except essential config files
+# Allow only:
+# - package.json, package-lock.json
+# - vite.config.ts
+# - tsconfig.*.json
+# - tailwind.config.js, postcss.config.js
+# - eslint.config.js
+# - index.html
+# - README.md, LICENSE
+# - .gitignore
+# - apps/ (backend)
+# - src/ (frontend)
+# - scripts/ (utility scripts)
 
-# Public assets (large)
-public/
-# You can whitelist small assets if needed, e.g.:
-#!public/vite.svg
+# Exclude other root files/folders that are not needed
+# (everything else is already covered above)

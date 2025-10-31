@@ -150,8 +150,6 @@ export default function CourseDetail() {
     if (resource.type === 'link') {
       window.open(resource.url, '_blank')
     } else {
-      // 실제 파일 다운로드 로직
-      console.log('다운로드:', resource.title)
       // TODO: 실제 다운로드 구현
     }
   }
@@ -623,7 +621,6 @@ export default function CourseDetail() {
                           className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl"
                           disabled={askText.length < 10}
                           onClick={() => {
-                            console.log('질문 제출:', { text: askText })
                             setAskText('')
                             setShowAskInline(false)
                           }}

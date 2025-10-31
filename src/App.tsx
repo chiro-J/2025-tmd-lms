@@ -51,7 +51,6 @@ import ExamDetail from "./pages/instructor/ExamDetail";
 import GradeReport from "./pages/instructor/GradeReport.tsx";
 import ReviewManagement from "./pages/instructor/ReviewManagement.tsx";
 import AssignmentManagement from "./pages/instructor/AssignmentManagement";
-// import CourseSettings from "./pages/instructor/CourseSettings.tsx";
 import ActivityHistory from "./pages/instructor/ActivityHistory.tsx";
 import InviteStudents from "./pages/instructor/InviteStudents";
 import InviteByEmail from "./pages/instructor/InviteByEmail";
@@ -126,7 +125,6 @@ export default function App() {
             {/* Removed duplicated settings (overlaps with course info edit) */}
              <Route path="/instructor/course/:id/activity" element={<ActivityHistory />} />
              <Route path="/instructor/profile" element={<InstructorProfile />} />
-             {/* <Route path="/instructor/profile-page" element={<InstructorProfilePage />} /> */}
 
         {/* Admin with layout */}
         <Route path="/admin/master-dashboard" element={<MasterDashboard />} />

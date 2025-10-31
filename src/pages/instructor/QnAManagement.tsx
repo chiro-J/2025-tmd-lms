@@ -50,7 +50,6 @@ export default function QnAManagement() {
   const handleAnswerSubmit = () => {
     if (!selectedQnA) return
     // TODO: API 호출
-    console.log('답변 제출:', answerText)
     setAnswerText('')
     setSelectedQnA(null)
   }

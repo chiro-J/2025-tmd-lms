@@ -442,7 +442,7 @@ export const getCurriculumData = (): CurriculumModule[] => {
     try {
       return JSON.parse(stored)
     } catch (error) {
-      console.error('교육과정 데이터 파싱 오류:', error)
+      // 교육과정 데이터 파싱 오류 처리
     }
   }
   return curriculumData

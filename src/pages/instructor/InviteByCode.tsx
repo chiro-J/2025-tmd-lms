@@ -15,7 +15,7 @@ export default function InviteByCode() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('복사 실패:', err)
+      // 복사 실패 처리
     }
   }
 

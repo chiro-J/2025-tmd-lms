@@ -71,7 +71,6 @@ export default function CourseInfoEdit() {
 
   const handleSave = () => {
     // TODO: API 연동
-    console.log('강좌 정보 저장:', formData)
     alert('강좌 정보가 저장되었습니다!')
   }
 

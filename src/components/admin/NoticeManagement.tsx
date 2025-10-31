@@ -18,9 +18,9 @@ interface NoticeManagementProps {
   showActions?: boolean;
 }
 
-export default function NoticeManagement({ 
-  inquiries = [], 
-  showActions = true 
+export default function NoticeManagement({
+  inquiries = [],
+  showActions = true
 }: NoticeManagementProps) {
   const { notices, addNotice, updateNotice, deleteNotice } = useNotice();
   const [showNoticeModal, setShowNoticeModal] = useState(false);
@@ -78,7 +78,6 @@ export default function NoticeManagement({
 
   const handleInquirySubmit = () => {
     if (selectedInquiry && inquiryResponse.trim()) {
-      console.log("문의사항 답변:", { inquiryId: selectedInquiry.id, response: inquiryResponse });
       // 실제 구현에서는 API 호출
       setShowInquiryModal(false);
       setSelectedInquiry(null);
@@ -117,13 +116,13 @@ export default function NoticeManagement({
                     </span>
                     {showActions && (
                       <div className="flex gap-1">
-                        <button 
+                        <button
                           onClick={() => handleNoticeEdit(notice)}
                           className="p-1 text-gray-400 hover:text-blue-600"
                         >
                           <Edit className="w-3 h-3" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleNoticeDelete(notice.id)}
                           className="p-1 text-gray-400 hover:text-red-600"
                         >
@@ -194,7 +193,7 @@ export default function NoticeManagement({
                   </p>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2 break-words">제목</label>
@@ -251,7 +250,7 @@ export default function NoticeManagement({
                   <p className="text-sm text-gray-600 break-words">문의사항에 답변을 작성합니다</p>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 break-words">{selectedInquiry.title}</h4>
@@ -260,7 +259,7 @@ export default function NoticeManagement({
                     문의자: {selectedInquiry.user} ({selectedInquiry.email})
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2 break-words">답변 내용</label>
                   <textarea

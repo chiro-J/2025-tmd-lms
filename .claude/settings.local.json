@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Monstera/Desktop/src/components/exam/**)",
+      "Read(//c/Users/Monstera/Desktop/src/hooks/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

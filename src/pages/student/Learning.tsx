@@ -120,7 +120,7 @@ export default function Learning() {
           await videoRef.current.requestPictureInPicture()
         }
       } catch (error) {
-        console.error('PIP 오류:', error)
+        // PIP 기능 오류 처리
       }
     }
   }
@@ -311,13 +311,9 @@ export default function Learning() {
             className="w-full h-full object-contain bg-black"
             src={selectedContent.src}
             onClick={togglePlayPause}
-            onError={(e) => {
-              console.error('비디오 로드 오류:', e)
-              console.log('비디오 소스:', videoRef.current?.src)
+            onError={() => {
+              // 비디오 로드 오류 처리
             }}
-            onLoadStart={() => console.log('비디오 로딩 시작')}
-            onLoadedData={() => console.log('비디오 데이터 로드 완료')}
-            onCanPlay={() => console.log('비디오 재생 가능')}
             preload="metadata"
             controls={false}
           >

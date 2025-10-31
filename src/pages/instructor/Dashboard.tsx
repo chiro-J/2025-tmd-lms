@@ -142,7 +142,6 @@ export default function InstructorDashboard() {
                      key={c.id}
                      to={`/instructor/course/${c.id}/home`}
                      className="block border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-lg transition-all"
-                     onClick={() => console.log('Dashboard navigating to course:', c.id)}
                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -170,7 +169,6 @@ export default function InstructorDashboard() {
                      key={c.id}
                      to={`/instructor/course/${c.id}/home`}
                      className="block border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-lg transition-all"
-                     onClick={() => console.log('Dashboard navigating to joint course:', c.id)}
                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">

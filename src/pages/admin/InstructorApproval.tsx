@@ -69,17 +69,15 @@ export default function InstructorApproval() {
     }
   ];
 
-  const filteredInstructors = instructors.filter(instructor => 
+  const filteredInstructors = instructors.filter(instructor =>
     filter === "all" || instructor.status === filter
   );
 
   const handleApprove = (id: number) => {
-    console.log(`강의자 승인: ${id}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleReject = (id: number) => {
-    console.log(`강의자 거부: ${id}`);
     // 실제 구현에서는 API 호출
   };
 
@@ -143,8 +141,8 @@ export default function InstructorApproval() {
             {/* 강의자 목록 */}
             <div className="lg:col-span-2 space-y-4">
               {filteredInstructors.map((instructor) => (
-                <Card 
-                  key={instructor.id} 
+                <Card
+                  key={instructor.id}
                   className={`cursor-pointer transition-all hover:shadow-lg ${
                     selectedInstructor?.id === instructor.id ? "ring-2 ring-blue-500" : ""
                   }`}
@@ -270,9 +268,9 @@ export default function InstructorApproval() {
 
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">포트폴리오</h4>
-                      <a 
-                        href={selectedInstructor.portfolio} 
-                        target="_blank" 
+                      <a
+                        href={selectedInstructor.portfolio}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:text-blue-800"
                       >

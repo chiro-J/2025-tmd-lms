@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
 import { Clock, CheckCircle, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -8,7 +7,6 @@ import type { Quiz, QuizQuestion } from '../../types'
 import QuizReviewModal from '../../components/modals/QuizReviewModal'
 
 export default function QuizPlayer() {
-  const { } = useParams()
   const [quiz] = useState<Quiz>(mockQuiz)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})

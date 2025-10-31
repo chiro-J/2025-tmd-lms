@@ -40,10 +40,9 @@ export default function AskQuestionModal({ courseTitle, onClose }: AskQuestionMo
     try {
       // TODO: 실제 API 호출
       await new Promise(resolve => setTimeout(resolve, 1000))
-      console.log('질문 제출:', { question, tags, courseTitle })
       onClose()
     } catch (error) {
-      console.error('질문 제출 실패:', error)
+      // 질문 제출 실패 처리
     } finally {
       setIsSubmitting(false)
     }

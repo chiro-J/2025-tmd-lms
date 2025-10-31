@@ -39,7 +39,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(parsedUser)
         setIsLoggedIn(true)
       } catch (error) {
-        console.error('Failed to parse saved user data:', error)
         localStorage.removeItem('user')
         localStorage.removeItem('isLoggedIn')
       }

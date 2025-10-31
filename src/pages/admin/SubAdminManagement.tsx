@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  UserPlus, 
-  Shield, 
-  Mail, 
-  Lock, 
-  User, 
-  ArrowLeft, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
+import {
+  UserPlus,
+  Shield,
+  Mail,
+  Lock,
+  User,
+  ArrowLeft,
+  Search,
+  Filter,
+  MoreVertical,
+  Edit,
+  Trash2,
   Eye,
   CheckCircle,
   XCircle,
@@ -45,7 +45,7 @@ export default function SubAdminManagement() {
   const [filterRole, setFilterRole] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<SubAdmin | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -170,7 +170,6 @@ export default function SubAdminManagement() {
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("서브 관리자 생성:", formData);
     // 실제 구현에서는 API 호출
     setActiveTab("list");
     setFormData({
@@ -195,7 +194,6 @@ export default function SubAdminManagement() {
   };
 
   const confirmDelete = () => {
-    console.log("서브 관리자 삭제:", selectedAdmin?.id);
     // 실제 구현에서는 API 호출
     setShowDeleteModal(false);
     setSelectedAdmin(null);
@@ -346,7 +344,7 @@ export default function SubAdminManagement() {
                         <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg">
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteAdmin(admin)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                         >
@@ -565,7 +563,7 @@ export default function SubAdminManagement() {
                   <p className="text-sm text-gray-600">이 작업은 되돌릴 수 없습니다</p>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-gray-700">
                   <strong>{selectedAdmin.name}</strong> ({selectedAdmin.email}) 서브 관리자를 삭제하시겠습니까?

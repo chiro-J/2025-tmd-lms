@@ -28,9 +28,6 @@ export default function InviteByEmail() {
 
   const handleSend = () => {
     const validEmails = emails.filter(email => email.trim() !== '')
-    console.log('발송할 이메일들:', validEmails)
-    console.log('제목:', subject)
-    console.log('내용:', message)
     // 실제 메일 발송 로직 구현
   }
 

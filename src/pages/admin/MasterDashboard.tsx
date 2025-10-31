@@ -207,53 +207,43 @@ export default function MasterDashboard() {
   ];
 
   const handleStudentWithdraw = (student: any) => {
-    console.log(`수강생 탈퇴: ${student.id}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleCourseEdit = (course: any) => {
-    console.log(`강좌 편집: ${course.id}`);
     // 강좌 편집 페이지로 이동
     navigate(`/instructor/course/${course.id}/introduction`);
   };
 
   const handleCourseDelete = (courseId: number) => {
-    console.log(`강좌 삭제: ${courseId}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleCourseApprove = (courseId: number) => {
-    console.log(`강좌 승인: ${courseId}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleCourseReject = (courseId: number) => {
-    console.log(`강좌 거부: ${courseId}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleCreateSubAdmin = (data: any) => {
-    console.log(`서브 관리자 생성:`, data);
     // 실제 구현에서는 API 호출
   };
 
   const handleEditSubAdmin = (id: number, data: any) => {
-    console.log(`서브 관리자 편집: ${id}`, data);
     // 실제 구현에서는 API 호출
   };
 
   const handleDeleteSubAdmin = (id: number) => {
-    console.log(`서브 관리자 삭제: ${id}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleApproveInstructor = (id: number) => {
-    console.log(`강사 승인: ${id}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleRejectInstructor = (id: number) => {
-    console.log(`강사 거부: ${id}`);
     // 실제 구현에서는 API 호출
   };
 

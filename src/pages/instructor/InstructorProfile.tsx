@@ -32,7 +32,6 @@ export default function InstructorProfile() {
 
   const handleSave = () => {
     // 실제로는 API 호출
-    console.log('프로필 저장:', formData)
     setIsEditing(false)
   }
 

@@ -235,18 +235,15 @@ export default function SubDashboard() {
   // 수강생 관련 핸들러
 
   const handleStudentWithdraw = (student: any) => {
-    console.log(`수강생 탈퇴: ${student.id}`);
     // 실제 구현에서는 API 호출
   };
 
   // 강사 관련 핸들러
   const handleApproveInstructor = (id: number) => {
-    console.log(`강의자 승인: ${id}`);
     // 실제 구현에서는 API 호출
   };
 
   const handleRejectInstructor = (id: number) => {
-    console.log(`강의자 거부: ${id}`);
     // 실제 구현에서는 API 호출
   };
 
@@ -472,12 +469,11 @@ export default function SubDashboard() {
                 description: `${course.title} 강의입니다.`
               }))}
               onCourseEdit={(course) => {
-                console.log('강좌 편집:', course.id);
                 navigate(`/instructor/course/${course.id}/introduction`);
               }}
-              onCourseDelete={(courseId) => console.log('강좌 삭제:', courseId)}
-              onCourseApprove={(courseId) => console.log('강좌 승인:', courseId)}
-              onCourseReject={(courseId) => console.log('강좌 거부:', courseId)}
+              onCourseDelete={() => {}}
+              onCourseApprove={() => {}}
+              onCourseReject={() => {}}
               showActions={true}
             />
           )}

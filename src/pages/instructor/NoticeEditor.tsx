@@ -27,7 +27,6 @@ export default function NoticeEditor() {
               className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl"
               disabled={!title.trim() || content.trim().length < 5}
               onClick={() => {
-                console.log('공지 등록', { courseId: id, title, content })
                 navigate(-1)
               }}
             >

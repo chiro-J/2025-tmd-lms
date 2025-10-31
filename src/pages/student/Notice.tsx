@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Bell, Calendar } from 'lucide-react';
 import { mockNotices } from '../../mocks';

@@ -18,14 +18,12 @@ export default function SignupStudent() {
   const handleSubmitStep1 = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Send verification code to email
-    console.log('Sending verification code to:', formData.email);
     setStep(2);
   };
 
   const handleVerificationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const code = verificationCode.join('');
-    console.log('Verification code:', code);
     // TODO: Verify code and complete signup
     alert('회원가입이 완료되었습니다!');
     navigate('/login');

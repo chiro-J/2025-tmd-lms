@@ -18,7 +18,6 @@ export default function CourseSettings() {
   })
 
   const handleSave = () => {
-    console.log('설정 저장:', settings)
     // 실제 저장 로직 구현
   }
 

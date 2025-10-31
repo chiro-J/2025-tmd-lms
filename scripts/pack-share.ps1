@@ -15,6 +15,8 @@ $zipPath = Join-Path $outDir $zipName
 # Define include list (only essential files/folders)
 $include = @(
     'src',
+    'apps',
+    'scripts',
     'index.html',
     'package.json',
     'package-lock.json',

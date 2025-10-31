@@ -60,7 +60,6 @@ export default function CreateSubAdmin() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("서브 관리자 생성:", formData);
     // 실제 구현에서는 API 호출
     navigate("/admin/sub-dashboard");
   };

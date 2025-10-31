@@ -50,12 +50,10 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    console.log('Google login clicked');
     alert('Google OAuth는 아직 구현되지 않았습니다.');
   };
 
   const handleKakaoLogin = () => {
-    console.log('Kakao login clicked');
     alert('Kakao OAuth는 아직 구현되지 않았습니다.');
   };
 
