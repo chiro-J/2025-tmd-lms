@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ClipboardList, Edit3, AlertCircle, Star, Users, Play } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -6,6 +6,7 @@ import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 
 export default function CourseHome() {
   const { id } = useParams()
+  const navigate = useNavigate()
 
   return (
     <CoursePageLayout
@@ -62,7 +63,10 @@ export default function CourseHome() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">최근 진행한 강의</h3>
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-4 py-2">
+            <Button 
+              onClick={() => navigate(`/instructor/course/${id}/edit`)}
+              className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-4 py-2"
+            >
               이어 하기
             </Button>
           </div>
@@ -85,7 +89,10 @@ export default function CourseHome() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">공지사항</h3>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2">
+            <Button 
+              onClick={() => navigate(`/instructor/course/${id}/notices`)}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2"
+            >
               바로가기
             </Button>
           </div>
@@ -106,7 +113,10 @@ export default function CourseHome() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">시험관리</h3>
-            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-2">
+            <Button 
+              onClick={() => navigate(`/instructor/course/${id}/exams`)}
+              className="bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-2"
+            >
               바로가기
             </Button>
           </div>

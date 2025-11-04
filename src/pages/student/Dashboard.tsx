@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Key } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 import UserInfoCard from '../../components/student/UserInfoCard'
 import StudentCalendar from '../../components/student/StudentCalendar'
 import ActivityHeatmap from '../../components/student/ActivityHeatmap'
@@ -9,7 +10,20 @@ import { mockRecent, mockUser } from '../../mocks'
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
+  const { isLoggedIn, user } = useAuth()
   const [showEnrollModal, setShowEnrollModal] = useState(false)
+
+  // 비로그인 상태일 때 환영 페이지로 리다이렉트
+  useEffect(() => {
+    if (!isLoggedIn || !user) {
+      navigate('/welcome', { replace: true })
+    }
+  }, [isLoggedIn, user, navigate])
+
+  // 로그인되지 않은 상태면 아무것도 렌더링하지 않음
+  if (!isLoggedIn || !user) {
+    return null
+  }
 
   // Get current date and time
   const now = new Date()

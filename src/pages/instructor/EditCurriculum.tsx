@@ -305,10 +305,22 @@ export default function EditCurriculum() {
     return (
       <div
         key={lesson.id}
-        onClick={() => !isEditing && setSelectedLesson(lesson)}
-        className={`p-3 cursor-pointer hover:bg-white transition-colors border-b border-gray-200 last:border-b-0 ${
+        className={`group p-3 cursor-pointer hover:bg-white transition-colors border-b border-gray-200 last:border-b-0 ${
           lesson.isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-        } ${isEditing ? 'bg-yellow-50' : ''}`}
+        } ${isEditing ? 'bg-yellow-50' : ''} ${!isEditMode ? 'hover:bg-blue-50' : ''}`}
+        onClick={() => !isEditing && setSelectedLesson(lesson)}
+        onDoubleClick={(e) => {
+          if (!isEditing) {
+            e.stopPropagation()
+            if (!isEditMode) {
+              setIsEditMode(true)
+              handleStartEditLesson(lesson.id, lesson.title)
+            } else {
+              handleStartEditLesson(lesson.id, lesson.title)
+            }
+          }
+        }}
+        title={!isEditMode && !isEditing ? '더블클릭하여 편집 모드 활성화 및 제목 수정' : isEditMode && !isEditing ? '더블클릭하여 제목 수정' : ''}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 ml-4 flex-1 min-w-0">
@@ -366,6 +378,19 @@ export default function EditCurriculum() {
             )}
             {lesson.completed && lesson.total && lesson.completed === lesson.total && !isEditMode && (
               <FileText className="h-4 w-4 text-blue-500" aria-hidden="true" />
+            )}
+            {!isEditMode && !isEditing && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsEditMode(true)
+                  handleStartEditLesson(lesson.id, lesson.title)
+                }}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                title="제목 편집"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
             )}
             {isEditMode && !isEditing && (
               <button
@@ -454,7 +479,13 @@ export default function EditCurriculum() {
                 <>
                   <p className="text-xs text-orange-600 mt-2">편집 모드: 강의 추가/삭제/이동 가능</p>
                   <p className="text-xs text-blue-600 mt-1">💡 커리큘럼 카드를 드래그하여 순서를 변경할 수 있습니다</p>
+                  <p className="text-xs text-green-600 mt-1">✏️ 강의구성 제목을 더블클릭하거나 편집 버튼을 클릭하여 수정할 수 있습니다</p>
                 </>
+              )}
+              {!isEditMode && (
+                <p className="text-xs text-gray-600 mt-2">
+                  💡 강의구성 제목을 더블클릭하거나 마우스를 올리면 편집 버튼이 나타납니다
+                </p>
               )}
 
               {/* 강의 구성 추가 폼 */}
@@ -537,10 +568,21 @@ export default function EditCurriculum() {
                   >
                     {/* 과정 제목 */}
                     <div
-                      onClick={() => editingCurriculumId !== curriculum.id && toggleCurriculum(curriculum.id)}
-                      className={`p-3 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      className={`group p-3 cursor-pointer hover:bg-gray-50 transition-colors ${
                         editingCurriculumId === curriculum.id ? 'bg-yellow-50' : ''
-                      } ${isEditMode && editingCurriculumId !== curriculum.id ? 'cursor-move' : ''}`}
+                      } ${isEditMode && editingCurriculumId !== curriculum.id ? 'cursor-move' : ''} ${!isEditMode ? 'hover:bg-blue-50' : ''}`}
+                      onClick={() => editingCurriculumId !== curriculum.id && toggleCurriculum(curriculum.id)}
+                      onDoubleClick={(e) => {
+                        if (!isEditMode) {
+                          e.stopPropagation()
+                          setIsEditMode(true)
+                          handleStartEditCurriculum(curriculum.id, curriculum.title)
+                        } else if (editingCurriculumId !== curriculum.id) {
+                          e.stopPropagation()
+                          handleStartEditCurriculum(curriculum.id, curriculum.title)
+                        }
+                      }}
+                      title={!isEditMode ? '더블클릭하여 편집 모드 활성화 및 제목 수정' : isEditMode && editingCurriculumId !== curriculum.id ? '더블클릭하여 제목 수정' : ''}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1 flex items-center space-x-2 min-w-0">
@@ -591,9 +633,22 @@ export default function EditCurriculum() {
                         </div>
                         <div className="flex items-center space-x-2 flex-shrink-0">
                           {!isEditMode && (
-                            <span className="text-xs text-gray-600">
-                              {completed}/{total}
-                            </span>
+                            <>
+                              <span className="text-xs text-gray-600">
+                                {completed}/{total}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setIsEditMode(true)
+                                  handleStartEditCurriculum(curriculum.id, curriculum.title)
+                                }}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="제목 편집"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            </>
                           )}
                           {isEditMode && editingCurriculumId !== curriculum.id && (
                             <>

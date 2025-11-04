@@ -15,7 +15,7 @@ interface CourseSidebarProps {
 }
 
 export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCourse }: CourseSidebarProps) {
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'exams', 'community', 'settings'])
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'exams', 'assignments', 'community', 'settings'])
   const [showNotificationMenu, setShowNotificationMenu] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const location = useLocation()
@@ -260,13 +260,6 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
                 }`}>
                   전체 시험
                 </Link>
-                <Link to="/instructor/course/1/assignments" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/assignments'
-                    ? 'text-primary bg-primary/10'
-                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
-                }`}>
-                  과제 관리
-                </Link>
                 <Link to="/instructor/course/1/create-exam" className={`block px-4 py-2 text-sm rounded ${
                   location.pathname === '/instructor/course/1/create-exam'
                     ? 'text-primary bg-primary/10'
@@ -282,6 +275,40 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
                 </Link>
                 <Link to="/instructor/course/1/grade-report" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   성적 보고서 만들기
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* 과제 관리 */}
+          <div>
+            <button
+              onClick={() => toggleMenu('assignments')}
+              className="flex items-center space-x-3 px-4 py-3 text-gray-900 hover:bg-gray-100 rounded-lg font-medium w-full"
+            >
+              <Edit3 className="h-5 w-5 flex-shrink-0" />
+              <span className="flex-1 text-left">과제 관리</span>
+              {expandedMenus.includes('assignments') ? (
+                <ChevronDown className="h-4 w-4 text-gray-600" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-gray-600" />
+              )}
+            </button>
+            {expandedMenus.includes('assignments') && (
+              <div className="ml-6 mt-2 space-y-1">
+                <Link to="/instructor/course/1/assignments" className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === '/instructor/course/1/assignments'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  과제 관리
+                </Link>
+                <Link to="/instructor/course/1/assignment-submissions" className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === '/instructor/course/1/assignment-submissions'
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  제출물 조회
                 </Link>
               </div>
             )}

@@ -1,8 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Memo } from '../types/calendar'
+import { getMemosFromStorage, saveMemoToStorage } from '../utils/calendarStorage'
 
 export function useMemos(initialMemos: Memo[] = []) {
-  const [memos, setMemos] = useState<Memo[]>(initialMemos)
+  // localStorage에서 메모 로드
+  const [memos, setMemos] = useState<Memo[]>(() => {
+    const storedMemos = getMemosFromStorage()
+    return storedMemos.length > 0 ? storedMemos : initialMemos
+  })
+
+  // localStorage와 동기화
+  useEffect(() => {
+    if (memos.length > 0) {
+      try {
+        localStorage.setItem('lms_calendar_memos', JSON.stringify(memos))
+      } catch (error) {
+        console.error('Failed to save memos to storage:', error)
+      }
+    }
+  }, [memos])
   const [isAddingMemo, setIsAddingMemo] = useState(false)
   const [editingMemoId, setEditingMemoId] = useState<string | null>(null)
   const [memoTitle, setMemoTitle] = useState('')
@@ -101,6 +117,43 @@ export function useMemos(initialMemos: Memo[] = []) {
     })
   }
 
+  // 강의 일정 자동 기록 함수
+  const autoRecordLesson = (title: string, content: string, date?: string) => {
+    const today = date || new Date().toISOString().split('T')[0]
+    
+    // 같은 날짜에 같은 제목의 메모가 있는지 확인
+    const existingMemo = memos.find(
+      (memo) => memo.date === today && memo.title === title
+    )
+
+    if (existingMemo) {
+      // 이미 있으면 업데이트
+      setMemos((prev) =>
+        prev.map((memo) =>
+          memo.id === existingMemo.id
+            ? {
+                ...memo,
+                content: content,
+                updatedAt: new Date(),
+              }
+            : memo
+        )
+      )
+    } else {
+      // 없으면 새로 추가
+      const newMemo: Memo = {
+        id: Date.now().toString(),
+        title: title,
+        content: content,
+        date: today,
+        color: '#10B981', // 학습 관련은 초록색
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+      setMemos((prev) => [newMemo, ...prev])
+    }
+  }
+
   return {
     memos,
     isAddingMemo,
@@ -122,6 +175,7 @@ export function useMemos(initialMemos: Memo[] = []) {
     getMemosForDate,
     getMemosForMonth,
     getMemosForWeek,
+    autoRecordLesson,
   }
 }
 

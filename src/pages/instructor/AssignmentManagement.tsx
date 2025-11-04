@@ -65,7 +65,7 @@ export default function AssignmentManagement() {
   };
 
   return (
-    <CoursePageLayout courseId={courseId} title="과제 관리">
+    <CoursePageLayout currentPageTitle="과제 관리">
       <div className="space-y-4">
         <Card className="p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

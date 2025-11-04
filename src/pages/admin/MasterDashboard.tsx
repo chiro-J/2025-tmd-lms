@@ -7,10 +7,11 @@ import CourseManagement from '../../components/admin/CourseManagement'
 import SubAdminManagement from '../../components/admin/SubAdminManagement'
 import InstructorApproval from '../../components/admin/InstructorApproval'
 import NoticeManagement from '../../components/admin/NoticeManagement'
+import SystemSettings from '../../components/admin/SystemSettings'
 
 export default function MasterDashboard() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<'overview' | 'students' | 'courses' | 'subAdmins' | 'instructors' | 'platform'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'students' | 'courses' | 'subAdmins' | 'instructors' | 'platform' | 'settings'>('overview');
 
   // 수강생 데이터
   const students = [
@@ -267,6 +268,17 @@ export default function MasterDashboard() {
             >
               <Settings className="w-4 h-4" />
               플랫폼 관리
+            </button>
+            <button
+              onClick={() => setActiveSection('settings')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                activeSection === 'settings'
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              시스템 설정
             </button>
           </div>
         </div>
@@ -534,6 +546,24 @@ export default function MasterDashboard() {
                 inquiries={inquiries}
                 showActions={true}
               />
+            </Card>
+          </div>
+        )}
+
+        {activeSection === 'settings' && (
+          <div className="mt-8">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">시스템 설정</h2>
+                <button
+                  onClick={() => setActiveSection('overview')}
+                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="닫기"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <SystemSettings />
             </Card>
           </div>
         )}

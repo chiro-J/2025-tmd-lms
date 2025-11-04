@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, Bell, User, Menu, LogOut, ChevronDown, GraduationCap, Shield, Users } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { mockNotifications, mockInstructorNotifications } from '../mocks'
+import { markAsRead, markAllAsRead, isNotificationRead } from '../utils/notificationStorage'
 import type { Notification } from '../types'
 
 export default function Header() {
@@ -57,14 +58,20 @@ export default function Header() {
 
   const roleInfo = user ? getRoleInfo(user.role) : null
 
-  // 알림 데이터 로드
+  // 알림 데이터 로드 (읽음 상태 반영)
   useEffect(() => {
     if (user) {
-      if (user.role === 'instructor') {
-        setNotifications(mockInstructorNotifications)
-      } else {
-        setNotifications(mockNotifications)
-      }
+      const baseNotifications = user.role === 'instructor'
+        ? mockInstructorNotifications
+        : mockNotifications
+
+      // localStorage의 읽음 상태를 반영
+      const notificationsWithReadStatus = baseNotifications.map(notification => ({
+        ...notification,
+        read: isNotificationRead(notification.id)
+      }))
+
+      setNotifications(notificationsWithReadStatus)
     }
   }, [user])
 
@@ -89,6 +96,9 @@ export default function Header() {
   const unreadCount = notifications.filter(n => !n.read).length
 
   const handleNotificationClick = (notification: Notification) => {
+    // localStorage에 읽음 상태 저장
+    markAsRead(notification.id)
+
     // 읽음 처리
     setNotifications(prev =>
       prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
@@ -159,8 +169,8 @@ export default function Header() {
                       navigate('/student/dashboard')
                   }
                 } else {
-                  // 로그인되지 않은 사용자는 수강생 대시보드로
-                  navigate('/student/dashboard')
+                  // 로그인되지 않은 사용자는 환영 페이지로
+                  navigate('/welcome')
                 }
               }}
               className="flex items-center space-x-3 group"
@@ -324,14 +334,25 @@ export default function Header() {
                     </div>
 
                     {/* 푸터 */}
-                    <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+                    <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
                       <button
                         onClick={() => {
+                          // localStorage에 모든 알림을 읽음 처리
+                          markAllAsRead(notifications.map(n => n.id))
                           setNotifications(prev => prev.map(n => ({ ...n, read: true })))
                         }}
                         className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                       >
                         모두 읽음 처리
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowNotificationMenu(false)
+                          navigate('/notifications')
+                        }}
+                        className="text-xs text-gray-600 hover:text-gray-900 font-medium"
+                      >
+                        모두 보기
                       </button>
                     </div>
                   </div>

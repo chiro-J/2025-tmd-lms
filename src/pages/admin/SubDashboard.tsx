@@ -13,17 +13,18 @@ import StudentManagement from "../../components/admin/StudentManagement";
 import CourseManagement from "../../components/admin/CourseManagement";
 import InstructorApproval from "../../components/admin/InstructorApproval";
 import NoticeManagement from "../../components/admin/NoticeManagement";
+import SystemSettings from "../../components/admin/SystemSettings";
 
 export default function SubDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [activeSection, setActiveSection] = useState<"overview" | "students" | "instructors" | "courses" | "platform">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "students" | "instructors" | "courses" | "platform" | "settings">("overview");
 
   // URL 파라미터 처리
   useEffect(() => {
     const section = searchParams.get('section');
-    if (section && ['overview', 'students', 'instructors', 'courses', 'platform'].includes(section)) {
-      setActiveSection(section as "overview" | "students" | "instructors" | "courses" | "platform");
+    if (section && ['overview', 'students', 'instructors', 'courses', 'platform', 'settings'].includes(section)) {
+      setActiveSection(section as "overview" | "students" | "instructors" | "courses" | "platform" | "settings");
     }
   }, [searchParams]);
 
@@ -262,7 +263,10 @@ export default function SubDashboard() {
               <p className="text-gray-600">수강생, 강사, 강좌, 플랫폼 관리</p>
             </div>
             <div className="flex items-center gap-2">
-              <button className="inline-flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+              <button 
+                onClick={() => setActiveSection("settings")}
+                className="inline-flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
                 <Settings className="h-4 w-4" />
                 <span>시스템 설정</span>
               </button>
@@ -484,6 +488,11 @@ export default function SubDashboard() {
               inquiries={inquiries}
               showActions={true}
             />
+          )}
+
+          {/* 시스템 설정 섹션 */}
+          {activeSection === "settings" && (
+            <SystemSettings />
           )}
         </div>
       </div>

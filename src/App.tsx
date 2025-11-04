@@ -15,6 +15,7 @@ import SignupInstructor from "./pages/auth/SignupInstructor";
 import SignupPending from "./pages/auth/SignupPending";
 
 // Student pages
+import WelcomePage from "./pages/student/WelcomePage";
 import StudentDashboard from "./pages/student/Dashboard";
 import CourseDetail from "./pages/student/CourseDetail";
 import Learning from "./pages/student/Learning";
@@ -24,6 +25,9 @@ import AssignmentSubmit from "./pages/student/AssignmentSubmit";
 import QuizPlayer from "./pages/student/QuizPlayer";
 import Help from "./pages/student/Help";
 import Calendar from "./pages/student/Calendar";
+
+// Shared pages
+import Notifications from "./pages/Notifications";
 
 // Instructor pages
 import InstructorDashboard from "./pages/instructor/Dashboard";
@@ -51,6 +55,7 @@ import ExamDetail from "./pages/instructor/ExamDetail";
 import GradeReport from "./pages/instructor/GradeReport.tsx";
 import ReviewManagement from "./pages/instructor/ReviewManagement.tsx";
 import AssignmentManagement from "./pages/instructor/AssignmentManagement";
+import AssignmentSubmissions from "./pages/instructor/AssignmentSubmissions";
 import ActivityHistory from "./pages/instructor/ActivityHistory.tsx";
 import InviteStudents from "./pages/instructor/InviteStudents";
 import InviteByEmail from "./pages/instructor/InviteByEmail";
@@ -84,7 +89,11 @@ export default function App() {
           </NoticeProvider>
         </CourseCreationProvider>
       }>
+        {/* Shared */}
+        <Route path="/notifications" element={<Notifications />} />
+
         {/* Student */}
+        <Route path="/welcome" element={<WelcomePage />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student/course/:id" element={<CourseDetail />} />
         <Route path="/student/learning/:id" element={<Learning />} />
@@ -113,6 +122,7 @@ export default function App() {
              <Route path="/instructor/course/:id/co-instructors" element={<CoInstructorSettings />} />
              <Route path="/instructor/course/:id/exams" element={<ExamManagement />} />
              <Route path="/instructor/course/:id/assignments" element={<AssignmentManagement />} />
+             <Route path="/instructor/course/:id/assignment-submissions" element={<AssignmentSubmissions />} />
              <Route path="/instructor/course/:id/exam/:examId" element={<ExamDetail />} />
              <Route path="/instructor/course/:id/create-exam" element={<CreateExam />} />
              <Route path="/instructor/course/:id/question-management" element={<QuestionManagement />} />
@@ -134,7 +144,7 @@ export default function App() {
         <Route path="/admin/instructor-approval" element={<InstructorApproval />} />
 
         {/* Defaults */}
-        <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/welcome" replace />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

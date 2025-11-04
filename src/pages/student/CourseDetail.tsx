@@ -39,7 +39,7 @@ export default function CourseDetail() {
 
   // curriculum.ts에서 공통 데이터 가져오기
   const initialCurriculum = useMemo(() => {
-    const data = getCurriculumForCourseDetail()
+    const data = getCurriculumForCourseDetail() as unknown as CurriculumItem[]
     // 첫 번째 강의와 마지막 강의 일부 완료 처리 (임시)
     if (data.length > 0) {
       data[0].completed = 1

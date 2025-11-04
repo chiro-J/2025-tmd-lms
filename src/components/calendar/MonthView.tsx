@@ -6,6 +6,8 @@ interface MonthViewProps {
   selectedDate: string | null;
   onDateClick: (dateStr: string) => void;
   getMemosForDate: (dateStr: string) => Memo[];
+  onNavigateMonth?: (direction: "prev" | "next") => void;
+  currentDate: Date;
 }
 
 export default function MonthView({
@@ -13,7 +15,52 @@ export default function MonthView({
   selectedDate,
   onDateClick,
   getMemosForDate,
+  onNavigateMonth,
+  currentDate,
 }: MonthViewProps) {
+  const handleDayClick = (day: CalendarDay, dateStr: string) => {
+    if (!day.isCurrentMonth && onNavigateMonth) {
+      const clickedDate = day.date;
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      const clickedMonth = clickedDate.getMonth();
+      const clickedYear = clickedDate.getFullYear();
+
+      // 다음달 1일 클릭 시
+      if (
+        (clickedYear === currentYear && clickedMonth === currentMonth + 1) ||
+        (clickedYear === currentYear + 1 &&
+          clickedMonth === 0 &&
+          currentMonth === 11)
+      ) {
+        onNavigateMonth("next");
+        // 약간의 지연 후 클릭 처리 (달력이 이동한 후)
+        setTimeout(() => {
+          onDateClick(dateStr);
+        }, 100);
+        return;
+      }
+
+      // 이전달 마지막 날 클릭 시
+      if (
+        (clickedYear === currentYear && clickedMonth === currentMonth - 1) ||
+        (clickedYear === currentYear - 1 &&
+          clickedMonth === 11 &&
+          currentMonth === 0)
+      ) {
+        onNavigateMonth("prev");
+        setTimeout(() => {
+          onDateClick(dateStr);
+        }, 100);
+        return;
+      }
+    }
+
+    // 현재 달의 날짜는 일반 처리
+    if (day.isCurrentMonth) {
+      onDateClick(dateStr);
+    }
+  };
   return (
     <div className="flex flex-col flex-1 gap-1">
       {/* Week day headers */}
@@ -33,16 +80,17 @@ export default function MonthView({
         {days.map((day, index) => {
           const dateStr = day.date.toISOString().split("T")[0];
           const dayMemos = getMemosForDate(dateStr);
-          const isToday =
-            day.date.toDateString() === new Date().toDateString();
+          const isToday = day.date.toDateString() === new Date().toDateString();
           const isSelected = selectedDate === dateStr;
 
           return (
             <div
               key={index}
-              onClick={() => day.isCurrentMonth && onDateClick(dateStr)}
-              className={`h-full p-1 border border-gray-200 cursor-pointer transition-all ${
-                day.isCurrentMonth ? "bg-white hover:bg-blue-50" : "bg-gray-50"
+              onClick={() => handleDayClick(day, dateStr)}
+              className={`h-full p-1 border border-gray-200 transition-all ${
+                day.isCurrentMonth
+                  ? "bg-white hover:bg-blue-50 cursor-pointer"
+                  : "bg-gray-50 hover:bg-gray-100 cursor-pointer"
               } ${isToday ? "ring-2 ring-blue-500" : ""} ${
                 isSelected ? "ring-2 ring-purple-500" : ""
               }`}
@@ -85,8 +133,3 @@ export default function MonthView({
     </div>
   );
 }
-
-
-
-
-

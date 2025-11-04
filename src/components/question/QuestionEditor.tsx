@@ -38,41 +38,15 @@ export default function QuestionEditor({
           <label className="block text-sm font-semibold text-base-content mb-3">
             문제 유형
           </label>
-          <div className="flex space-x-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="questionType"
-                value="multiple-choice"
-                checked={formData.type === 'multiple-choice'}
-                onChange={() => onTypeChange('multiple-choice')}
-                className="h-4 w-4 text-primary focus:ring-primary border-base-300"
-              />
-              <span className="ml-2 text-sm text-base-content">객관식</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="questionType"
-                value="true-false"
-                checked={formData.type === 'true-false'}
-                onChange={() => onTypeChange('true-false')}
-                className="h-4 w-4 text-primary focus:ring-primary border-base-300"
-              />
-              <span className="ml-2 text-sm text-base-content">참/거짓</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="questionType"
-                value="short-answer"
-                checked={formData.type === 'short-answer'}
-                onChange={() => onTypeChange('short-answer')}
-                className="h-4 w-4 text-primary focus:ring-primary border-base-300"
-              />
-              <span className="ml-2 text-sm text-base-content">주관식</span>
-            </label>
-          </div>
+          <select
+            value={formData.type}
+            onChange={(e) => onTypeChange(e.target.value as 'multiple-choice' | 'true-false' | 'short-answer')}
+            className="w-full px-4 py-3 text-sm border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-base-100"
+          >
+            <option value="multiple-choice">객관식</option>
+            <option value="true-false">참/거짓</option>
+            <option value="short-answer">주관식</option>
+          </select>
         </div>
 
         {/* Question Text */}
@@ -136,12 +110,28 @@ export default function QuestionEditor({
                     value={option}
                     onChange={(e) => onOptionChange(index, e.target.value)}
                     placeholder={`선택지 ${index + 1}`}
-                    className="flex-1 px-4 py-2 text-sm border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-base-100"
+                    className={`flex-1 px-4 py-2 text-sm border-2 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-base-100 ${
+                      formData.correctAnswer === index
+                        ? 'border-success bg-success/5'
+                        : 'border-base-300'
+                    }`}
                   />
+                  <button
+                    onClick={() => onInputChange('correctAnswer', index)}
+                    className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors flex-shrink-0 ${
+                      formData.correctAnswer === index
+                        ? 'bg-success text-white hover:bg-success/90'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                    title="정답으로 설정"
+                  >
+                    {formData.correctAnswer === index ? '정답' : '정답 지정'}
+                  </button>
                   {formData.options.length > 2 && (
                     <button
                       onClick={() => onRemoveOption(index)}
                       className="text-error hover:text-error/80 flex-shrink-0"
+                      title="선택지 삭제"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -150,7 +140,7 @@ export default function QuestionEditor({
               ))}
             </div>
             <p className="text-xs text-base-content/60 mt-2">
-              라디오 버튼을 클릭하여 정답을 선택하세요
+              "정답 지정" 버튼을 클릭하여 정답을 선택하세요
             </p>
           </div>
         )}

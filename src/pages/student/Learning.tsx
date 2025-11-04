@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { Play, Pause, SkipBack, SkipForward, Volume2, Settings, PanelRight, Maximize, PictureInPicture, Camera, Subtitles } from 'lucide-react'
 import VideoSideNav from '../../components/learning/VideoSideNav'
+import { autoRecordLesson } from '../../utils/calendarStorage'
 
 export default function Learning() {
   const videoContainerRef = useRef<HTMLDivElement>(null)
@@ -223,20 +224,61 @@ export default function Learning() {
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime)
+      
+      // 비디오가 80% 이상 재생되면 자동으로 일정 기록 (한 번만)
+      if (video.duration > 0 && video.currentTime / video.duration >= 0.8) {
+        const progress = Math.round((video.currentTime / video.duration) * 100)
+        if (progress >= 80 && selectedContent.title) {
+          // localStorage에 완료 표시를 저장하여 중복 기록 방지
+          const completionKey = `lesson_completed_${selectedLesson}_${selectedContent.title}`
+          if (!localStorage.getItem(completionKey)) {
+            autoRecordLesson(
+              selectedContent.title,
+              `강의 진행률: ${progress}% 완료`,
+              new Date().toISOString().split('T')[0]
+            )
+            localStorage.setItem(completionKey, 'true')
+          }
+        }
+      }
     }
 
     const handlePlay = () => {
       setIsPlaying(true)
+      
+      // 강의 시작 시 일정 기록
+      if (selectedContent.title) {
+        const today = new Date().toISOString().split('T')[0]
+        autoRecordLesson(
+          selectedContent.title,
+          `강의 학습 시작`,
+          today
+        )
+      }
     }
 
     const handlePause = () => {
       setIsPlaying(false)
     }
 
+    const handleEnded = () => {
+      setIsPlaying(false)
+      
+      // 비디오 완료 시 일정 기록
+      if (selectedContent.title) {
+        autoRecordLesson(
+          selectedContent.title,
+          `강의 완료`,
+          new Date().toISOString().split('T')[0]
+        )
+      }
+    }
+
     video.addEventListener('loadedmetadata', handleLoadedMetadata)
     video.addEventListener('timeupdate', handleTimeUpdate)
     video.addEventListener('play', handlePlay)
     video.addEventListener('pause', handlePause)
+    video.addEventListener('ended', handleEnded)
 
     // 초기 볼륨 설정
     video.volume = volume / 100
@@ -246,8 +288,9 @@ export default function Learning() {
       video.removeEventListener('timeupdate', handleTimeUpdate)
       video.removeEventListener('play', handlePlay)
       video.removeEventListener('pause', handlePause)
+      video.removeEventListener('ended', handleEnded)
     }
-  }, [])
+  }, [selectedContent.title, selectedLesson])
 
   return (
     <div

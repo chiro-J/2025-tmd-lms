@@ -13,6 +13,7 @@ interface Resource {
   code?: string
   uploadedAt: string
   size: string
+  downloadAllowed: boolean
 }
 
 export default function ResourceManagement() {
@@ -23,7 +24,8 @@ export default function ResourceManagement() {
       type: 'pdf',
       fileUrl: '/resources/example.pdf',
       uploadedAt: '2025-01-15',
-      size: '2.3 MB'
+      size: '2.3 MB',
+      downloadAllowed: true
     }
   ])
 
@@ -105,10 +107,43 @@ export default function ResourceManagement() {
                       <Eye className="h-4 w-4 mr-1" />
                       미리보기
                     </Button>
-                    <Button variant="outline" className="text-base-content/70 rounded-xl">
-                      <Download className="h-4 w-4 mr-1" />
-                      다운로드
-                    </Button>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={resource.downloadAllowed}
+                        onChange={(e) => {
+                          setResources(prev =>
+                            prev.map(r =>
+                              r.id === resource.id
+                                ? { ...r, downloadAllowed: e.target.checked }
+                                : r
+                            )
+                          )
+                        }}
+                        className="sr-only"
+                      />
+                      <Button
+                        variant="outline"
+                        className={`rounded-xl ${
+                          resource.downloadAllowed
+                            ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'
+                            : 'text-base-content/70'
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setResources(prev =>
+                            prev.map(r =>
+                              r.id === resource.id
+                                ? { ...r, downloadAllowed: !r.downloadAllowed }
+                                : r
+                            )
+                          )
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        {resource.downloadAllowed ? '다운로드 허용' : '다운로드 금지'}
+                      </Button>
+                    </label>
                     <Button variant="outline" className="text-error rounded-xl">
                       <Trash2 className="h-4 w-4 mr-1" />
                       삭제
@@ -244,7 +279,8 @@ export default function ResourceManagement() {
                       linkUrl: newType === 'link' ? newLinkUrl : undefined,
                       code: newType === 'code' ? newCode : undefined,
                       uploadedAt: now.toISOString().slice(0,10),
-                      size: selectedFile ? `${(selectedFile.size/1024/1024).toFixed(2)} MB` : '-'
+                      size: selectedFile ? `${(selectedFile.size/1024/1024).toFixed(2)} MB` : '-',
+                      downloadAllowed: true
                     }
                     setResources([item, ...resources])
                     // reset

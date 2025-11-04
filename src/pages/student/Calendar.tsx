@@ -144,6 +144,8 @@ export default function Calendar() {
                     selectedDate={selectedDate}
                     onDateClick={handleDateClick}
                     getMemosForDate={getMemosForDate}
+                    onNavigateMonth={navigateMonth}
+                    currentDate={currentDate}
                   />
                 ) : (
                   <WeekView

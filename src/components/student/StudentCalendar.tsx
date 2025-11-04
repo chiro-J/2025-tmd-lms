@@ -131,15 +131,36 @@ export default function StudentCalendar() {
     }
   }
 
-  // Generate calendar days
+  // Generate calendar days - Always show 6 weeks (42 days)
   const calendarDays = []
+  const totalCells = 42 // 6 weeks * 7 days
 
-  // Empty cells for days before month starts
+  // Previous month's days
+  const prevMonthDays = new Date(year, month, 0).getDate()
+
+  // Empty cells for days before month starts (show previous month's dates)
   for (let i = 0; i < firstDay; i++) {
-    calendarDays.push(<div key={`empty-${i}`} className="aspect-square" />)
+    const prevDay = prevMonthDays - firstDay + i + 1
+    const dayOfWeek = i % 7
+    const isSunday = dayOfWeek === 0
+    const isSaturday = dayOfWeek === 6
+
+    calendarDays.push(
+      <div
+        key={`prev-${i}`}
+        className={`
+          aspect-square flex items-center justify-center text-sm font-medium rounded-lg
+          ${isSunday ? 'text-red-400' : ''}
+          ${isSaturday ? 'text-blue-400' : ''}
+          ${!isSunday && !isSaturday ? 'text-neutral-400' : ''}
+        `}
+      >
+        {prevDay}
+      </div>
+    )
   }
 
-  // Days of the month
+  // Days of the current month
   for (let day = 1; day <= daysInMonth; day++) {
     const isToday =
       day === today.getDate() &&
@@ -165,6 +186,28 @@ export default function StudentCalendar() {
         `}
       >
         {day}
+      </div>
+    )
+  }
+
+  // Fill remaining cells with next month's days
+  const remainingCells = totalCells - calendarDays.length
+  for (let i = 1; i <= remainingCells; i++) {
+    const dayOfWeek = (firstDay + daysInMonth + i - 1) % 7
+    const isSunday = dayOfWeek === 0
+    const isSaturday = dayOfWeek === 6
+
+    calendarDays.push(
+      <div
+        key={`next-${i}`}
+        className={`
+          aspect-square flex items-center justify-center text-sm font-medium rounded-lg
+          ${isSunday ? 'text-red-400' : ''}
+          ${isSaturday ? 'text-blue-400' : ''}
+          ${!isSunday && !isSaturday ? 'text-neutral-400' : ''}
+        `}
+      >
+        {i}
       </div>
     )
   }

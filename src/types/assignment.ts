@@ -18,7 +18,7 @@ export type AssignmentSubmission = {
   assignmentId: number;
   studentName: string;
   submittedAt: string; // ISO datetime
-  status: "제출" | "지각";
+  status: "제출" | "지각" | "미제출";
   score?: number;
   files?: { name: string; size: number; url: string }[];
   feedback?: string;

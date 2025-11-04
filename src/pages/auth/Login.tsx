@@ -8,7 +8,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [userType, setUserType] = useState<'student' | 'instructor' | 'admin' | 'sub-admin'>('student');
@@ -18,7 +18,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    const user = authenticateUser(formData.username, formData.password);
+    const user = authenticateUser(formData.email, formData.password);
 
     if (user) {
       // Check if user role matches selected login type
@@ -44,9 +44,9 @@ export default function Login() {
       } else {
         navigate('/student/dashboard');
       }
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
-    }
+      } else {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      }
   };
 
   const handleGoogleLogin = () => {
@@ -59,34 +59,34 @@ export default function Login() {
 
   // 빠른 로그인 함수들
   const handleQuickLogin = (role: 'student' | 'instructor' | 'admin' | 'subadmin') => {
-    let username = '';
+    let email = '';
     let password = '';
     let redirectPath = '';
 
     switch (role) {
       case 'student':
-        username = 'student1';
+        email = 'student@example.com';
         password = 'pass1234';
         redirectPath = '/student/dashboard';
         break;
       case 'instructor':
-        username = 'instructor1';
+        email = 'instructor@example.com';
         password = 'pass1234';
         redirectPath = '/instructor/dashboard';
         break;
       case 'admin':
-        username = 'admin';
+        email = 'admin@example.com';
         password = 'admin1234';
         redirectPath = '/admin/master-dashboard';
         break;
       case 'subadmin':
-        username = 'subadmin';
+        email = 'subadmin@example.com';
         password = 'sub123';
         redirectPath = '/admin/sub-dashboard';
         break;
     }
 
-    const user = authenticateUser(username, password);
+    const user = authenticateUser(email, password);
     if (user) {
       // Use AuthContext login
       login(user);
@@ -177,12 +177,12 @@ export default function Login() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">아이디</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">이메일</label>
               <input
-                type="text"
-                placeholder="아이디를 입력하세요"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                type="email"
+                placeholder="이메일을 입력하세요"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
               />
             </div>
