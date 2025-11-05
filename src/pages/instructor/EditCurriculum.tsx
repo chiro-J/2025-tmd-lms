@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useParams } from 'react-router-dom'
 import { ChevronDown, ChevronRight, FileText, Edit, Save, Upload, X } from 'lucide-react'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 import TinyEditor from '../../components/editor/TinyEditor'
@@ -6,7 +7,8 @@ import MarkdownEditor from '../../components/editor/MarkdownEditor'
 import Button from '../../components/ui/Button'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { marked } from 'marked'
-import { getCurriculumForEdit } from '../../data/curriculum'
+import { getCurriculum, createCurriculum, updateCurriculum, deleteCurriculum, createLesson, updateLesson, deleteLesson } from '../../core/api/curriculum'
+import { transformApiToEditFormat } from '../../utils/curriculumTransform'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
@@ -29,6 +31,10 @@ interface Curriculum {
 }
 
 export default function EditCurriculum() {
+  const { id } = useParams()
+  const courseId = Number(id) || 1
+  const [curriculums, setCurriculums] = useState<Curriculum[]>([])
+  const [loading, setLoading] = useState(true)
   const [expandedCurriculums, setExpandedCurriculums] = useState<string[]>([])
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -62,7 +68,6 @@ export default function EditCurriculum() {
   }
 
   const handleSave = () => {
-    // TODO: DB에 저장 로직 구현 필요
     setSavedEditorType(editorType)
     setIsEditMode(false)
   }
@@ -115,55 +120,69 @@ export default function EditCurriculum() {
     }
   }
 
-  // curriculum.ts에서 공통 데이터 가져오기
-  const initialCurriculums = useMemo(() => {
-    const data = getCurriculumForEdit()
-    // 일부 강의 완료 처리 (임시)
-    if (data.length > 0) {
-      data[0].lessons[0].completed = 1
-    }
-    if (data.length > 1) {
-      data[1].lessons.forEach(lesson => {
-        lesson.completed = 1
-      })
-      data[1].lessons[0].studyDate = '25. 10. 13.'
-    }
-    if (data.length > 2) {
-      data[2].lessons.forEach(lesson => {
-        lesson.completed = 1
-      })
-    }
-    if (data.length > 3) {
-      data[3].lessons[0].completed = 1
-      data[3].lessons[0].studyDate = '25. 10. 13.'
-    }
-    return data
-  }, [])
-
-  const [curriculums, setCurriculums] = useState<Curriculum[]>(initialCurriculums)
-
-  const handleAddCurriculum = () => {
-    if (newCurriculumTitle.trim()) {
-      const newCurriculum: Curriculum = {
-        id: `curriculum-${Date.now()}`,
-        title: newCurriculumTitle.trim(),
-        lessons: []
+  // DB에서 커리큘럼 데이터 로드
+  useEffect(() => {
+    const loadCurriculum = async () => {
+      try {
+        setLoading(true)
+        // 커리큘럼 데이터 로드
+        const apiModules = await getCurriculum(courseId)
+        const transformed = transformApiToEditFormat(apiModules)
+        setCurriculums(transformed)
+      } catch (error) {
+        console.error('커리큘럼 로드 실패:', error)
+      } finally {
+        setLoading(false)
       }
-      setCurriculums(prev => [...prev, newCurriculum])
-      setNewCurriculumTitle('')
-      setShowAddCurriculumForm(false)
-      // 새로 추가된 커리큘럼을 자동으로 펼침
-      setExpandedCurriculums(prev => [...prev, newCurriculum.id])
+    }
+    loadCurriculum()
+  }, [courseId])
+
+  const handleAddCurriculum = async () => {
+    if (newCurriculumTitle.trim()) {
+      try {
+        const result = await createCurriculum(courseId, { title: newCurriculumTitle.trim() })
+
+        const newCurriculum: Curriculum = {
+          id: `curriculum-${result.id}`, // DB에서 생성된 실제 ID 사용
+          title: result.title,
+          lessons: []
+        }
+        setCurriculums(prev => [...prev, newCurriculum])
+        setNewCurriculumTitle('')
+        setShowAddCurriculumForm(false)
+        // 새로 추가된 커리큘럼을 자동으로 펼침
+        setExpandedCurriculums(prev => [...prev, newCurriculum.id])
+      } catch (error) {
+        console.error('커리큘럼 추가 실패:', error)
+        alert(`추가에 실패했습니다: ${error}`)
+      }
     }
   }
 
-  const handleDeleteCurriculum = (curriculumId: string) => {
-    setCurriculums(prev => prev.filter(c => c.id !== curriculumId))
-    setExpandedCurriculums(prev => prev.filter(id => id !== curriculumId))
-    // 삭제된 커리큘럼의 강의가 선택되어 있었다면 선택 해제
-    const deletedCurriculum = curriculums.find(c => c.id === curriculumId)
-    if (deletedCurriculum && selectedLesson && deletedCurriculum.lessons.some(l => l.id === selectedLesson.id)) {
-      setSelectedLesson(null)
+  const handleDeleteCurriculum = async (curriculumId: string) => {
+    const curriculum = curriculums.find(c => c.id === curriculumId)
+    if (curriculum) {
+      const dbId = parseInt(curriculumId.replace('curriculum-', ''))
+      if (!isNaN(dbId)) {
+        if (confirm('정말 삭제하시겠습니까?')) {
+          try {
+            await deleteCurriculum(courseId, dbId)
+            setCurriculums(prev => prev.filter(c => c.id !== curriculumId))
+            setExpandedCurriculums(prev => prev.filter(id => id !== curriculumId))
+            // 삭제된 커리큘럼의 강의가 선택되어 있었다면 선택 해제
+            if (selectedLesson && curriculum.lessons.some(l => l.id === selectedLesson.id)) {
+              setSelectedLesson(null)
+            }
+            // 삭제 성공 (자동으로 상태 업데이트됨)
+          } catch (error) {
+            console.error('커리큘럼 삭제 실패:', error)
+            alert(`삭제에 실패했습니다: ${error}`)
+          }
+        }
+      } else {
+        alert('삭제에 실패했습니다: ID 오류')
+      }
     }
   }
 
@@ -172,13 +191,30 @@ export default function EditCurriculum() {
     setEditingCurriculumTitle(currentTitle)
   }
 
-  const handleSaveCurriculumTitle = (curriculumId: string) => {
+  const handleSaveCurriculumTitle = async (curriculumId: string) => {
     if (editingCurriculumTitle.trim()) {
-      setCurriculums(prev =>
-        prev.map(c =>
-          c.id === curriculumId ? { ...c, title: editingCurriculumTitle.trim() } : c
-        )
-      )
+      const curriculum = curriculums.find(c => c.id === curriculumId)
+      if (curriculum) {
+        // DB에 실제 숫자 ID 추출 (curriculum-1 -> 1)
+        const dbId = parseInt(curriculumId.replace('curriculum-', ''))
+        if (!isNaN(dbId)) {
+          try {
+            await updateCurriculum(courseId, dbId, { title: editingCurriculumTitle.trim() })
+            setCurriculums(prev =>
+              prev.map(c =>
+                c.id === curriculumId ? { ...c, title: editingCurriculumTitle.trim() } : c
+              )
+            )
+            // 저장 성공 (자동으로 상태 업데이트됨)
+          } catch (error) {
+            console.error('커리큘럼 제목 저장 실패:', error)
+            alert(`저장에 실패했습니다: ${error}`)
+          }
+        } else {
+          console.error('유효하지 않은 ID:', curriculumId)
+          alert('저장에 실패했습니다: ID 오류')
+        }
+      }
     }
     setEditingCurriculumId(null)
     setEditingCurriculumTitle('')
@@ -194,19 +230,38 @@ export default function EditCurriculum() {
     setEditingLessonTitle(currentTitle)
   }
 
-  const handleSaveLessonTitle = (lessonId: string) => {
+  const handleSaveLessonTitle = async (lessonId: string) => {
     if (editingLessonTitle.trim()) {
-      setCurriculums(prev =>
-        prev.map(curriculum => ({
-          ...curriculum,
-          lessons: curriculum.lessons.map(lesson =>
-            lesson.id === lessonId ? { ...lesson, title: editingLessonTitle.trim() } : lesson
-          )
-        }))
-      )
-      // 선택된 강의의 제목도 업데이트
-      if (selectedLesson && selectedLesson.id === lessonId) {
-        setSelectedLesson(prev => prev ? { ...prev, title: editingLessonTitle.trim() } : null)
+      // 레슨이 속한 커리큘럼 찾기
+      const curriculum = curriculums.find(c => c.lessons.some(l => l.id === lessonId))
+      if (curriculum) {
+        // DB에 실제 숫자 ID 추출 (lesson-1 -> 1, curriculum-1 -> 1)
+        const lessonDbId = parseInt(lessonId.replace('lesson-', ''))
+        const curriculumDbId = parseInt(curriculum.id.replace('curriculum-', ''))
+        if (!isNaN(lessonDbId) && !isNaN(curriculumDbId)) {
+          try {
+            await updateLesson(courseId, curriculumDbId, lessonDbId, { title: editingLessonTitle.trim() })
+            setCurriculums(prev =>
+              prev.map(curriculum => ({
+                ...curriculum,
+                lessons: curriculum.lessons.map(lesson =>
+                  lesson.id === lessonId ? { ...lesson, title: editingLessonTitle.trim() } : lesson
+                )
+              }))
+            )
+            // 선택된 강의의 제목도 업데이트
+            if (selectedLesson && selectedLesson.id === lessonId) {
+              setSelectedLesson(prev => prev ? { ...prev, title: editingLessonTitle.trim() } : null)
+            }
+            // 저장 성공 (자동으로 상태 업데이트됨)
+          } catch (error) {
+            console.error('레슨 제목 저장 실패:', error)
+            alert(`저장에 실패했습니다: ${error}`)
+          }
+        } else {
+          console.error('유효하지 않은 ID:', { lessonId, lessonDbId, curriculumId: curriculum.id, curriculumDbId })
+          alert('저장에 실패했습니다: ID 오류')
+        }
       }
     }
     setEditingLessonId(null)
@@ -218,26 +273,43 @@ export default function EditCurriculum() {
     setEditingLessonTitle('')
   }
 
-  const handleAddLesson = (curriculumId: string) => {
+  const handleAddLesson = async (curriculumId: string) => {
     if (newLessonTitle.trim()) {
-      const newLesson: Lesson = {
-        id: `lesson-${Date.now()}`,
-        title: newLessonTitle.trim(),
-        type: 'file',
-        isNew: true
-      }
-      setCurriculums(prev =>
-        prev.map(curriculum =>
-          curriculum.id === curriculumId
-            ? { ...curriculum, lessons: [...curriculum.lessons, newLesson] }
-            : curriculum
-        )
-      )
-      setNewLessonTitle('')
-      setAddingLessonToCurriculum(null)
-      // 커리큘럼을 펼침 (강의가 추가되었으므로)
-      if (!expandedCurriculums.includes(curriculumId)) {
-        setExpandedCurriculums(prev => [...prev, curriculumId])
+      const curriculum = curriculums.find(c => c.id === curriculumId)
+      if (curriculum) {
+        const curriculumDbId = parseInt(curriculumId.replace('curriculum-', ''))
+        if (!isNaN(curriculumDbId)) {
+          try {
+            const result = await createLesson(courseId, curriculumDbId, { title: newLessonTitle.trim() })
+
+            const newLesson: Lesson = {
+              id: `lesson-${result.id}`, // DB에서 생성된 실제 ID 사용
+              title: result.title,
+              type: 'file',
+              isNew: true
+            }
+            setCurriculums(prev =>
+              prev.map(curriculum =>
+                curriculum.id === curriculumId
+                  ? { ...curriculum, lessons: [...curriculum.lessons, newLesson] }
+                  : curriculum
+              )
+            )
+            setNewLessonTitle('')
+            setAddingLessonToCurriculum(null)
+            // 커리큘럼을 펼침 (강의가 추가되었으므로)
+            if (!expandedCurriculums.includes(curriculumId)) {
+              setExpandedCurriculums(prev => [...prev, curriculumId])
+            }
+            // 추가 성공 (자동으로 상태 업데이트됨)
+          } catch (error) {
+            console.error('레슨 추가 실패:', error)
+            alert(`추가에 실패했습니다: ${error}`)
+          }
+        } else {
+          console.error('유효하지 않은 커리큘럼 ID:', curriculumId)
+          alert('추가에 실패했습니다: 커리큘럼 ID 오류')
+        }
       }
     }
   }
@@ -303,10 +375,10 @@ export default function EditCurriculum() {
     const isEditing = editingLessonId === lesson.id
 
     return (
-      <div
-        key={lesson.id}
+    <div
+      key={lesson.id}
         className={`group p-3 cursor-pointer hover:bg-white transition-colors border-b border-gray-200 last:border-b-0 ${
-          lesson.isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+        lesson.isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
         } ${isEditing ? 'bg-yellow-50' : ''} ${!isEditMode ? 'hover:bg-blue-50' : ''}`}
         onClick={() => !isEditing && setSelectedLesson(lesson)}
         onDoubleClick={(e) => {
@@ -321,8 +393,8 @@ export default function EditCurriculum() {
           }
         }}
         title={!isEditMode && !isEditing ? '더블클릭하여 편집 모드 활성화 및 제목 수정' : isEditMode && !isEditing ? '더블클릭하여 제목 수정' : ''}
-      >
-        <div className="flex items-center justify-between">
+    >
+      <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 ml-4 flex-1 min-w-0">
             <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
             {isEditing ? (
@@ -365,20 +437,20 @@ export default function EditCurriculum() {
               </div>
             ) : (
               <>
-                <span className="text-sm text-gray-700">{lesson.title}</span>
-                {lesson.isNew && (
-                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">NEW</span>
+          <span className="text-sm text-gray-700">{lesson.title}</span>
+          {lesson.isNew && (
+            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">NEW</span>
                 )}
               </>
-            )}
-          </div>
+          )}
+        </div>
           <div className="flex items-center space-x-2 flex-shrink-0">
-            {lesson.studyDate && !isEditMode && (
-              <span className="text-xs text-gray-500">수강일: {lesson.studyDate}</span>
-            )}
-            {lesson.completed && lesson.total && lesson.completed === lesson.total && !isEditMode && (
-              <FileText className="h-4 w-4 text-blue-500" aria-hidden="true" />
-            )}
+          {lesson.studyDate && !isEditMode && (
+            <span className="text-xs text-gray-500">수강일: {lesson.studyDate}</span>
+          )}
+          {lesson.completed && lesson.total && lesson.completed === lesson.total && !isEditMode && (
+            <FileText className="h-4 w-4 text-blue-500" aria-hidden="true" />
+          )}
             {!isEditMode && !isEditing && (
               <button
                 onClick={(e) => {
@@ -403,11 +475,11 @@ export default function EditCurriculum() {
               >
                 <Edit className="h-4 w-4" />
               </button>
-            )}
-            {isEditMode && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
+          )}
+          {isEditMode && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
                   if (confirm(`${lesson.title}을(를) 삭제하시겠습니까?`)) {
                     setCurriculums(prev =>
                       prev.map(curriculum =>
@@ -420,17 +492,17 @@ export default function EditCurriculum() {
                       setSelectedLesson(null)
                     }
                   }
-                }}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded"
-                title="삭제"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+              }}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded"
+              title="삭제"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
-    )
+    </div>
+  )
   }
 
   return (
@@ -477,7 +549,7 @@ export default function EditCurriculum() {
               </div>
               {isEditMode && (
                 <>
-                  <p className="text-xs text-orange-600 mt-2">편집 모드: 강의 추가/삭제/이동 가능</p>
+                <p className="text-xs text-orange-600 mt-2">편집 모드: 강의 추가/삭제/이동 가능</p>
                   <p className="text-xs text-blue-600 mt-1">💡 커리큘럼 카드를 드래그하여 순서를 변경할 수 있습니다</p>
                   <p className="text-xs text-green-600 mt-1">✏️ 강의구성 제목을 더블클릭하거나 편집 버튼을 클릭하여 수정할 수 있습니다</p>
                 </>
@@ -634,9 +706,9 @@ export default function EditCurriculum() {
                         <div className="flex items-center space-x-2 flex-shrink-0">
                           {!isEditMode && (
                             <>
-                              <span className="text-xs text-gray-600">
-                                {completed}/{total}
-                              </span>
+                            <span className="text-xs text-gray-600">
+                              {completed}/{total}
+                            </span>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -662,26 +734,24 @@ export default function EditCurriculum() {
                               >
                                 <Edit className="h-4 w-4" />
                               </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (confirm(`${curriculum.title}을(를) 삭제하시겠습니까?`)) {
-                                    handleDeleteCurriculum(curriculum.id)
-                                  }
-                                }}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded"
-                                title="과정 삭제"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteCurriculum(curriculum.id)
+                              }}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded"
+                              title="과정 삭제"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
                             </>
                           )}
                           {editingCurriculumId !== curriculum.id && (
                             <>
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
                               )}
                             </>
                           )}

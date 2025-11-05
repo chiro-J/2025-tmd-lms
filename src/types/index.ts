@@ -35,11 +35,13 @@ export interface Course {
   instructorEmail?: string
   thumbnail?: string
   image?: string
-  description?: string
+  videoUrl?: string // 소개 영상 URL
+  content?: string // 강좌 소개 내용 (HTML)
   progress?: number
   totalLectures?: number
   completedLectures?: number
   lastAccessed?: string
+  enrollmentCode?: string // 수강코드
   // 강사용 필드
   status?: '초안' | '비공개' | '공개'
   students?: number

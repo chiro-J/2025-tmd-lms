@@ -1,32 +1,64 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Sparkles, Upload, X, Video, HelpCircle } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Sparkles, Upload, X, Video, HelpCircle, Check } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import StableLexicalEditor from '../../components/editor/StableLexicalEditor'
 import { useCourseCreation } from '../../contexts/CourseCreationContext'
+import { createCourse } from '../../core/api/courses'
 
 export default function CourseIntroduction() {
-  const { courseData, updateCourseData } = useCourseCreation()
+  const { courseData, resetCourseData } = useCourseCreation()
+  const navigate = useNavigate()
+  const [saving, setSaving] = useState(false)
 
   const [formData, setFormData] = useState({
     title: courseData.title || "",
-    thumbnail: "",
-    category1: "",
-    category2: "",
-    durationStartDate: "",
-    durationEndDate: "",
-    applicationStartDate: "",
-    applicationEndDate: "",
-    videoUrl: "",
-    content: "<p>강좌 소개를 작성하세요.</p>",
+    thumbnail: courseData.thumbnail || "",
+    category1: courseData.category1 || "",
+    category2: courseData.category2 || "",
+    durationStartDate: courseData.durationStartDate || "",
+    durationEndDate: courseData.durationEndDate || "",
+    applicationStartDate: courseData.applicationStartDate || "",
+    applicationEndDate: courseData.applicationEndDate || "",
+    videoUrl: courseData.videoUrl || "",
+    content: courseData.content || "<p>강좌 소개를 작성하세요.</p>",
   })
 
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
 
-  // Sync local state to context when form changes
-  useEffect(() => {
-    updateCourseData({ title: formData.title })
-  }, [formData.title, updateCourseData])
+  const handleCreateCourse = async () => {
+    if (!formData.title.trim()) {
+      alert('강좌 제목을 입력해주세요.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      // CourseCreationData를 DB Course 타입으로 변환
+      const courseDataToSave = {
+        title: formData.title,
+        thumbnail: formData.thumbnail || null,
+        videoUrl: formData.videoUrl || null,
+        content: formData.content || null,
+        instructor: '김강사', // TODO: 실제 로그인한 강사 정보 사용
+        status: 'published', // TODO: isPublic 필드 사용
+        progress: 0,
+      }
+
+      const createdCourse = await createCourse(courseDataToSave)
+
+      // 컨텍스트 초기화
+      resetCourseData()
+
+      // 생성된 강좌의 홈 페이지로 리다이렉트
+      navigate(`/instructor/course/${createdCourse.id}/home`)
+    } catch (error) {
+      console.error('강좌 생성 실패:', error)
+      alert('강좌 생성에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -207,9 +239,13 @@ export default function CourseIntroduction() {
 
           {/* Bottom Action */}
           <div className="mt-8 text-center">
-            <Button className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all">
-              강의 생성
-              <ChevronRight className="h-5 w-5 ml-2" />
+            <Button
+              onClick={handleCreateCourse}
+              disabled={saving}
+              className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            >
+              {saving ? '저장 중...' : '강좌 생성 완료'}
+              <Check className="h-5 w-5 ml-2" />
             </Button>
           </div>
         </div>

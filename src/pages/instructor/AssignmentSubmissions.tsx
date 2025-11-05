@@ -53,7 +53,7 @@ export default function AssignmentSubmissions() {
 
   const handleSaveScore = (submissionId: number) => {
     // 실제로는 API 호출
-    console.log(`Save score for submission ${submissionId}: ${tempScore}`)
+    // TODO: API 호출 구현
     setEditingScoreId(null)
     setTempScore('')
   }
@@ -70,8 +70,7 @@ export default function AssignmentSubmissions() {
 
   const handleSaveScoreFromModal = (submissionId: number, score: number, feedback: string) => {
     // 실제로는 API 호출
-    console.log(`Save score for submission ${submissionId}: ${score}, feedback: ${feedback}`)
-    // 여기서 allSubmissions 업데이트 로직 추가 가능
+    // TODO: API 호출 구현 및 allSubmissions 업데이트
   }
 
   const getStatusBadge = (status: string) => {
@@ -338,3 +337,4 @@ export default function AssignmentSubmissions() {
     </CoursePageLayout>
   )
 }
+

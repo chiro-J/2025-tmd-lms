@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Clock, CheckCircle, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -8,7 +7,6 @@ import type { Quiz, QuizQuestion } from '../../types'
 import QuizReviewModal from '../../components/modals/QuizReviewModal'
 
 export default function QuizPlayer() {
-  const navigate = useNavigate()
   const [quiz] = useState<Quiz>(mockQuiz)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
@@ -100,13 +98,6 @@ export default function QuizPlayer() {
       <div className="container-page py-8">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            뒤로 가기
-          </button>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{quiz.title}</h1>

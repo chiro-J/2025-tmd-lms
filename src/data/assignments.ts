@@ -42,6 +42,49 @@ export const mockAssignments: Assignment[] = [
     submissions: 11,
     total: 30,
     status: '마감'
+  },
+  // courseId 4용 mock 데이터
+  {
+    id: 4,
+    courseId: 4,
+    title: '과제 1: React 컴포넌트 개발',
+    description: 'React를 사용하여 재사용 가능한 컴포넌트를 개발하고, 이를 활용한 간단한 애플리케이션을 구현하세요.',
+    dueDate: '2025-12-10',
+    maxScore: 100,
+    instructions: ['TypeScript 사용 필수', 'GitHub 저장소 링크 제출'],
+    allowedFileTypes: ['.zip', '.pdf'],
+    maxFileSize: 50,
+    submissions: 5,
+    total: 25,
+    status: '진행 중'
+  },
+  {
+    id: 5,
+    courseId: 4,
+    title: '과제 2: API 연동 프로젝트',
+    description: '외부 API를 연동하여 데이터를 가져오고 표시하는 애플리케이션을 개발하세요.',
+    dueDate: '2025-12-20',
+    maxScore: 100,
+    instructions: ['에러 처리 포함', 'README 작성 필수'],
+    allowedFileTypes: ['.zip'],
+    maxFileSize: 100,
+    submissions: 2,
+    total: 25,
+    status: '진행 중'
+  },
+  {
+    id: 6,
+    courseId: 4,
+    title: '과제 3: 포트폴리오 웹사이트',
+    description: '본인의 프로젝트를 소개하는 포트폴리오 웹사이트를 제작하세요.',
+    dueDate: '2025-11-30',
+    maxScore: 100,
+    instructions: ['반응형 디자인 필수', '배포 링크 제출'],
+    allowedFileTypes: ['.zip', '.pdf'],
+    maxFileSize: 50,
+    submissions: 12,
+    total: 25,
+    status: '마감'
   }
 ]
 
@@ -298,15 +341,231 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
         { name: '기획서_박민수.pdf', size: 318600, url: '/files/3011.pdf' }
       ]
     }
+  ],
+  // courseId 4용 제출물 데이터
+  4: [
+    {
+      id: 4001,
+      assignmentId: 4,
+      studentName: '김철수',
+      submittedAt: '2025-12-08T14:30:00',
+      status: '제출',
+      score: 95,
+      files: [
+        { name: 'react_component_김철수.zip', size: 2458000, url: '/files/4001.zip' }
+      ],
+      feedback: '컴포넌트 구조가 매우 잘 설계되었습니다. 재사용성도 높습니다.'
+    },
+    {
+      id: 4002,
+      assignmentId: 4,
+      studentName: '이영희',
+      submittedAt: '2025-12-09T09:15:00',
+      status: '제출',
+      score: 88,
+      files: [
+        { name: 'component_이영희.zip', size: 1985000, url: '/files/4002.zip' }
+      ],
+      feedback: '잘 구현되었지만 타입 정의를 더 명확히 하면 좋겠습니다.'
+    },
+    {
+      id: 4003,
+      assignmentId: 4,
+      studentName: '박민수',
+      submittedAt: '2025-12-10T23:45:00',
+      status: '지각',
+      score: 75,
+      files: [
+        { name: 'react_박민수.zip', size: 3120000, url: '/files/4003.zip' }
+      ],
+      feedback: '지각 제출이며 일부 기능이 미완성입니다.'
+    },
+    {
+      id: 4004,
+      assignmentId: 4,
+      studentName: '정수진',
+      submittedAt: '2025-12-08T16:20:00',
+      status: '제출',
+      score: 92,
+      files: [
+        { name: 'assignment1_정수진.zip', size: 2673000, url: '/files/4004.zip' }
+      ]
+    },
+    {
+      id: 4005,
+      assignmentId: 4,
+      studentName: '최지훈',
+      submittedAt: '2025-12-09T20:10:00',
+      status: '제출',
+      score: 85,
+      files: [
+        { name: 'react_project_최지훈.zip', size: 4450000, url: '/files/4005.zip' }
+      ]
+    }
+  ],
+  5: [
+    {
+      id: 5001,
+      assignmentId: 5,
+      studentName: '김철수',
+      submittedAt: '2025-12-18T15:30:00',
+      status: '제출',
+      score: 90,
+      files: [
+        { name: 'api_project_김철수.zip', size: 1567000, url: '/files/5001.zip' }
+      ]
+    },
+    {
+      id: 5002,
+      assignmentId: 5,
+      studentName: '이영희',
+      submittedAt: '2025-12-19T10:20:00',
+      status: '제출',
+      score: 87,
+      files: [
+        { name: 'api_integration_이영희.zip', size: 1890000, url: '/files/5002.zip' }
+      ]
+    }
+  ],
+  6: [
+    {
+      id: 6001,
+      assignmentId: 6,
+      studentName: '김철수',
+      submittedAt: '2025-11-28T14:00:00',
+      status: '제출',
+      score: 96,
+      files: [
+        { name: 'portfolio_김철수.zip', size: 3872000, url: '/files/6001.zip' }
+      ],
+      feedback: '포트폴리오 디자인이 매우 세련되고 프로젝트 설명도 명확합니다.'
+    },
+    {
+      id: 6002,
+      assignmentId: 6,
+      studentName: '이영희',
+      submittedAt: '2025-11-29T16:45:00',
+      status: '제출',
+      score: 94,
+      files: [
+        { name: 'portfolio_이영희.zip', size: 3254000, url: '/files/6002.zip' }
+      ],
+      feedback: '반응형 디자인이 잘 적용되었고 프로젝트 구성이 체계적입니다.'
+    },
+    {
+      id: 6003,
+      assignmentId: 6,
+      studentName: '박민수',
+      submittedAt: '2025-11-30T23:30:00',
+      status: '지각',
+      score: 82,
+      files: [
+        { name: 'portfolio_박민수.zip', size: 2987000, url: '/files/6003.zip' }
+      ]
+    },
+    {
+      id: 6004,
+      assignmentId: 6,
+      studentName: '정수진',
+      submittedAt: '2025-11-27T11:20:00',
+      status: '제출',
+      score: 98,
+      files: [
+        { name: 'portfolio_정수진.zip', size: 3412000, url: '/files/6004.zip' }
+      ],
+      feedback: '매우 우수한 포트폴리오입니다. 디자인과 기능 모두 훌륭합니다.'
+    },
+    {
+      id: 6005,
+      assignmentId: 6,
+      studentName: '최지훈',
+      submittedAt: '2025-11-28T19:15:00',
+      status: '제출',
+      score: 89,
+      files: [
+        { name: 'portfolio_최지훈.zip', size: 3128000, url: '/files/6005.zip' }
+      ]
+    },
+    {
+      id: 6006,
+      assignmentId: 6,
+      studentName: '강민호',
+      submittedAt: '2025-11-29T13:40:00',
+      status: '제출',
+      score: 91,
+      files: [
+        { name: 'portfolio_강민호.zip', size: 3569000, url: '/files/6006.zip' }
+      ]
+    },
+    {
+      id: 6007,
+      assignmentId: 6,
+      studentName: '윤하은',
+      submittedAt: '2025-11-27T15:50:00',
+      status: '제출',
+      score: 93,
+      files: [
+        { name: 'portfolio_윤하은.zip', size: 2974000, url: '/files/6007.zip' }
+      ]
+    },
+    {
+      id: 6008,
+      assignmentId: 6,
+      studentName: '조승우',
+      submittedAt: '2025-11-28T20:30:00',
+      status: '제출',
+      score: 88,
+      files: [
+        { name: 'portfolio_조승우.zip', size: 3186000, url: '/files/6008.zip' }
+      ]
+    },
+    {
+      id: 6009,
+      assignmentId: 6,
+      studentName: '오태영',
+      submittedAt: '2025-11-29T09:25:00',
+      status: '제출',
+      score: 90,
+      files: [
+        { name: 'portfolio_오태영.zip', size: 2890000, url: '/files/6009.zip' }
+      ]
+    },
+    {
+      id: 6010,
+      assignmentId: 6,
+      studentName: '한소영',
+      submittedAt: '2025-11-27T17:10:00',
+      status: '제출',
+      score: 95,
+      files: [
+        { name: 'portfolio_한소영.zip', size: 3415000, url: '/files/6010.zip' }
+      ]
+    },
+    {
+      id: 6011,
+      assignmentId: 6,
+      studentName: '신동욱',
+      submittedAt: '2025-11-28T12:15:00',
+      status: '제출',
+      score: 87,
+      files: [
+        { name: 'portfolio_신동욱.zip', size: 2761000, url: '/files/6011.zip' }
+      ]
+    },
+    {
+      id: 6012,
+      assignmentId: 6,
+      studentName: '임지원',
+      submittedAt: '2025-11-29T18:40:00',
+      status: '제출',
+      score: 92,
+      files: [
+        { name: 'portfolio_임지원.zip', size: 3122000, url: '/files/6012.zip' }
+      ]
+    }
   ]
 }
 
 export function getAssignmentById(id: number): Assignment | undefined {
   return mockAssignments.find(a => a.id === id)
 }
-
-
-
-
-
-

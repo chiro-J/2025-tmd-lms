@@ -6,7 +6,7 @@ interface MonthViewProps {
   selectedDate: string | null;
   onDateClick: (dateStr: string) => void;
   getMemosForDate: (dateStr: string) => Memo[];
-  onNavigateMonth?: (direction: "prev" | "next") => void;
+  onNavigateMonth?: (direction: 'prev' | 'next') => void;
   currentDate: Date;
 }
 
@@ -29,11 +29,9 @@ export default function MonthView({
       // 다음달 1일 클릭 시
       if (
         (clickedYear === currentYear && clickedMonth === currentMonth + 1) ||
-        (clickedYear === currentYear + 1 &&
-          clickedMonth === 0 &&
-          currentMonth === 11)
+        (clickedYear === currentYear + 1 && clickedMonth === 0 && currentMonth === 11)
       ) {
-        onNavigateMonth("next");
+        onNavigateMonth('next');
         // 약간의 지연 후 클릭 처리 (달력이 이동한 후)
         setTimeout(() => {
           onDateClick(dateStr);
@@ -44,11 +42,9 @@ export default function MonthView({
       // 이전달 마지막 날 클릭 시
       if (
         (clickedYear === currentYear && clickedMonth === currentMonth - 1) ||
-        (clickedYear === currentYear - 1 &&
-          clickedMonth === 11 &&
-          currentMonth === 0)
+        (clickedYear === currentYear - 1 && clickedMonth === 11 && currentMonth === 0)
       ) {
-        onNavigateMonth("prev");
+        onNavigateMonth('prev');
         setTimeout(() => {
           onDateClick(dateStr);
         }, 100);
@@ -80,7 +76,8 @@ export default function MonthView({
         {days.map((day, index) => {
           const dateStr = day.date.toISOString().split("T")[0];
           const dayMemos = getMemosForDate(dateStr);
-          const isToday = day.date.toDateString() === new Date().toDateString();
+          const isToday =
+            day.date.toDateString() === new Date().toDateString();
           const isSelected = selectedDate === dateStr;
 
           return (
@@ -88,9 +85,7 @@ export default function MonthView({
               key={index}
               onClick={() => handleDayClick(day, dateStr)}
               className={`h-full p-1 border border-gray-200 transition-all ${
-                day.isCurrentMonth
-                  ? "bg-white hover:bg-blue-50 cursor-pointer"
-                  : "bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                day.isCurrentMonth ? "bg-white hover:bg-blue-50 cursor-pointer" : "bg-gray-50 hover:bg-gray-100 cursor-pointer"
               } ${isToday ? "ring-2 ring-blue-500" : ""} ${
                 isSelected ? "ring-2 ring-purple-500" : ""
               }`}
@@ -133,3 +128,8 @@ export default function MonthView({
     </div>
   );
 }
+
+
+
+
+

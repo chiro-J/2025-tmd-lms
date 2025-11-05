@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
-import colors from 'tailwindcss/colors'
-import defaultTheme from 'tailwindcss/defaultTheme'
+const colors = require('tailwindcss/colors')
+const defaultTheme = require('tailwindcss/defaultTheme')
 
-export default {
+module.exports = {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -15,7 +15,7 @@ export default {
         success: "#10b981",
         warning: "#f59e0b",
         error: "#ef4444",
-        neutral: colors.neutral,
+        neutral: colors.slate,
         surface: {
           200: "#f3f5f8",
           150: "#e6e8ee",

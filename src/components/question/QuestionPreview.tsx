@@ -8,7 +8,7 @@ interface QuestionPreviewProps {
 
 export default function QuestionPreview({ formData }: QuestionPreviewProps) {
   return (
-    <div className="p-6">
+    <div className="p-6 sticky top-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-base-content">미리보기</h2>
         <Eye className="h-5 w-5 text-base-content/50" />

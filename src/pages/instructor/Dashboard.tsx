@@ -1,13 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { PlusCircle, Users, Star, Home, BookOpen, Users2, Settings, Key } from 'lucide-react'
 import Card from '../../components/ui/Card'
-import EnrollCodeModal from '../../components/modals/EnrollCodeModal'
-import { myCourses, jointCourses } from '../../data/courses'
+import { getCourses } from '../../core/api/courses'
+import type { Course } from '../../types'
 
 export default function InstructorDashboard() {
   const [activeTab, setActiveTab] = useState<'my-courses' | 'joint-courses'>('my-courses')
-  const [showEnrollModal, setShowEnrollModal] = useState(false)
+  const [myCourses, setMyCourses] = useState<Course[]>([])
+  const [jointCourses] = useState<Course[]>([]) // 공동 제작은 나중에
+  const [loading, setLoading] = useState(true)
+
+  // DB에서 강좌 목록 로드
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        setLoading(true)
+        const courses = await getCourses()
+        // 현재는 모든 강좌를 "내가 개설한 강좌"로 표시 (나중에 instructorId 필터링)
+        setMyCourses(courses.map(course => {
+          const courseWithDates = course as any
+          return {
+            id: String(course.id),
+            title: course.title,
+            status: course.status === 'published' ? '게시됨' : course.status === 'draft' ? '초안' : course.status,
+            students: 0, // 나중에 실제 수강생 수로 교체
+            rating: 0, // 나중에 실제 평점으로 교체
+            lastEdited: courseWithDates.updatedAt ? new Date(courseWithDates.updatedAt).toLocaleDateString('ko-KR') : '방금 전',
+            instructor: course.instructor || '김강사',
+            image: course.thumbnail || '/photo/bbb.jpg',
+          }
+        }))
+      } catch (error) {
+        console.error('강좌 목록 로드 실패:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadCourses()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,23 +108,6 @@ export default function InstructorDashboard() {
         {/* Main Content */}
         <div className="flex-1 p-6">
           <div className="max-w-4xl mx-auto">
-            {/* Enroll Code Card */}
-            <div className="mb-6">
-              <Card className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Key className="h-4 w-4 text-gray-700" />
-                    <h3 className="text-lg text-gray-900">수강 코드</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowEnrollModal(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-                  >
-                    코드 입력
-                  </button>
-                </div>
-              </Card>
-            </div>
             {/* Introduction Section */}
             <div className="mb-6">
               <h1 className="text-xl text-gray-900 mb-4">소개</h1>
@@ -135,9 +149,22 @@ export default function InstructorDashboard() {
 
             {/* Course Content */}
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              {activeTab === 'my-courses' ? (
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">로딩 중...</div>
+              ) : activeTab === 'my-courses' ? (
                 <div className="space-y-4">
-                 {myCourses.map((c) => (
+                 {myCourses.length === 0 ? (
+                   <div className="text-center py-12">
+                     <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                     <p className="text-gray-500">개설한 강좌가 없습니다.</p>
+                     <Link
+                       to="/instructor/create"
+                       className="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors"
+                     >
+                       첫 강좌 만들기
+                     </Link>
+                   </div>
+                 ) : myCourses.map((c) => (
                    <Link
                      key={c.id}
                      to={`/instructor/course/${c.id}/home`}
@@ -147,8 +174,8 @@ export default function InstructorDashboard() {
                         <div className="flex items-center space-x-4">
                           <div className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                             <img
-                              src="/photo/bbb.jpg"
-                              alt="풀스택 과정"
+                              src={c.image || '/photo/bbb.jpg'}
+                              alt={c.title}
                               className="w-full h-full object-cover rounded-lg"
                             />
                           </div>
@@ -164,7 +191,12 @@ export default function InstructorDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                 {jointCourses.map((c) => (
+                 {jointCourses.length === 0 ? (
+                   <div className="text-center py-12">
+                     <Users2 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                     <p className="text-gray-500">공동 제작 중인 강좌가 없습니다.</p>
+                   </div>
+                 ) : jointCourses.map((c) => (
                    <Link
                      key={c.id}
                      to={`/instructor/course/${c.id}/home`}
@@ -174,8 +206,8 @@ export default function InstructorDashboard() {
                         <div className="flex items-center space-x-4">
                           <div className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                             <img
-                              src="/photo/bbb.jpg"
-                              alt="풀스택 과정"
+                              src={c.image || '/photo/bbb.jpg'}
+                              alt={c.title}
                               className="w-full h-full object-cover rounded-lg"
                             />
                           </div>
@@ -194,11 +226,6 @@ export default function InstructorDashboard() {
           </div>
         </div>
       </div>
-
-      <EnrollCodeModal
-        open={showEnrollModal}
-        onClose={() => setShowEnrollModal(false)}
-      />
     </div>
   )
 }

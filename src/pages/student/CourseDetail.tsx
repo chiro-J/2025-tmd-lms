@@ -1,12 +1,16 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, BookOpen, MessageSquare, Download, Image, Code, Link, Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { mockResources, mockQnA } from '../../mocks'
 import type { Resource, QnAItem } from '../../types'
-import { getCurriculumForCourseDetail } from '../../data/curriculum'
+import { getCurriculum } from '../../core/api/curriculum'
+import { transformApiToDetailFormat } from '../../utils/curriculumTransform'
+import { getCourse } from '../../core/api/courses'
+import { safeHtml } from '../../utils/safeHtml'
+import type { Course } from '../../types'
 
 interface CurriculumItem {
   id: string
@@ -37,39 +41,96 @@ export default function CourseDetail() {
   const [showAskInline, setShowAskInline] = useState(false)
   const [askText, setAskText] = useState('')
 
-  // curriculum.ts에서 공통 데이터 가져오기
-  const initialCurriculum = useMemo(() => {
-    const data = getCurriculumForCourseDetail() as unknown as CurriculumItem[]
-    // 첫 번째 강의와 마지막 강의 일부 완료 처리 (임시)
-    if (data.length > 0) {
-      data[0].completed = 1
-      data[0].lessons[0].completed = true
-      data[0].lessons[0].date = '25. 10. 13.'
-    }
-    if (data.length > 1) {
-      data[1].completed = 7
-      data[1].lessons.forEach((lesson, idx) => {
-        lesson.completed = true
-        lesson.date = `25. 10. ${14 + idx}.`
-      })
-    }
-    if (data.length > 2) {
-      data[2].completed = 6
-      data[2].lessons.forEach((lesson, idx) => {
-        lesson.completed = true
-        lesson.date = `25. 10. ${21 + idx}.`
-      })
-    }
-    if (data.length > 3) {
-      data[3].completed = 1
-      data[3].lessons[0].completed = true
-      data[3].lessons[0].date = '25. 10. 13.'
-      data[3].lessons[0].isLastViewed = true
-    }
-    return data
-  }, [])
+  const courseId = Number(id) || 1
+  const [curriculum, setCurriculum] = useState<CurriculumItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [course, setCourse] = useState<Course | null>(null)
 
-  const [curriculum, setCurriculum] = useState<CurriculumItem[]>(initialCurriculum)
+  // YouTube URL에서 video ID 추출
+  const getYouTubeVideoId = (url: string) => {
+    if (!url) return null
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
+  // 강좌 목록에서 제거
+  const handleRemoveCourse = () => {
+    if (window.confirm('정말 이 강좌를 목록에서 제거하시겠습니까?')) {
+      const enrolledCourseIds = JSON.parse(
+        localStorage.getItem('enrolledCourseIds') || '[]'
+      ) as number[]
+
+      const updatedIds = enrolledCourseIds.filter(id => id !== courseId)
+      localStorage.setItem('enrolledCourseIds', JSON.stringify(updatedIds))
+
+      // 대시보드로 이동
+      navigate('/student/dashboard')
+    }
+  }
+
+  // DB에서 강좌 정보 로드
+  useEffect(() => {
+    const loadCourse = async () => {
+      try {
+        const courseData = await getCourse(courseId)
+        setCourse(courseData as Course)
+      } catch (error) {
+        console.error('강좌 정보 로드 실패:', error)
+      }
+    }
+
+    loadCourse()
+  }, [courseId])
+
+  // DB에서 커리큘럼 데이터 로드
+  useEffect(() => {
+    const loadCurriculum = async () => {
+      try {
+        setLoading(true)
+
+        // 커리큘럼 데이터 로드
+        const apiModules = await getCurriculum(courseId)
+        const transformed = transformApiToDetailFormat(apiModules)
+
+        // 임시 완료 처리 (나중에 실제 사용자 진행 데이터로 교체)
+        if (transformed.length > 0) {
+          transformed[0].completed = 1
+          transformed[0].lessons[0].completed = true
+          transformed[0].lessons[0].date = '25. 10. 13.'
+        }
+        if (transformed.length > 1 && transformed[1].lessons.length > 0) {
+          transformed[1].completed = transformed[1].lessons.length
+          transformed[1].lessons.forEach((lesson, idx) => {
+            lesson.completed = true
+            lesson.date = `25. 10. ${14 + idx}.`
+          })
+        }
+        if (transformed.length > 2 && transformed[2].lessons.length > 0) {
+          transformed[2].completed = transformed[2].lessons.length
+          transformed[2].lessons.forEach((lesson, idx) => {
+            lesson.completed = true
+            lesson.date = `25. 10. ${21 + idx}.`
+          })
+        }
+        if (transformed.length > 3 && transformed[3].lessons.length > 0) {
+          transformed[3].completed = 1
+          transformed[3].lessons[0].completed = true
+          transformed[3].lessons[0].date = '25. 10. 13.'
+          transformed[3].lessons[0].isLastViewed = true
+        }
+
+        setCurriculum(transformed)
+      } catch (error) {
+        console.error('커리큘럼 로드 실패:', error)
+        setCurriculum([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadCurriculum()
+  }, [courseId])
 
   const [allExpanded, setAllExpanded] = useState(false)
 
@@ -178,6 +239,18 @@ export default function CourseDetail() {
   ] as const
 
 
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-base-200 text-base-content">
+        <main className="container-page py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-gray-500">강좌 정보를 불러오는 중...</div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-base-200 text-base-content">
       <main className="container-page py-8">
@@ -186,19 +259,26 @@ export default function CourseDetail() {
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="w-full lg:w-80 h-48 rounded-xl overflow-hidden flex-shrink-0 relative">
               <img
-                src="/photo/bbb.jpg"
-                alt="풀스택 과정"
+                src={course?.thumbnail || '/photo/bbb.jpg'}
+                alt={course?.title || '강좌 썸네일'}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-2 left-2 text-white font-bold text-sm">
-                풀스택
-              </div>
+              {course?.title && (
+                <div className="absolute bottom-2 left-2 text-white font-bold text-sm">
+                  {course.title.length > 10 ? course.title.substring(0, 10) + '...' : course.title}
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <div className="mb-4">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">(1회차) 풀스택 과정</h1>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  {course?.title || '강좌 제목'}
+                </h1>
                 <p className="text-gray-600 mb-2">마지막 수강 강의 : 타입스크립트</p>
-                <p className="text-sm text-gray-600 mb-4">26강의 중 15개 강의 수강</p>
+                <p className="text-sm text-gray-600 mb-4">
+                  {curriculum.reduce((total, module) => total + module.total, 0)}강의 중{' '}
+                  {curriculum.reduce((total, module) => total + module.completed, 0)}개 강의 수강
+                </p>
               </div>
 
               <div className="mb-6">
@@ -224,6 +304,13 @@ export default function CourseDetail() {
                   className="btn-primary px-8 py-3"
                 >
                   이어하기
+                </Button>
+                <Button
+                  onClick={handleRemoveCourse}
+                  className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center space-x-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>수강 취소</span>
                 </Button>
                 <div className="flex items-center space-x-1 text-yellow-400">
                   <Star className="h-4 w-4 fill-current" />
@@ -272,18 +359,27 @@ export default function CourseDetail() {
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-base-content text-sm">교육 과정</h3>
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={toggleAll}
-                          className="text-xs text-base-content/70 hover:text-base-content transition-colors"
-                        >
-                          {allExpanded ? '모두 접기' : '모두 펼치기'}
-                        </button>
-                        <ChevronDown className="h-4 w-4 text-base-content/60" />
+                        {!loading && curriculum.length > 0 && (
+                          <>
+                            <button
+                              onClick={toggleAll}
+                              className="text-xs text-base-content/70 hover:text-base-content transition-colors"
+                            >
+                              {allExpanded ? '모두 접기' : '모두 펼치기'}
+                            </button>
+                            <ChevronDown className="h-4 w-4 text-base-content/60" />
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {curriculum.map((item, index) => (
+                  {loading ? (
+                    <div className="text-center py-8 text-gray-500">로딩 중...</div>
+                  ) : curriculum.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">커리큘럼이 없습니다.</div>
+                  ) : (
+                    curriculum.map((item, index) => (
                     <div key={item.id}>
                       <div
                         className={`p-3 cursor-pointer hover:bg-base-200 transition-colors border-b border-base-300 last:border-b-0 ${
@@ -350,7 +446,7 @@ export default function CourseDetail() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  )))}
                 </div>
             </div>
           )}
@@ -361,26 +457,36 @@ export default function CourseDetail() {
                   {/* Course Video */}
                   <Card className="p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">소개 영상</h3>
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        src="https://www.youtube.com/embed/example"
-                        title="강좌 소개 영상"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
+                    {course?.videoUrl ? (
+                      <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${getYouTubeVideoId(course.videoUrl) || ''}`}
+                          title="강좌 소개 영상"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                        <p className="text-gray-500">소개 영상이 없습니다.</p>
+                      </div>
+                    )}
                   </Card>
 
                   {/* Course Content */}
                   <Card className="p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">강좌 소개</h3>
-                    <div className="text-gray-700 prose max-w-none">
-                      <p>이 강좌는 React 기초부터 고급 개념까지 체계적으로 학습할 수 있도록 구성되었습니다.</p>
-                      <p>실습 위주의 학습으로 실제 프로젝트에 바로 적용할 수 있는 실무 능력을 기를 수 있습니다.</p>
-                    </div>
+                    {course?.content ? (
+                      <div
+                        className="text-gray-700 prose max-w-none"
+                        dangerouslySetInnerHTML={{ __html: safeHtml(course.content) }}
+                      />
+                    ) : (
+                      <div className="text-gray-500">강좌 소개 내용이 없습니다.</div>
+                    )}
                   </Card>
                 </div>
               </div>

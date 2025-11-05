@@ -87,20 +87,18 @@ export default function QuestionManagement() {
       <div className="grid grid-cols-12 gap-6">
         {/* Left Panel - Question List */}
         <div className="col-span-3">
-          <div className="sticky top-6">
-            <Card className="max-h-[calc(100vh-8rem)] overflow-y-auto">
-              <QuestionList
-                questions={savedQuestions}
-                selectedQuestionId={selectedQuestionId}
-                filterStatus={filterStatus}
-                searchQuery={searchQuery}
-                onQuestionSelect={handleQuestionSelect}
-                onFilterStatusChange={setFilterStatus}
-                onSearchQueryChange={setSearchQuery}
-                mockExams={mockExamsInfo}
-              />
-            </Card>
-          </div>
+          <Card className="sticky top-6">
+            <QuestionList
+              questions={savedQuestions}
+              selectedQuestionId={selectedQuestionId}
+              filterStatus={filterStatus}
+              searchQuery={searchQuery}
+              onQuestionSelect={handleQuestionSelect}
+              onFilterStatusChange={setFilterStatus}
+              onSearchQueryChange={setSearchQuery}
+              mockExams={mockExamsInfo}
+            />
+          </Card>
         </div>
 
         {/* Center Panel - Question Editor */}
@@ -122,11 +120,9 @@ export default function QuestionManagement() {
 
         {/* Right Panel - Preview */}
         <div className="col-span-4">
-          <div className="sticky top-6">
-            <Card className="max-h-[calc(100vh-8rem)] overflow-y-auto">
-              <QuestionPreview formData={formData} />
-            </Card>
-          </div>
+          <Card>
+            <QuestionPreview formData={formData} />
+          </Card>
         </div>
       </div>
     </CoursePageLayout>

@@ -15,7 +15,8 @@ interface CourseSidebarProps {
 }
 
 export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCourse }: CourseSidebarProps) {
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'exams', 'assignments', 'community', 'settings'])
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'assignments', 'exams', 'community', 'settings'])
+  const courseId = currentCourse?.id || '1'
   const [showNotificationMenu, setShowNotificationMenu] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const location = useLocation()
@@ -99,10 +100,12 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
     <div className="w-64 bg-base-100 border-r border-base-300 min-h-screen">
       <div className="p-6">
         {/* Course Title */}
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-base-content mb-2">(1회차) 풀스택 과정</h2>
-          <p className="text-sm text-gray-900">• 비공개</p>
-        </div>
+        {currentCourse && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-base-content mb-2">{currentCourse.title}</h2>
+            <p className="text-sm text-gray-900">• {currentCourse.status}</p>
+          </div>
+        )}
 
         <nav className="space-y-2">
           <div className="relative" data-notification-menu>
@@ -187,8 +190,8 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
             )}
           </div>
 
-          <Link to={`/instructor/course/1/home`} className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium ${
-            location.pathname === '/instructor/course/1/home'
+          <Link to={`/instructor/course/${courseId}/home`} className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium ${
+            location.pathname === `/instructor/course/${courseId}/home`
               ? 'bg-blue-100 text-blue-600'
               : 'text-gray-900 hover:bg-gray-100'
           }`}>
@@ -212,26 +215,60 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
             </button>
             {expandedMenus.includes('curriculum') && (
               <div className="ml-6 mt-2 space-y-1">
-                <Link to="/instructor/course/1/edit" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/edit'
+                <Link to={`/instructor/course/${courseId}/edit`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/edit`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   교육 과정 편집
                 </Link>
-                <Link to="/instructor/course/1/info" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/info'
+                <Link to={`/instructor/course/${courseId}/info`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/info`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   강좌 정보 편집
                 </Link>
-                <Link to="/instructor/course/1/resources" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/resources'
+                <Link to={`/instructor/course/${courseId}/resources`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/resources`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   강의 자료 관리
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* 과제 관리 */}
+          <div>
+            <button
+              onClick={() => toggleMenu('assignments')}
+              className="flex items-center space-x-3 px-4 py-3 text-gray-900 hover:bg-gray-100 rounded-lg font-medium w-full"
+            >
+              <FileText className="h-5 w-5 flex-shrink-0" />
+              <span className="flex-1 text-left">과제 관리</span>
+              {expandedMenus.includes('assignments') ? (
+                <ChevronDown className="h-4 w-4 text-gray-600" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-gray-600" />
+              )}
+            </button>
+            {expandedMenus.includes('assignments') && (
+              <div className="ml-6 mt-2 space-y-1">
+                <Link to={`/instructor/course/${courseId}/assignments`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/assignments`
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  과제 목록
+                </Link>
+                <Link to={`/instructor/course/${courseId}/assignment-submissions`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/assignment-submissions`
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}>
+                  제출물 조회
                 </Link>
               </div>
             )}
@@ -253,62 +290,28 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
             </button>
             {expandedMenus.includes('exams') && (
               <div className="ml-6 mt-2 space-y-1">
-                <Link to="/instructor/course/1/exams" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/exams'
+                <Link to={`/instructor/course/${courseId}/exams`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/exams`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   전체 시험
                 </Link>
-                <Link to="/instructor/course/1/create-exam" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/create-exam'
+                <Link to={`/instructor/course/${courseId}/create-exam`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/create-exam`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   시험 문제
                 </Link>
-                <Link to="/instructor/course/1/proctoring" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
+                <Link to={`/instructor/course/${courseId}/proctoring`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   실시간 감독
                 </Link>
-                <Link to="/instructor/course/1/results" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
+                <Link to={`/instructor/course/${courseId}/results`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   결과 분석
                 </Link>
-                <Link to="/instructor/course/1/grade-report" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
+                <Link to={`/instructor/course/${courseId}/grade-report`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   성적 보고서 만들기
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* 과제 관리 */}
-          <div>
-            <button
-              onClick={() => toggleMenu('assignments')}
-              className="flex items-center space-x-3 px-4 py-3 text-gray-900 hover:bg-gray-100 rounded-lg font-medium w-full"
-            >
-              <Edit3 className="h-5 w-5 flex-shrink-0" />
-              <span className="flex-1 text-left">과제 관리</span>
-              {expandedMenus.includes('assignments') ? (
-                <ChevronDown className="h-4 w-4 text-gray-600" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-gray-600" />
-              )}
-            </button>
-            {expandedMenus.includes('assignments') && (
-              <div className="ml-6 mt-2 space-y-1">
-                <Link to="/instructor/course/1/assignments" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/assignments'
-                    ? 'text-primary bg-primary/10'
-                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
-                }`}>
-                  과제 관리
-                </Link>
-                <Link to="/instructor/course/1/assignment-submissions" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/assignment-submissions'
-                    ? 'text-primary bg-primary/10'
-                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
-                }`}>
-                  제출물 조회
                 </Link>
               </div>
             )}
@@ -330,21 +333,21 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
             </button>
             {expandedMenus.includes('community') && (
               <div className="ml-6 mt-2 space-y-1">
-                <Link to="/instructor/course/1/notices" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/notices'
+                <Link to={`/instructor/course/${courseId}/notices`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/notices`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   공지 관리
                 </Link>
-                <Link to="/instructor/course/1/qna" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/qna'
+                <Link to={`/instructor/course/${courseId}/qna`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/qna`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   Q&A 관리
                 </Link>
-                <Link to="/instructor/course/1/reviews" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
+                <Link to={`/instructor/course/${courseId}/reviews`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   후기 관리
                 </Link>
               </div>
@@ -367,15 +370,15 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
             </button>
             {expandedMenus.includes('students') && (
               <div className="ml-6 mt-2 space-y-1">
-                <Link to="/instructor/course/1/students" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/students'
+                <Link to={`/instructor/course/${courseId}/students`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/students`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   전체 수강자
                 </Link>
-                <Link to="/instructor/course/1/achievement" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/achievement'
+                <Link to={`/instructor/course/${courseId}/achievement`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/achievement`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
@@ -402,14 +405,14 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
             {expandedMenus.includes('settings') && (
               <div className="ml-6 mt-2 space-y-1">
                 {/* 강좌 설정 링크 제거: 강좌 정보 편집과 중복 */}
-                <Link to="/instructor/course/1/co-instructors" className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === '/instructor/course/1/co-instructors'
+                <Link to={`/instructor/course/${courseId}/co-instructors`} className={`block px-4 py-2 text-sm rounded ${
+                  location.pathname === `/instructor/course/${courseId}/co-instructors`
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   공동 강의자 설정
                 </Link>
-                <Link to="/instructor/course/1/activity" className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
+                <Link to={`/instructor/course/${courseId}/activity`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   활동 내역
                 </Link>
               </div>

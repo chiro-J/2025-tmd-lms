@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { Save, Upload, X, Video } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import StableLexicalEditor from '../../components/editor/StableLexicalEditor'
 import { safeHtml } from '../../utils/safeHtml'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
+import { getCourse, updateCourse } from '../../core/api/courses'
 
 // cspell:words youtu
 
@@ -22,8 +24,10 @@ interface FormDataShape {
 }
 
 export default function CourseInfoEdit() {
+  const { id } = useParams()
+  const courseId = Number(id) || 1
   const [formData, setFormData] = useState<FormDataShape>({
-    title: '(1회차) 풀스택 과정',
+    title: '',
     thumbnail: '',
     category1: '',
     category2: '',
@@ -32,10 +36,41 @@ export default function CourseInfoEdit() {
     applicationStartDate: '2025-01-01',
     applicationEndDate: '2025-01-20',
     videoUrl: '',
-    content: '<p>강좌의 목표, 커리큘럼, 대상 수강생 등을 작성해주세요.</p>',
+    content: '',
   })
 
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  // DB에서 강좌 정보 로드
+  useEffect(() => {
+    const loadCourse = async () => {
+      try {
+        setLoading(true)
+        const course = await getCourse(courseId)
+        if (course) {
+          setFormData({
+            title: course.title || '',
+            thumbnail: course.thumbnail || '',
+            category1: '', // 나중에 구현
+            category2: '', // 나중에 구현
+            durationStartDate: '2025-01-10', // 나중에 구현
+            durationEndDate: '2025-12-31', // 나중에 구현
+            applicationStartDate: '2025-01-01', // 나중에 구현
+            applicationEndDate: '2025-01-20', // 나중에 구현
+            videoUrl: course.videoUrl || '',
+            content: course.content || '<p>강좌의 목표, 커리큘럼, 대상 수강생 등을 작성해주세요.</p>',
+          })
+        }
+      } catch (error) {
+        console.error('강좌 정보 로드 실패:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadCourse()
+  }, [courseId])
 
   const getYouTubeVideoId = (url: string) => {
     if (!url) return null
@@ -69,18 +104,51 @@ export default function CourseInfoEdit() {
     setThumbnailFile(null)
   }
 
-  const handleSave = () => {
-    // TODO: API 연동
-    alert('강좌 정보가 저장되었습니다!')
+  const handleSave = async () => {
+    if (!formData.title.trim()) {
+      alert('강좌 제목을 입력해주세요.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await updateCourse(courseId, {
+        title: formData.title,
+        videoUrl: formData.videoUrl,
+        content: formData.content,
+        thumbnail: formData.thumbnail,
+        // category1, category2, durationStartDate 등은 나중에 구현
+      })
+      alert('강좌 정보가 저장되었습니다!')
+    } catch (error) {
+      console.error('강좌 정보 저장 실패:', error)
+      alert('저장에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const rightActions = (
     <>
-      <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl">
-        <Save className="h-4 w-4 mr-1" /> 저장하기
+      <Button
+        onClick={handleSave}
+        disabled={saving}
+        className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl disabled:opacity-50"
+      >
+        <Save className="h-4 w-4 mr-1" /> {saving ? '저장 중...' : '저장하기'}
       </Button>
     </>
   )
+
+  if (loading) {
+    return (
+      <CoursePageLayout currentPageTitle="강좌 정보 편집" rightActions={rightActions}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">로딩 중...</div>
+        </div>
+      </CoursePageLayout>
+    )
+  }
 
   return (
     <CoursePageLayout currentPageTitle="강좌 정보 편집" rightActions={rightActions}>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Upload, FileText, Clock, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { Upload, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { getAssignmentById } from '../../data/assignments'
@@ -18,7 +18,6 @@ interface Submission {
 
 export default function AssignmentSubmit() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionSuccess, setSubmissionSuccess] = useState(false)
@@ -74,13 +73,6 @@ export default function AssignmentSubmit() {
       <div className="container-page py-8">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            뒤로 가기
-          </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{assignment?.title ?? '과제'}</h1>
           <div className="flex items-center space-x-4 text-sm text-gray-600">
             <div className="flex items-center">

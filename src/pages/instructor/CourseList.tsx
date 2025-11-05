@@ -1,15 +1,45 @@
+import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PlusCircle, Users, Star, BookOpen, Users2 } from 'lucide-react'
 import Card from '../../components/ui/Card'
-import { myCourses, jointCourses } from '../../data/courses'
+import { getCourses } from '../../core/api/courses'
+import type { Course } from '../../types'
 
 export default function CourseList() {
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = (searchParams.get('tab') || 'my-courses') as 'my-courses' | 'joint-courses'
+  const [myCourses, setMyCourses] = useState<Course[]>([])
+  const [jointCourses] = useState<Course[]>([]) // 공동 제작은 나중에
+  const [loading, setLoading] = useState(true)
 
-  const handleTabChange = (tab: 'my-courses' | 'joint-courses') => {
-    setSearchParams({ tab })
-  }
+  // DB에서 강좌 목록 로드
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        setLoading(true)
+        const courses = await getCourses()
+        // 현재는 모든 강좌를 "내가 개설한 강좌"로 표시 (나중에 instructorId 필터링)
+        setMyCourses(courses.map(course => {
+          const courseWithDates = course as any
+          return {
+            id: String(course.id),
+            title: course.title,
+            status: course.status === 'published' ? '게시됨' : course.status === 'draft' ? '초안' : course.status,
+            students: 0, // 나중에 실제 수강생 수로 교체
+            rating: 0, // 나중에 실제 평점으로 교체
+            lastEdited: courseWithDates.updatedAt ? new Date(courseWithDates.updatedAt).toLocaleDateString('ko-KR') : '방금 전',
+            instructor: course.instructor || '김강사',
+            image: course.thumbnail || '/photo/bbb.jpg',
+          }
+        }))
+      } catch (error) {
+        console.error('강좌 목록 로드 실패:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadCourses()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,9 +143,22 @@ export default function CourseList() {
 
             {/* Course Content */}
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              {activeTab === 'my-courses' ? (
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">로딩 중...</div>
+              ) : activeTab === 'my-courses' ? (
                 <div className="space-y-4">
-                 {myCourses.map((c) => (
+                 {myCourses.length === 0 ? (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">개설한 강좌가 없습니다.</p>
+                      <Link
+                        to="/instructor/create"
+                        className="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors"
+                      >
+                        첫 강좌 만들기
+                     </Link>
+                   </div>
+                 ) : myCourses.map((c) => (
                    <Link
                      key={c.id}
                      to={`/instructor/course/${c.id}/home`}
@@ -125,7 +168,7 @@ export default function CourseList() {
                         <div className="flex items-center space-x-4">
                           <div className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                             <img
-                              src="/photo/bbb.jpg"
+                              src={c.image || '/photo/bbb.jpg'}
                               alt={c.title}
                               className="w-full h-full object-cover rounded-lg"
                             />
@@ -139,18 +182,6 @@ export default function CourseList() {
                       </div>
                     </Link>
                   ))}
-                  {myCourses.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">개설한 강좌가 없습니다.</p>
-                      <Link
-                        to="/instructor/create"
-                        className="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm transition-colors"
-                      >
-                        첫 강좌 만들기
-                      </Link>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-4">

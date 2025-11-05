@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ModalBase from './ModalBase'
+import { getCourseByEnrollmentCode } from '../../core/api/courses'
 
 interface EnrollCodeModalProps {
   open: boolean
   onClose: () => void
+  onEnrollSuccess?: () => void // 등록 성공 시 콜백
 }
 
-export default function EnrollCodeModal({ open, onClose }: EnrollCodeModalProps) {
+export default function EnrollCodeModal({ open, onClose, onEnrollSuccess }: EnrollCodeModalProps) {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -18,17 +20,43 @@ export default function EnrollCodeModal({ open, onClose }: EnrollCodeModalProps)
     setError('')
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      if (code === 'ABCD-1234') {
-        setIsLoading(false)
-        onClose()
-        navigate('/student/course/1')
-      } else {
+    try {
+      // 수강코드로 강좌 조회
+      const course = await getCourseByEnrollmentCode(code.trim().toUpperCase())
+
+      if (!course) {
         setError('유효하지 않은 수강 코드입니다.')
         setIsLoading(false)
+        return
       }
-    }, 1000)
+
+      // 로컬 스토리지에 등록된 강좌 ID 목록에 추가
+      const enrolledCourseIds = JSON.parse(
+        localStorage.getItem('enrolledCourseIds') || '[]'
+      ) as number[]
+
+      const courseId = Number(course.id)
+      if (!enrolledCourseIds.includes(courseId)) {
+        enrolledCourseIds.push(courseId)
+        localStorage.setItem('enrolledCourseIds', JSON.stringify(enrolledCourseIds))
+      }
+
+      setIsLoading(false)
+      onClose()
+      setCode('')
+
+      // 등록 성공 콜백 호출 (부모 컴포넌트에서 강좌 목록 새로고침)
+      if (onEnrollSuccess) {
+        onEnrollSuccess()
+      }
+
+      // 강좌 상세 페이지로 이동
+      navigate(`/student/course/${course.id}`)
+    } catch (error) {
+      console.error('수강코드 등록 실패:', error)
+      setError('수강 코드 확인 중 오류가 발생했습니다.')
+      setIsLoading(false)
+    }
   }
 
   const handleClose = () => {

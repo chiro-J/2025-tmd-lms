@@ -26,13 +26,9 @@ import QuizPlayer from "./pages/student/QuizPlayer";
 import Help from "./pages/student/Help";
 import Calendar from "./pages/student/Calendar";
 
-// Shared pages
-import Notifications from "./pages/Notifications";
-
 // Instructor pages
 import InstructorDashboard from "./pages/instructor/Dashboard";
 import CourseList from "./pages/instructor/CourseList";
-import CreateCourse from "./pages/instructor/CreateCourse";
 import CourseIntroduction from "./pages/instructor/CourseIntroduction";
 import CourseHome from "./pages/instructor/CourseHome";
 import EditCurriculum from "./pages/instructor/EditCurriculum";
@@ -48,7 +44,6 @@ import QuestionManagement from "./pages/instructor/QuestionManagement";
 import NoticeManagement from "./pages/instructor/NoticeManagement";
 import NoticeEditor from "./pages/instructor/NoticeEditor";
 import InstructorProfile from "./pages/instructor/InstructorProfile";
-import CoursePreview from "./pages/instructor/CoursePreview";
 import RealtimeProctoring from "./pages/instructor/RealtimeProctoring.tsx";
 import ResultsAnalysis from "./pages/instructor/ResultsAnalysis.tsx";
 import ExamDetail from "./pages/instructor/ExamDetail";
@@ -89,9 +84,6 @@ export default function App() {
           </NoticeProvider>
         </CourseCreationProvider>
       }>
-        {/* Shared */}
-        <Route path="/notifications" element={<Notifications />} />
-
         {/* Student */}
         <Route path="/welcome" element={<WelcomePage />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
@@ -108,7 +100,6 @@ export default function App() {
              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
              <Route path="/instructor/courses" element={<CourseList />} />
              <Route path="/instructor/create" element={<CourseIntroduction />} />
-             <Route path="/instructor/create/introduction" element={<Navigate to="/instructor/create" replace />} />
              <Route path="/instructor/course/:id/home" element={<CourseHome />} />
              <Route path="/instructor/course/:id/edit" element={<EditCurriculum />} />
              <Route path="/instructor/course/:id/info" element={<CourseInfoEdit />} />
