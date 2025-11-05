@@ -1,13 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import type { User } from '../types'
+import { authApi } from '../lib/api'
 
 interface AuthContextType {
   user: User | null
   isLoggedIn: boolean
-  login: (user: User) => void
-  logout: () => void
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<User>
+  logout: () => Promise<void>
   switchRole: (role: 'student' | 'instructor' | 'admin' | 'sub-admin') => void
+  refreshUserProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -27,36 +30,81 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // 페이지 로드 시 저장된 사용자 정보 복원
+  // 페이지 로드 시 저장된 토큰으로 사용자 정보 복원
   useEffect(() => {
-    const savedUser = localStorage.getItem('user')
-    const savedLoginStatus = localStorage.getItem('isLoggedIn')
+    const initAuth = async () => {
+      const accessToken = localStorage.getItem('accessToken')
 
-    if (savedUser && savedLoginStatus === 'true') {
-      try {
-        const parsedUser = JSON.parse(savedUser)
-        setUser(parsedUser)
-        setIsLoggedIn(true)
-      } catch (error) {
-        localStorage.removeItem('user')
-        localStorage.removeItem('isLoggedIn')
+      if (accessToken) {
+        try {
+          const response = await authApi.getProfile()
+          const userData = response.data
+          setUser(userData)
+          setIsLoggedIn(true)
+        } catch (error) {
+          console.error('Failed to restore auth session:', error)
+          // 토큰이 유효하지 않으면 로그아웃
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('user')
+          localStorage.removeItem('isLoggedIn')
+        }
       }
+
+      setIsLoading(false)
     }
+
+    initAuth()
   }, [])
 
-  const login = (userData: User) => {
-    setUser(userData)
-    setIsLoggedIn(true)
-    localStorage.setItem('user', JSON.stringify(userData))
-    localStorage.setItem('isLoggedIn', 'true')
+  const login = async (email: string, password: string): Promise<User> => {
+    try {
+      const response = await authApi.login(email, password)
+      const { accessToken, refreshToken, user: userData } = response.data
+
+      // JWT 토큰 저장
+      localStorage.setItem('accessToken', accessToken)
+      localStorage.setItem('refreshToken', refreshToken)
+      localStorage.setItem('user', JSON.stringify(userData))
+      localStorage.setItem('isLoggedIn', 'true')
+
+      setUser(userData)
+      setIsLoggedIn(true)
+
+      return userData
+    } catch (error: any) {
+      console.error('Login failed:', error)
+      throw new Error(error.response?.data?.message || 'Login failed')
+    }
   }
 
-  const logout = () => {
-    setUser(null)
-    setIsLoggedIn(false)
-    localStorage.removeItem('user')
-    localStorage.removeItem('isLoggedIn')
+  const logout = async () => {
+    try {
+      await authApi.logout()
+    } catch (error) {
+      console.error('Logout API call failed:', error)
+    } finally {
+      // 로컬 상태 정리
+      setUser(null)
+      setIsLoggedIn(false)
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('isLoggedIn')
+    }
+  }
+
+  const refreshUserProfile = async () => {
+    try {
+      const response = await authApi.getProfile()
+      const userData = response.data
+      setUser(userData)
+      localStorage.setItem('user', JSON.stringify(userData))
+    } catch (error) {
+      console.error('Failed to refresh user profile:', error)
+    }
   }
 
   const switchRole = (role: 'student' | 'instructor' | 'admin' | 'sub-admin') => {
@@ -70,9 +118,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     isLoggedIn,
+    isLoading,
     login,
     logout,
-    switchRole
+    switchRole,
+    refreshUserProfile
   }
 
   return (

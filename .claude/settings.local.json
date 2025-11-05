@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Read(//c/Users/Monstera/Desktop/src/components/exam/**)",
-      "Read(//c/Users/Monstera/Desktop/src/hooks/**)"
+      "Read(//c/Users/Monstera/Desktop/src/hooks/**)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

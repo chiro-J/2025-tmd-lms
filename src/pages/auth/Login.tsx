@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authenticateUser } from '../../mocks';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from '../../layout/Header';
 
@@ -13,26 +12,37 @@ export default function Login() {
   });
   const [userType, setUserType] = useState<'student' | 'instructor' | 'admin' | 'sub-admin'>('student');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    const user = authenticateUser(formData.email, formData.password);
+    try {
+      const user = await login(formData.email, formData.password);
 
-    if (user) {
       // Check if user role matches selected login type
       if (userType === 'instructor' && user.role !== 'instructor') {
         setError('강의자 계정이 아닙니다.');
+        setIsLoading(false);
         return;
       }
       if (userType === 'student' && user.role !== 'student') {
         setError('수강생 계정이 아닙니다.');
+        setIsLoading(false);
         return;
       }
-
-      // Use AuthContext login
-      login(user);
+      if (userType === 'admin' && user.role !== 'admin') {
+        setError('관리자 계정이 아닙니다.');
+        setIsLoading(false);
+        return;
+      }
+      if (userType === 'sub-admin' && user.role !== 'sub-admin') {
+        setError('서브 관리자 계정이 아닙니다.');
+        setIsLoading(false);
+        return;
+      }
 
       // navigate to appropriate dashboard based on role
       if (user.role === 'instructor') {
@@ -44,9 +54,10 @@ export default function Login() {
       } else {
         navigate('/student/dashboard');
       }
-      } else {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
-      }
+    } catch (error: any) {
+      setError(error.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -58,7 +69,7 @@ export default function Login() {
   };
 
   // 빠른 로그인 함수들
-  const handleQuickLogin = (role: 'student' | 'instructor' | 'admin' | 'subadmin') => {
+  const handleQuickLogin = async (role: 'student' | 'instructor' | 'admin' | 'subadmin') => {
     let email = '';
     let password = '';
     let redirectPath = '';
@@ -86,13 +97,15 @@ export default function Login() {
         break;
     }
 
-    const user = authenticateUser(email, password);
-    if (user) {
-      // Use AuthContext login
-      login(user);
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await login(email, password);
       navigate(redirectPath);
-    } else {
-      alert('빠른 로그인에 실패했습니다.');
+    } catch (error) {
+      alert('빠른 로그인에 실패했습니다. 해당 계정이 존재하지 않습니다.');
+      setIsLoading(false);
     }
   };
 
@@ -202,11 +215,13 @@ export default function Login() {
           {/* Login Button */}
           <button
             type="submit"
-            className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg"
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {userType === 'student' ? '수강생 로그인' :
-             userType === 'instructor' ? '강의자 로그인' :
-             userType === 'admin' ? '마스터 관리자 로그인' : '서브 관리자 로그인'}
+            {isLoading ? '로그인 중...' :
+              userType === 'student' ? '수강생 로그인' :
+              userType === 'instructor' ? '강의자 로그인' :
+              userType === 'admin' ? '마스터 관리자 로그인' : '서브 관리자 로그인'}
           </button>
 
           {/* Signup Link */}
@@ -236,28 +251,32 @@ export default function Login() {
             <button
               type="button"
               onClick={() => handleQuickLogin('student')}
-              className="px-4 py-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
+              disabled={isLoading}
+              className="px-4 py-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               수강생 로그인
             </button>
             <button
               type="button"
               onClick={() => handleQuickLogin('instructor')}
-              className="px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm"
+              disabled={isLoading}
+              className="px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               강의자 로그인
             </button>
             <button
               type="button"
               onClick={() => handleQuickLogin('admin')}
-              className="px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm"
+              disabled={isLoading}
+              className="px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               마스터 관리자 로그인
             </button>
             <button
               type="button"
               onClick={() => handleQuickLogin('subadmin')}
-              className="px-4 py-3 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm"
+              disabled={isLoading}
+              className="px-4 py-3 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               서브 관리자 로그인
             </button>

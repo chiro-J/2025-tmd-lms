@@ -20,7 +20,7 @@
     "@lexical/react": "0.13.1",
     "@lexical/rich-text": "0.13.1",
     "@tinymce/tinymce-react": "^6.3.0",
-    "axios": "^1.13.1",
+    "axios": "^1.13.2",
     "daisyui": "^5.3.7",
     "jspdf": "^3.0.3",
     "lexical": "0.13.1",
