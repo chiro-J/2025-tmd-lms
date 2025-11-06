@@ -9,8 +9,10 @@ import type { Resource, QnAItem } from '../../types'
 import { getCurriculum } from '../../core/api/curriculum'
 import { transformApiToDetailFormat } from '../../utils/curriculumTransform'
 import { getCourse } from '../../core/api/courses'
+import { getAssignments } from '../../core/api/assignments'
 import { safeHtml } from '../../utils/safeHtml'
 import type { Course } from '../../types'
+import type { Assignment } from '../../types/assignment'
 
 interface CurriculumItem {
   id: string
@@ -45,6 +47,8 @@ export default function CourseDetail() {
   const [curriculum, setCurriculum] = useState<CurriculumItem[]>([])
   const [loading, setLoading] = useState(true)
   const [course, setCourse] = useState<Course | null>(null)
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true)
 
   // YouTube URL에서 video ID 추출
   const getYouTubeVideoId = (url: string) => {
@@ -81,6 +85,24 @@ export default function CourseDetail() {
     }
 
     loadCourse()
+  }, [courseId])
+
+  // DB에서 과제 목록 로드
+  useEffect(() => {
+    const loadAssignments = async () => {
+      try {
+        setAssignmentsLoading(true)
+        const assignmentsData = await getAssignments(courseId)
+        setAssignments(assignmentsData)
+      } catch (error) {
+        console.error('과제 목록 로드 실패:', error)
+        setAssignments([])
+      } finally {
+        setAssignmentsLoading(false)
+      }
+    }
+
+    loadAssignments()
   }, [courseId])
 
   // DB에서 커리큘럼 데이터 로드
@@ -496,39 +518,115 @@ export default function CourseDetail() {
               <div id="tabpanel-exam" role="tabpanel" aria-labelledby="tab-exam">
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">시험/과제</h3>
-                  <div className="space-y-4">
-                    <div className="card p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-gray-900">과제 1: React 컴포넌트 개발</h4>
-                        <span className="text-sm text-gray-500">마감: 2024-11-25</span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-3">
-                        React를 사용하여 재사용 가능한 컴포넌트를 개발하고, 이를 활용한 간단한 애플리케이션을 구현하세요.
-                      </p>
-                      <Button
-                        onClick={() => navigate(`/student/assignment/1`)}
-                        className="btn-primary"
-                      >
-                        과제 제출하기
-                      </Button>
-                    </div>
 
-                    <div className="card p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-gray-900">퀴즈 1: React 기초</h4>
-                        <span className="text-sm text-gray-500">마감: 2024-11-25</span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-3">
-                        React의 기본 개념과 사용법에 대한 퀴즈입니다. 30분 제한시간이 있습니다.
-                      </p>
-                      <Button
-                        onClick={() => navigate(`/student/quiz/1`)}
-                        className="btn-outline"
-                      >
-                        퀴즈 시작하기
-                      </Button>
+                  {assignmentsLoading ? (
+                    <div className="text-center py-8 text-gray-500">과제 목록을 불러오는 중...</div>
+                  ) : assignments.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">등록된 과제가 없습니다</p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {assignments.map((assignment) => {
+                        const isPastDue = new Date(assignment.dueDate) < new Date()
+                        const statusBadge = isPastDue ? (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            마감
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            진행 중
+                          </span>
+                        )
+
+                        return (
+                          <div
+                            key={assignment.id}
+                            className="card p-4 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => navigate(`/student/assignment/${assignment.id}`)}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-gray-500" />
+                                <h4 className="font-medium text-gray-900">{assignment.title}</h4>
+                              </div>
+                              {statusBadge}
+                            </div>
+
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm text-gray-500">
+                                마감일: {new Date(assignment.dueDate).toLocaleDateString('ko-KR')}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                만점: {assignment.maxScore}점
+                              </span>
+                            </div>
+
+                            {assignment.description && (
+                              <p className="text-sm text-gray-600 mb-3">
+                                {assignment.description}
+                              </p>
+                            )}
+
+                            {assignment.instructions && assignment.instructions.length > 0 && (
+                              <div className="mb-3">
+                                <p className="text-xs font-medium text-gray-700 mb-1">제출 안내:</p>
+                                <ul className="text-xs text-gray-600 list-disc list-inside space-y-1">
+                                  {assignment.instructions.map((instruction, idx) => (
+                                    <li key={idx}>{instruction}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {assignment.allowedFileTypes && assignment.allowedFileTypes.length > 0 && (
+                              <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-xs font-medium text-blue-900 mb-2">📎 제출 가능한 파일 형식</p>
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {assignment.allowedFileTypes.map((fileType, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="px-2 py-0.5 bg-white text-blue-700 text-xs rounded border border-blue-200 font-medium"
+                                    >
+                                      {fileType.replace('.', '').toUpperCase()}
+                                    </span>
+                                  ))}
+                                </div>
+                                {assignment.maxFileSize && (
+                                  <div className="text-xs text-blue-700 space-y-1">
+                                    <p className="font-medium">📦 최대 파일 크기: {assignment.maxFileSize}MB</p>
+                                    <p className="text-blue-600">
+                                      • 여러 파일을 제출할 경우 각 파일의 크기가 {assignment.maxFileSize}MB 이하여야 합니다
+                                    </p>
+                                    <p className="text-blue-600">
+                                      • 파일은 ZIP 압축하여 제출할 수 있습니다
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-gray-600">
+                                제출: {assignment.submissions}명 / 총 {assignment.total}명
+                              </div>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigate(`/student/assignment/${assignment.id}`)
+                                }}
+                                className="btn-primary"
+                                disabled={isPastDue}
+                              >
+                                {isPastDue ? '마감됨' : '과제 제출하기'}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </Card>
               </div>
             )}

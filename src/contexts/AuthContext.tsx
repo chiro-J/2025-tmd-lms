@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import type { User } from '../types'
-import { authApi } from '../lib/api'
+import { login as loginApi, logout as logoutApi, getProfile, refreshToken as refreshTokenApi } from '../core/api/auth'
 
 interface AuthContextType {
   user: User | null
@@ -39,8 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (accessToken) {
         try {
-          const response = await authApi.getProfile()
-          const userData = response.data
+          const userData = await getProfile()
           setUser(userData)
           setIsLoggedIn(true)
         } catch (error) {
@@ -61,8 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<User> => {
     try {
-      const response = await authApi.login(email, password)
-      const { accessToken, refreshToken, user: userData } = response.data
+      const { accessToken, refreshToken, user: userData } = await loginApi(email, password)
 
       // JWT 토큰 저장
       localStorage.setItem('accessToken', accessToken)
@@ -76,13 +74,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return userData
     } catch (error: any) {
       console.error('Login failed:', error)
-      throw new Error(error.response?.data?.message || 'Login failed')
+      throw new Error(error.response?.data?.message || error.message || 'Login failed')
     }
   }
 
   const logout = async () => {
     try {
-      await authApi.logout()
+      await logoutApi()
     } catch (error) {
       console.error('Logout API call failed:', error)
     } finally {
@@ -98,8 +96,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUserProfile = async () => {
     try {
-      const response = await authApi.getProfile()
-      const userData = response.data
+      const userData = await getProfile()
       setUser(userData)
       localStorage.setItem('user', JSON.stringify(userData))
     } catch (error) {

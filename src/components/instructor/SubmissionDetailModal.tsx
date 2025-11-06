@@ -30,8 +30,9 @@ export default function SubmissionDetailModal({
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+  const formatDate = (dateString: string | Date | null) => {
+    if (!dateString) return '-'
+    const date = dateString instanceof Date ? dateString : new Date(dateString)
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',
@@ -50,11 +51,11 @@ export default function SubmissionDetailModal({
             정상 제출
           </span>
         )
-      case '지각':
+      case '지연':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
             <Clock className="h-4 w-4 mr-1" />
-            지각 제출
+            지연 제출
           </span>
         )
       case '미제출':

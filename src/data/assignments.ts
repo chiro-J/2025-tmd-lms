@@ -8,7 +8,7 @@ export const mockAssignments: Assignment[] = [
     description: '자기 소개와 본 과정에서의 목표를 300자 이상 작성하세요.',
     dueDate: '2025-11-10',
     maxScore: 100,
-    instructions: ['PDF 또는 MD 파일 제출', '마감 시간 이후 제출은 지각 처리'],
+    instructions: ['PDF 또는 MD 파일 제출', '마감 시간 이후 제출은 지연 처리'],
     allowedFileTypes: ['.pdf', '.md', '.zip'],
     maxFileSize: 50,
     submissions: 8,
@@ -119,12 +119,12 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
       assignmentId: 1,
       studentName: '이철수',
       submittedAt: '2025-11-10T23:59:00',
-      status: '지각',
+      status: '지연',
       score: 75,
       files: [
         { name: 'introduction_이철수.md', size: 12450, url: '/files/1003.md' }
       ],
-      feedback: '지각 제출이며 분량이 다소 부족합니다.'
+      feedback: '지연 제출이며 분량이 다소 부족합니다.'
     },
     {
       id: 1004,
@@ -165,7 +165,7 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
       assignmentId: 1,
       studentName: '윤하은',
       submittedAt: '2025-11-11T02:30:00',
-      status: '지각',
+      status: '지연',
       score: 70,
       files: [
         { name: '소개_윤하은.md', size: 9800, url: '/files/1007.md' }
@@ -211,7 +211,7 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
       assignmentId: 2,
       studentName: '김영희',
       submittedAt: '2025-11-17T01:10:00',
-      status: '지각',
+      status: '지연',
       score: 72,
       files: [
         { name: '과제2_김영희.pdf', size: 123400, url: '/files/2003.pdf' }
@@ -236,7 +236,7 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
       assignmentId: 3,
       studentName: '오지훈',
       submittedAt: '2025-10-25T01:02:00',
-      status: '지각',
+      status: '지연',
       score: 70,
       files: [
         { name: 'project_plan_오지훈.pdf', size: 201500, url: '/files/3002.pdf' }
@@ -302,7 +302,7 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
       assignmentId: 3,
       studentName: '강민호',
       submittedAt: '2025-10-25T02:15:00',
-      status: '지각',
+      status: '지연',
       score: 68,
       files: [
         { name: 'plan_강민호.pdf', size: 189300, url: '/files/3008.pdf' }
@@ -373,12 +373,12 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
       assignmentId: 4,
       studentName: '박민수',
       submittedAt: '2025-12-10T23:45:00',
-      status: '지각',
+      status: '지연',
       score: 75,
       files: [
         { name: 'react_박민수.zip', size: 3120000, url: '/files/4003.zip' }
       ],
-      feedback: '지각 제출이며 일부 기능이 미완성입니다.'
+      feedback: '지연 제출이며 일부 기능이 미완성입니다.'
     },
     {
       id: 4004,
@@ -457,7 +457,7 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
       assignmentId: 6,
       studentName: '박민수',
       submittedAt: '2025-11-30T23:30:00',
-      status: '지각',
+      status: '지연',
       score: 82,
       files: [
         { name: 'portfolio_박민수.zip', size: 2987000, url: '/files/6003.zip' }

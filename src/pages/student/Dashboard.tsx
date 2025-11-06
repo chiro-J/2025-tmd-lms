@@ -6,7 +6,6 @@ import UserInfoCard from '../../components/student/UserInfoCard'
 import StudentCalendar from '../../components/student/StudentCalendar'
 import ActivityHeatmap from '../../components/student/ActivityHeatmap'
 import EnrollCodeModal from '../../components/modals/EnrollCodeModal'
-import { mockUser } from '../../mocks'
 import { getCourses } from '../../core/api/courses'
 import type { Course } from '../../types'
 
@@ -40,7 +39,6 @@ export default function StudentDashboard() {
       )
       setCourses(enrolledCourses)
     } catch (error) {
-      console.error('등록된 강의 목록 로드 실패:', error)
       setCourses([])
     } finally {
       setLoading(false)
@@ -99,7 +97,7 @@ export default function StudentDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-[20%_1fr] gap-4 md:gap-6">
             {/* Left: Profile Card */}
             <div>
-              <UserInfoCard user={mockUser} />
+              {user && <UserInfoCard user={user} />}
             </div>
 
             {/* Right: Top Content Grid */}

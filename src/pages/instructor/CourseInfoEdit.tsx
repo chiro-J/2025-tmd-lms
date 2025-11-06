@@ -157,35 +157,35 @@ export default function CourseInfoEdit() {
         <div className="lg:col-span-2 space-y-6">
           {/* 1) 강좌 제목 */}
           <Card>
-            <div className="p-6">
-              <label className="block text-sm font-semibold text-gray-900 mb-3">강좌 제목 *</label>
-              <input type="text" value={formData.title} onChange={(e) => handleInputChange('title', e.target.value)} placeholder="강좌 제목을 입력하세요" className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" />
+            <div className="p-4">
+              <label className="block text-base font-bold text-gray-900 mb-4">강좌 제목 *</label>
+              <input type="text" value={formData.title} onChange={(e) => handleInputChange('title', e.target.value)} placeholder="강좌 제목을 입력하세요" className="w-full px-5 py-4 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" />
             </div>
           </Card>
 
           {/* 2) 썸네일 추가 */}
           <Card>
-            <div className="p-6">
-              <label className="block text-sm font-semibold text-gray-900 mb-3">썸네일 추가</label>
+            <div className="p-4">
+              <label className="block text-base font-bold text-gray-900 mb-4">썸네일 추가</label>
               {formData.thumbnail ? (
                 <div className="relative group">
                   <img src={formData.thumbnail} alt="Thumbnail preview" className="w-full aspect-video object-cover rounded-xl border border-gray-200" />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
-                    <button onClick={handleRemoveThumbnail} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg flex items-center space-x-2 transition-colors">
-                      <X className="h-4 w-4" /> <span>삭제</span>
+                    <button onClick={handleRemoveThumbnail} className="px-5 py-3 bg-red-500 hover:bg-red-600 text-white text-base font-semibold rounded-lg flex items-center space-x-2 transition-colors">
+                      <X className="h-5 w-5" /> <span>삭제</span>
                     </button>
                   </div>
                   {thumbnailFile && (
-                    <div className="mt-2 text-xs text-gray-500">파일명: {thumbnailFile.name} ({(thumbnailFile.size / 1024).toFixed(1)}KB)</div>
+                    <div className="mt-3 text-sm text-gray-600 font-medium">파일명: {thumbnailFile.name} ({(thumbnailFile.size / 1024).toFixed(1)}KB)</div>
                   )}
                 </div>
               ) : (
                 <label className="block">
                   <input type="file" accept="image/*" onChange={handleThumbnailUpload} className="hidden" />
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-12 text-center hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer group">
-                    <Upload className="h-12 w-12 text-gray-400 group-hover:text-blue-500 mx-auto mb-4 transition-colors" />
-                    <p className="text-sm text-gray-700 mb-2">클릭하거나 파일을 드래그하여 업로드</p>
-                    <div className="text-xs text-gray-500 space-y-1">
+                    <Upload className="h-14 w-14 text-gray-400 group-hover:text-blue-500 mx-auto mb-5 transition-colors" />
+                    <p className="text-base font-medium text-gray-700 mb-3">클릭하거나 파일을 드래그하여 업로드</p>
+                    <div className="text-sm text-gray-500 space-y-1.5">
                       <p>• 최대 2MB까지 업로드 가능</p>
                       <p>• 권장 크기: 697×365px</p>
                       <p>• JPG, PNG, GIF 형식 지원</p>
@@ -198,17 +198,17 @@ export default function CourseInfoEdit() {
 
           {/* 3) 카테고리(대/소) */}
           <Card>
-            <div className="p-6">
-              <label className="block text-sm font-semibold text-gray-900 mb-4">강좌 카테고리</label>
-              <div className="grid grid-cols-2 gap-4">
-                <select value={formData.category1} onChange={(e) => handleInputChange('category1', e.target.value)} className="px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+            <div className="p-4">
+              <label className="block text-base font-bold text-gray-900 mb-5">강좌 카테고리</label>
+              <div className="grid grid-cols-2 gap-5">
+                <select value={formData.category1} onChange={(e) => handleInputChange('category1', e.target.value)} className="px-5 py-4 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
                   <option value="">카테고리 선택</option>
                   <option value="비즈니스">비즈니스</option>
                   <option value="기술">기술</option>
                   <option value="디자인">디자인</option>
                   <option value="마케팅">마케팅</option>
                 </select>
-                <select value={formData.category2} onChange={(e) => handleInputChange('category2', e.target.value)} className="px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                <select value={formData.category2} onChange={(e) => handleInputChange('category2', e.target.value)} className="px-5 py-4 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
                   <option value="">세부 카테고리</option>
                   <option value="웹개발">웹개발</option>
                   <option value="모바일">모바일</option>
@@ -221,16 +221,16 @@ export default function CourseInfoEdit() {
 
           {/* 4) 진행기간 */}
           <Card>
-            <div className="p-6">
-              <label className="block text-sm font-semibold text-gray-900 mb-4">강좌 진행 기간 *</label>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4">
+              <label className="block text-base font-bold text-gray-900 mb-5">강좌 진행 기간 *</label>
+              <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">시작일</label>
-                  <input type="date" value={formData.durationStartDate} onChange={(e) => handleInputChange('durationStartDate', e.target.value)} className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">시작일</label>
+                  <input type="date" value={formData.durationStartDate} onChange={(e) => handleInputChange('durationStartDate', e.target.value)} className="w-full px-5 py-4 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">종료일</label>
-                  <input type="date" value={formData.durationEndDate} onChange={(e) => handleInputChange('durationEndDate', e.target.value)} className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">종료일</label>
+                  <input type="date" value={formData.durationEndDate} onChange={(e) => handleInputChange('durationEndDate', e.target.value)} className="w-full px-5 py-4 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
                 </div>
               </div>
             </div>
@@ -238,16 +238,16 @@ export default function CourseInfoEdit() {
 
           {/* 5) 신청기간 */}
           <Card>
-            <div className="p-6">
-              <label className="block text-sm font-semibold text-gray-900 mb-4">신청 기간</label>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4">
+              <label className="block text-base font-bold text-gray-900 mb-5">신청 기간</label>
+              <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">시작일</label>
-                  <input type="date" value={formData.applicationStartDate} onChange={(e) => handleInputChange('applicationStartDate', e.target.value)} className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">시작일</label>
+                  <input type="date" value={formData.applicationStartDate} onChange={(e) => handleInputChange('applicationStartDate', e.target.value)} className="w-full px-5 py-4 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">종료일</label>
-                  <input type="date" value={formData.applicationEndDate} onChange={(e) => handleInputChange('applicationEndDate', e.target.value)} className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">종료일</label>
+                  <input type="date" value={formData.applicationEndDate} onChange={(e) => handleInputChange('applicationEndDate', e.target.value)} className="w-full px-5 py-4 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" style={{ colorScheme: 'light' }} />
                 </div>
               </div>
             </div>
@@ -255,19 +255,19 @@ export default function CourseInfoEdit() {
 
           {/* 6) 소개영상 */}
           <Card>
-            <div className="p-6">
-              <label className="block text-sm font-semibold text-gray-900 mb-3">소개 영상</label>
+            <div className="p-4">
+              <label className="block text-base font-bold text-gray-900 mb-4">소개 영상</label>
               <div className="relative">
-                <input type="url" value={formData.videoUrl} onChange={(e) => handleInputChange('videoUrl', e.target.value)} placeholder="YouTube 또는 Vimeo 영상 URL을 입력해주세요" className="w-full px-4 py-3 pr-10 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" />
-                <Video className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                <input type="url" value={formData.videoUrl} onChange={(e) => handleInputChange('videoUrl', e.target.value)} placeholder="YouTube 또는 Vimeo 영상 URL을 입력해주세요" className="w-full px-5 py-4 pr-12 text-base border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" />
+                <Video className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
           </Card>
 
           {/* 7) 강좌 소개 */}
           <Card>
-            <div className="p-6">
-              <label className="text-sm font-semibold text-gray-900 mb-4">강좌 소개 *</label>
+            <div className="p-4">
+              <label className="block text-base font-bold text-gray-900 mb-5">강좌 소개 *</label>
               <StableLexicalEditor value={formData.content} onChange={(html) => handleInputChange('content', html)} placeholder="강좌의 목표, 커리큘럼, 대상 수강생 등을 자세히 작성해주세요..." />
             </div>
           </Card>

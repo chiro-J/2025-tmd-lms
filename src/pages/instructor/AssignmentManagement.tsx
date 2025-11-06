@@ -1,28 +1,47 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import CoursePageLayout from "../../components/instructor/CoursePageLayout";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
-import { FileText, PlusCircle, Search, Filter, Eye } from "lucide-react";
+import { FileText, PlusCircle, Search, Filter, Eye, Trash2, Edit } from "lucide-react";
 import ModalBase from "../../components/modals/ModalBase";
-import { mockAssignments as sharedAssignments, mockSubmissionsByAssignment } from "../../data/assignments";
-import type { Assignment } from "../../types/assignment";
-
-// use shared data
+import AssignmentCreateModal from "../../components/instructor/AssignmentCreateModal";
+import { getAssignments, createAssignment, getSubmissionsByAssignment, deleteAssignment, updateAssignment, getAssignment } from "../../core/api/assignments";
+import type { Assignment, AssignmentSubmission } from "../../types/assignment";
 
 export default function AssignmentManagement() {
   const params = useParams();
   const courseId = Number(params.id) || 1;
 
-  const [assignments, setAssignments] = useState<Assignment[]>(sharedAssignments.filter(a => a.courseId === courseId));
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"ALL" | "진행 중" | "마감">("ALL");
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<number | null>(null);
+  const [selectedSubmissions, setSelectedSubmissions] = useState<AssignmentSubmission[]>([]);
   const [isSubmissionsOpen, setIsSubmissionsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newDueDate, setNewDueDate] = useState("");
-  const [newDescription, setNewDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // 과제 목록 로드
+  useEffect(() => {
+    const loadAssignments = async () => {
+      try {
+        setLoading(true);
+        const data = await getAssignments(courseId);
+        setAssignments(data);
+      } catch (error) {
+        // 에러는 사용자에게 알림을 표시하거나 로깅 시스템으로 전송
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAssignments();
+  }, [courseId]);
 
   const filtered = useMemo(() => {
     return assignments.filter((a) => {
@@ -32,37 +51,154 @@ export default function AssignmentManagement() {
     });
   }, [assignments, query, status]);
 
-  const openSubmissions = (assignmentId: number) => {
-    setSelectedAssignmentId(assignmentId);
-    setIsSubmissionsOpen(true);
+  const openSubmissions = async (assignmentId: number) => {
+    try {
+      setSelectedAssignmentId(assignmentId);
+      const submissions = await getSubmissionsByAssignment(courseId, assignmentId);
+      setSelectedSubmissions(submissions);
+      setIsSubmissionsOpen(true);
+    } catch (error) {
+      alert('제출물을 불러오는데 실패했습니다.');
+    }
   };
 
   const closeSubmissions = () => {
     setIsSubmissionsOpen(false);
     setSelectedAssignmentId(null);
+    setSelectedSubmissions([]);
   };
 
-  const openCreate = () => setIsCreateOpen(true);
+  const openCreate = () => {
+    setEditingAssignment(null);
+    setIsCreateOpen(true);
+  };
   const closeCreate = () => setIsCreateOpen(false);
 
-  const handleCreate = () => {
-    const nextId = Math.max(0, ...assignments.map(a => a.id)) + 1;
-    const newItem: Assignment = {
-      id: nextId,
-      courseId,
-      title: newTitle.trim() || "새 과제",
-      dueDate: newDueDate || new Date().toISOString().slice(0, 10),
-      submissions: 0,
-      total: 30,
-      status: "진행 중",
-      description: newDescription.trim(),
-    };
-    setAssignments([newItem, ...assignments]);
-    setNewTitle("");
-    setNewDueDate("");
-    setNewDescription("");
-    setIsCreateOpen(false);
+  const openEdit = async (assignmentId: number) => {
+    try {
+      // 과제 상세 정보 가져오기
+      const assignment = await getAssignment(courseId, assignmentId);
+      setEditingAssignment(assignment);
+      setIsEditOpen(true);
+    } catch (error) {
+      alert('과제 정보를 불러오는데 실패했습니다.');
+    }
   };
+
+  const closeEdit = () => {
+    setIsEditOpen(false);
+    setEditingAssignment(null);
+  };
+
+  const handleCreate = async (data: {
+    title: string;
+    description?: string;
+    dueDate: string;
+    maxScore?: number;
+    instructions?: string[];
+    allowedFileTypes?: string[];
+    maxFileSize?: number;
+    contentBlocks?: any[];
+  }) => {
+    try {
+      setIsCreating(true);
+      await createAssignment(courseId, {
+        title: data.title,
+        description: data.description,
+        dueDate: data.dueDate,
+        maxScore: data.maxScore,
+        instructions: data.instructions,
+        allowedFileTypes: data.allowedFileTypes,
+        maxFileSize: data.maxFileSize,
+        contentBlocks: data.contentBlocks,
+      });
+
+      // 목록 새로고침
+      const assignmentsData = await getAssignments(courseId);
+      setAssignments(assignmentsData);
+      closeCreate();
+    } catch (error) {
+      alert('과제 생성에 실패했습니다.');
+      throw error;
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleUpdate = async (data: {
+    title: string;
+    description?: string;
+    dueDate: string;
+    maxScore?: number;
+    instructions?: string[];
+    allowedFileTypes?: string[];
+    maxFileSize?: number;
+    contentBlocks?: any[];
+  }) => {
+    if (!editingAssignment) return;
+
+    try {
+      setIsUpdating(true);
+      const updated = await updateAssignment(courseId, editingAssignment.id, {
+        title: data.title,
+        description: data.description,
+        dueDate: data.dueDate,
+        maxScore: data.maxScore,
+        instructions: data.instructions,
+        allowedFileTypes: data.allowedFileTypes,
+        maxFileSize: data.maxFileSize,
+        contentBlocks: data.contentBlocks,
+      });
+
+      // 즉시 목록에 반영 (optimistic update)
+      setAssignments(prev => prev.map(a =>
+        a.id === editingAssignment.id
+          ? { ...a, ...updated, submissions: a.submissions, total: a.total, status: a.status }
+          : a
+      ));
+
+      // 목록 새로고침 (DB에서 최신 데이터 가져오기)
+      const assignmentsData = await getAssignments(courseId);
+      setAssignments(assignmentsData);
+
+      closeEdit();
+      alert('과제가 성공적으로 수정되었습니다.');
+    } catch (error) {
+      alert('과제 수정에 실패했습니다.');
+      throw error;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDelete = async (assignmentId: number) => {
+    if (!confirm('정말 이 과제를 삭제하시겠습니까?\n삭제된 과제의 제출물도 함께 삭제됩니다.')) {
+      return;
+    }
+
+    try {
+      setDeletingId(assignmentId);
+      await deleteAssignment(courseId, assignmentId);
+
+      // 목록 새로고침
+      const assignmentsData = await getAssignments(courseId);
+      setAssignments(assignmentsData);
+    } catch (error) {
+      alert('과제 삭제에 실패했습니다.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <CoursePageLayout currentPageTitle="과제 관리">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">로딩 중...</div>
+        </div>
+      </CoursePageLayout>
+    );
+  }
 
   return (
     <CoursePageLayout currentPageTitle="과제 관리">
@@ -104,15 +240,15 @@ export default function AssignmentManagement() {
 
         <Card className="p-0 overflow-hidden">
           <div className="grid grid-cols-12 px-4 py-3 text-xs text-gray-500 bg-gray-50">
-            <div className="col-span-6">제목</div>
+            <div className="col-span-5">제목</div>
             <div className="col-span-2">마감일</div>
             <div className="col-span-2">제출/총원</div>
-            <div className="col-span-2 text-right">동작</div>
+            <div className="col-span-3 text-right">동작</div>
           </div>
           <ul className="divide-y">
             {filtered.map((a) => (
               <li key={a.id} className="grid grid-cols-12 items-center px-4 py-3 text-sm">
-                <div className="col-span-6 flex items-center gap-2">
+                <div className="col-span-5 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-gray-500" aria-hidden />
                   <div>
                     <div className="text-gray-900">{a.title}</div>
@@ -121,10 +257,34 @@ export default function AssignmentManagement() {
                 </div>
                 <div className="col-span-2 text-gray-700">{a.dueDate}</div>
                 <div className="col-span-2 text-gray-700">{a.submissions} / {a.total}</div>
-                <div className="col-span-2 flex justify-end">
-                  <Button size="sm" variant="secondary" className="flex items-center gap-1" onClick={() => openSubmissions(a.id)}>
+                <div className="col-span-3 flex justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                    onClick={() => openSubmissions(a.id)}
+                  >
                     <Eye className="h-4 w-4" aria-hidden />
                     제출 확인
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={() => openEdit(a.id)}
+                  >
+                    <Edit className="h-4 w-4" aria-hidden />
+                    수정
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleDelete(a.id)}
+                    disabled={deletingId === a.id}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                    {deletingId === a.id ? '삭제 중...' : '삭제'}
                   </Button>
                 </div>
               </li>
@@ -151,17 +311,23 @@ export default function AssignmentManagement() {
                     <div className="col-span-1 text-right">점수</div>
                   </div>
                   <ul className="divide-y max-h-72 overflow-auto">
-                    {(mockSubmissionsByAssignment[selectedAssignmentId] || []).map(s => (
+                    {selectedSubmissions.map(s => (
                       <li key={s.id} className="grid grid-cols-12 px-4 py-2 text-sm items-center">
-                        <div className="col-span-5 text-gray-900">{s.studentName}</div>
-                        <div className="col-span-4 text-gray-700">{s.submittedAt.replace('T', ' ')}</div>
+                        <div className="col-span-5 text-gray-900">{s.studentName || '이름 없음'}</div>
+                        <div className="col-span-4 text-gray-700">
+                          {s.submittedAt ? new Date(s.submittedAt).toLocaleString('ko-KR') : '-'}
+                        </div>
                         <div className="col-span-2">
-                          <span className={`px-2 py-1 rounded text-xs ${s.status === '제출' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{s.status}</span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            s.status === '제출' ? 'bg-green-100 text-green-700' :
+                            s.status === '지연' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>{s.status}</span>
                         </div>
                         <div className="col-span-1 text-right text-gray-900">{s.score ?? '-'}</div>
                       </li>
                     ))}
-                    {(mockSubmissionsByAssignment[selectedAssignmentId] || []).length === 0 && (
+                    {selectedSubmissions.length === 0 && (
                       <li className="px-4 py-8 text-center text-sm text-gray-500">제출이 없습니다.</li>
                     )}
                   </ul>
@@ -177,42 +343,35 @@ export default function AssignmentManagement() {
         </ModalBase>
 
         {/* 과제 생성 모달 */}
-        <ModalBase open={isCreateOpen} onClose={closeCreate} title="새 과제 만들기">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">제목</label>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="과제 제목을 입력하세요"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">마감일</label>
-              <input
-                type="date"
-                value={newDueDate}
-                onChange={(e) => setNewDueDate(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">설명</label>
-              <textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm h-28"
-                placeholder="과제 설명을 입력하세요"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={closeCreate}>취소</Button>
-              <Button variant="primary" onClick={handleCreate}>생성</Button>
-            </div>
-          </div>
-        </ModalBase>
+        <AssignmentCreateModal
+          isOpen={isCreateOpen}
+          onClose={closeCreate}
+          onCreate={handleCreate}
+          isCreating={isCreating}
+        />
+
+        {/* 과제 수정 모달 */}
+        {editingAssignment && (
+          <AssignmentCreateModal
+            isOpen={isEditOpen}
+            onClose={closeEdit}
+            onCreate={handleUpdate}
+            isCreating={isUpdating}
+            isEditMode={true}
+            initialData={{
+              title: editingAssignment.title,
+              description: editingAssignment.description,
+              dueDate: editingAssignment.dueDate.includes('T')
+                ? editingAssignment.dueDate.split('T')[0]
+                : editingAssignment.dueDate,
+              maxScore: editingAssignment.maxScore,
+              instructions: editingAssignment.instructions,
+              allowedFileTypes: editingAssignment.allowedFileTypes,
+              maxFileSize: editingAssignment.maxFileSize,
+              contentBlocks: editingAssignment.contentBlocks,
+            }}
+          />
+        )}
       </div>
     </CoursePageLayout>
   );

@@ -44,7 +44,8 @@ lerna-debug.log*
 public/
 
 # Documentation
-.claude/
+docs/
+*.md
 !.gitignore
 
 # Ignore everything in root except essential config files and apps/src folders
@@ -74,3 +75,4 @@ public/
 !.gitignore
 !apps/
 !src/
+node_modules

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Users, UserPlus, CheckCircle, BookOpen, ArrowRight, X, Settings } from 'lucide-react'
 import Card from '../../components/ui/Card'
@@ -8,244 +8,258 @@ import SubAdminManagement from '../../components/admin/SubAdminManagement'
 import InstructorApproval from '../../components/admin/InstructorApproval'
 import NoticeManagement from '../../components/admin/NoticeManagement'
 import SystemSettings from '../../components/admin/SystemSettings'
+import * as adminApi from '../../core/api/admin'
+import type { SubAdmin, Instructor, Student, Course, Notice, Inquiry } from '../../core/api/admin'
 
 export default function MasterDashboard() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'overview' | 'students' | 'courses' | 'subAdmins' | 'instructors' | 'platform' | 'settings'>('overview');
+  
+  // 데이터 상태
+  const [students, setStudents] = useState<Student[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [subAdmins, setSubAdmins] = useState<SubAdmin[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  
+  // 로딩 상태
+  const [loading, setLoading] = useState<Record<string, boolean>>({
+    students: false,
+    courses: false,
+    subAdmins: false,
+    instructors: false,
+    inquiries: false,
+  });
 
-  // 수강생 데이터
-  const students = [
-    {
-      id: 1,
-      name: "김수강",
-      email: "student1@example.com",
-      phone: "010-1234-5678",
-      status: 'active' as const,
-      enrolledDate: "2025-01-10",
-      lastLogin: "2025-01-15 14:30",
-      enrolledCourses: ["React 기초", "JavaScript 고급"]
-    },
-    {
-      id: 2,
-      name: "이학습",
-      email: "student2@example.com",
-      phone: "010-2345-6789",
-      status: 'active' as const,
-      enrolledDate: "2025-01-12",
-      lastLogin: "2025-01-15 09:15",
-      enrolledCourses: ["Vue.js 완전정복", "Node.js 실습"]
-    },
-    {
-      id: 3,
-      name: "박공부",
-      email: "student3@example.com",
-      phone: "010-3456-7890",
-      status: 'inactive' as const,
-      enrolledDate: "2025-01-08",
-      lastLogin: "2025-01-10 16:45",
-      enrolledCourses: ["Python 기초"]
+  // 데이터 로드 함수들
+  const loadStudents = async () => {
+    setLoading(prev => ({ ...prev, students: true }));
+    try {
+      const data = await adminApi.getStudents();
+      // Student 타입에 enrolledCourses 필드가 없으므로 추가 필요
+      const studentsWithCourses = data.map(student => ({
+        ...student,
+        enrolledCourses: [] as string[], // 실제로는 별도 API에서 가져와야 함
+      }));
+      setStudents(studentsWithCourses);
+    } catch (error: any) {
+      console.error('수강생 목록 로드 실패:', error);
+      if (error.response?.status === 404) {
+        console.error('API 엔드포인트를 찾을 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+      }
+      setStudents([]); // 에러 시 빈 배열로 설정
+    } finally {
+      setLoading(prev => ({ ...prev, students: false }));
     }
-  ];
+  };
 
-  // 강좌 데이터
-  const courses = [
-    {
-      id: 1,
-      title: "React 완전정복",
-      instructor: "김강사",
-      status: 'active' as const,
-      enrolledStudents: 45,
-      createdAt: "2025-01-01",
-      description: "React의 모든 것을 배우는 완전한 강의입니다. 기초부터 고급까지 단계별로 학습할 수 있습니다."
-    },
-    {
-      id: 2,
-      title: "JavaScript ES6+",
-      instructor: "이강사",
-      status: 'active' as const,
-      enrolledStudents: 32,
-      createdAt: "2025-01-05",
-      description: "최신 JavaScript 문법과 기능들을 배우는 강의입니다. 모던 웹 개발에 필수적인 내용을 다룹니다."
-    },
-    {
-      id: 3,
-      title: "Vue.js 3 마스터",
-      instructor: "박강사",
-      status: 'pending' as const,
-      enrolledStudents: 18,
-      createdAt: "2025-01-10",
-      description: "Vue.js 3의 새로운 Composition API와 최신 기능들을 배우는 강의입니다."
+  const loadCourses = async () => {
+    setLoading(prev => ({ ...prev, courses: true }));
+    try {
+      const data = await adminApi.getCoursesForAdmin();
+      setCourses(data);
+    } catch (error: any) {
+      console.error('강좌 목록 로드 실패:', error);
+      if (error.response?.status === 404) {
+        console.error('API 엔드포인트를 찾을 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+      }
+      setCourses([]); // 에러 시 빈 배열로 설정
+    } finally {
+      setLoading(prev => ({ ...prev, courses: false }));
     }
-  ];
+  };
 
-  // 서브 관리자 데이터
-  const subAdmins = [
-    {
-      id: 1,
-      name: "김콘텐츠",
-      email: "content@example.com",
-      role: "Content Manager",
-      status: "active" as const,
-      permissions: {
-        userManagement: false,
-        contentManagement: true,
-        systemSettings: false,
-        instructorApproval: false
-      },
-      createdAt: "2025-01-10",
-      lastLogin: "2025-01-15 14:30"
-    },
-    {
-      id: 2,
-      name: "이사용자",
-      email: "user@example.com",
-      role: "User Manager",
-      status: "active" as const,
-      permissions: {
-        userManagement: true,
-        contentManagement: false,
-        systemSettings: false,
-        instructorApproval: true
-      },
-      createdAt: "2025-01-08",
-      lastLogin: "2025-01-15 09:15"
-    },
-    {
-      id: 3,
-      name: "박시스템",
-      email: "system@example.com",
-      role: "System Manager",
-      status: "pending" as const,
-      permissions: {
-        userManagement: true,
-        contentManagement: true,
-        systemSettings: true,
-        instructorApproval: true
-      },
-      createdAt: "2025-01-12",
-      lastLogin: "2025-01-14 16:45"
+  const loadSubAdmins = async () => {
+    setLoading(prev => ({ ...prev, subAdmins: true }));
+    try {
+      const data = await adminApi.getSubAdmins();
+      // SubAdmin 타입 변환 (permissions 객체로 변환)
+      const formattedData = data.map(admin => ({
+        ...admin,
+        permissions: {
+          userManagement: admin.userManagement ?? admin.permissions?.userManagement ?? false,
+          contentManagement: admin.contentManagement ?? admin.permissions?.contentManagement ?? false,
+          systemSettings: admin.systemSettings ?? admin.permissions?.systemSettings ?? false,
+          instructorApproval: admin.instructorApproval ?? admin.permissions?.instructorApproval ?? false,
+        },
+      }));
+      setSubAdmins(formattedData);
+    } catch (error: any) {
+      console.error('서브 관리자 목록 로드 실패:', error);
+      if (error.response?.status === 404) {
+        console.error('API 엔드포인트를 찾을 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+      }
+      setSubAdmins([]); // 에러 시 빈 배열로 설정
+    } finally {
+      setLoading(prev => ({ ...prev, subAdmins: false }));
     }
-  ];
+  };
 
-  // 강사 데이터
-  const instructors = [
-    {
-      id: 1,
-      name: "김강사",
-      email: "kim@example.com",
-      phone: "010-1234-5678",
-      specialization: "React, JavaScript",
-      experience: "5년",
-      education: "컴퓨터공학 학사",
-      appliedDate: "2025-01-15",
-      status: "pending" as const,
-      documents: ["이력서.pdf", "학위증명서.pdf", "포트폴리오.pdf"],
-      portfolio: "https://kim-portfolio.com",
-      motivation: "학생들에게 실무 경험을 바탕으로 한 실용적인 강의를 제공하고 싶습니다.",
-      previousExperience: "ABC 회사에서 3년간 프론트엔드 개발자로 근무"
-    },
-    {
-      id: 2,
-      name: "이강사",
-      email: "lee@example.com",
-      phone: "010-2345-6789",
-      specialization: "Python, Django",
-      experience: "7년",
-      education: "소프트웨어공학 석사",
-      appliedDate: "2025-01-14",
-      status: "pending" as const,
-      documents: ["이력서.pdf", "학위증명서.pdf"],
-      portfolio: "https://lee-portfolio.com",
-      motivation: "백엔드 개발의 핵심 개념을 체계적으로 전달하고 싶습니다.",
-      previousExperience: "XYZ 스타트업에서 백엔드 팀장으로 4년간 근무"
-    },
-    {
-      id: 3,
-      name: "박강사",
-      email: "park@example.com",
-      phone: "010-3456-7890",
-      specialization: "Java, Spring",
-      experience: "8년",
-      education: "컴퓨터공학 박사",
-      appliedDate: "2025-01-13",
-      status: "approved" as const,
-      documents: ["이력서.pdf", "학위증명서.pdf", "자격증.pdf"],
-      portfolio: "https://park-portfolio.com",
-      motivation: "체계적인 교육과정을 통해 학생들이 실무에 바로 적용할 수 있는 지식을 전달하고 싶습니다.",
-      previousExperience: "DEF 대기업에서 시니어 개발자로 6년간 근무"
+  const loadInstructors = async () => {
+    setLoading(prev => ({ ...prev, instructors: true }));
+    try {
+      const data = await adminApi.getInstructors();
+      setInstructors(data);
+    } catch (error: any) {
+      console.error('강사 목록 로드 실패:', error);
+      if (error.response?.status === 404) {
+        console.error('API 엔드포인트를 찾을 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+      }
+      setInstructors([]); // 에러 시 빈 배열로 설정
+    } finally {
+      setLoading(prev => ({ ...prev, instructors: false }));
     }
-  ];
+  };
 
-  // 문의사항 데이터
-  const inquiries = [
-    {
-      id: 1,
-      title: "강의 수강 관련 문의",
-      user: "김학생",
-      email: "student@example.com",
-      content: "강의를 수강하려고 하는데 접근이 안됩니다. 도움 부탁드립니다.",
-      createdDate: "2025-01-15",
-      status: "pending" as const
-    },
-    {
-      id: 2,
-      title: "결제 시스템 오류",
-      user: "이수강생",
-      email: "student2@example.com",
-      content: "결제 과정에서 오류가 발생했습니다. 환불 처리가 가능한지 문의드립니다.",
-      createdDate: "2025-01-14",
-      status: "completed" as const
-    },
-    {
-      id: 3,
-      title: "강의 자료 다운로드 문제",
-      user: "박공부",
-      email: "student3@example.com",
-      content: "강의 자료를 다운로드할 수 없습니다. 파일이 손상되었을 수 있습니다.",
-      createdDate: "2025-01-13",
-      status: "pending" as const
+  const loadInquiries = async () => {
+    setLoading(prev => ({ ...prev, inquiries: true }));
+    try {
+      const data = await adminApi.getInquiries();
+      // Inquiry 타입 변환 (user 필드로 변환)
+      const formattedData = data.map(inquiry => ({
+        ...inquiry,
+        user: inquiry.userName || inquiry.user,
+      }));
+      setInquiries(formattedData);
+    } catch (error: any) {
+      console.error('문의사항 목록 로드 실패:', error);
+      if (error.response?.status === 404) {
+        console.error('API 엔드포인트를 찾을 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+      }
+      setInquiries([]); // 에러 시 빈 배열로 설정
+    } finally {
+      setLoading(prev => ({ ...prev, inquiries: false }));
     }
-  ];
-
-  const handleStudentWithdraw = (student: any) => {
-    // 실제 구현에서는 API 호출
   };
 
-  const handleCourseEdit = (course: any) => {
-    // 강좌 편집 페이지로 이동
-    navigate(`/instructor/course/${course.id}/introduction`);
+  // 초기 데이터 로드
+  useEffect(() => {
+    loadStudents();
+    loadCourses();
+    loadSubAdmins();
+    loadInstructors();
+    loadInquiries();
+  }, []);
+
+  // 섹션 변경 시 해당 데이터 다시 로드
+  useEffect(() => {
+    if (activeSection === 'students') {
+      loadStudents();
+    } else if (activeSection === 'courses') {
+      loadCourses();
+    } else if (activeSection === 'subAdmins') {
+      loadSubAdmins();
+    } else if (activeSection === 'instructors') {
+      loadInstructors();
+    } else if (activeSection === 'platform') {
+      loadInquiries();
+    }
+  }, [activeSection]);
+
+  // 핸들러 함수들
+  const handleStudentWithdraw = async (student: Student) => {
+    try {
+      await adminApi.deleteStudent(student.id);
+      await loadStudents();
+      alert('수강생이 삭제되었습니다.');
+    } catch (error) {
+      console.error('수강생 삭제 실패:', error);
+      alert('수강생 삭제에 실패했습니다.');
+    }
   };
 
-  const handleCourseDelete = (courseId: number) => {
-    // 실제 구현에서는 API 호출
+  const handleCourseEdit = (course: Course) => {
+    navigate(`/instructor/course/${course.id}/home`);
   };
 
-  const handleCourseApprove = (courseId: number) => {
-    // 실제 구현에서는 API 호출
+  const handleCourseDelete = async (courseId: number) => {
+    if (!confirm('정말 이 강좌를 삭제하시겠습니까?')) return;
+    try {
+      await adminApi.deleteCourse(courseId);
+      await loadCourses();
+      alert('강좌가 삭제되었습니다.');
+    } catch (error) {
+      console.error('강좌 삭제 실패:', error);
+      alert('강좌 삭제에 실패했습니다.');
+    }
   };
 
-  const handleCourseReject = (courseId: number) => {
-    // 실제 구현에서는 API 호출
+  const handleCourseApprove = async (courseId: number) => {
+    try {
+      await adminApi.approveCourse(courseId);
+      await loadCourses();
+      alert('강좌가 승인되었습니다.');
+    } catch (error) {
+      console.error('강좌 승인 실패:', error);
+      alert('강좌 승인에 실패했습니다.');
+    }
   };
 
-  const handleCreateSubAdmin = (data: any) => {
-    // 실제 구현에서는 API 호출
+  const handleCourseReject = async (courseId: number) => {
+    try {
+      await adminApi.rejectCourse(courseId);
+      await loadCourses();
+      alert('강좌가 거부되었습니다.');
+    } catch (error) {
+      console.error('강좌 거부 실패:', error);
+      alert('강좌 거부에 실패했습니다.');
+    }
   };
 
-  const handleEditSubAdmin = (id: number, data: any) => {
-    // 실제 구현에서는 API 호출
+  const handleCreateSubAdmin = async (data: adminApi.CreateSubAdminData) => {
+    try {
+      await adminApi.createSubAdmin(data);
+      await loadSubAdmins();
+      alert('서브 관리자가 생성되었습니다.');
+    } catch (error) {
+      console.error('서브 관리자 생성 실패:', error);
+      alert('서브 관리자 생성에 실패했습니다.');
+    }
   };
 
-  const handleDeleteSubAdmin = (id: number) => {
-    // 실제 구현에서는 API 호출
+  const handleEditSubAdmin = async (id: number, data: Partial<SubAdmin>) => {
+    try {
+      await adminApi.updateSubAdmin(id, data);
+      await loadSubAdmins();
+      alert('서브 관리자 정보가 수정되었습니다.');
+    } catch (error) {
+      console.error('서브 관리자 수정 실패:', error);
+      alert('서브 관리자 수정에 실패했습니다.');
+    }
   };
 
-  const handleApproveInstructor = (id: number) => {
-    // 실제 구현에서는 API 호출
+  const handleDeleteSubAdmin = async (id: number) => {
+    if (!confirm('정말 이 서브 관리자를 삭제하시겠습니까?')) return;
+    try {
+      await adminApi.deleteSubAdmin(id);
+      await loadSubAdmins();
+      alert('서브 관리자가 삭제되었습니다.');
+    } catch (error) {
+      console.error('서브 관리자 삭제 실패:', error);
+      alert('서브 관리자 삭제에 실패했습니다.');
+    }
   };
 
-  const handleRejectInstructor = (id: number) => {
-    // 실제 구현에서는 API 호출
+  const handleApproveInstructor = async (id: number) => {
+    try {
+      await adminApi.approveInstructor(id);
+      await loadInstructors();
+      alert('강사가 승인되었습니다.');
+    } catch (error) {
+      console.error('강사 승인 실패:', error);
+      alert('강사 승인에 실패했습니다.');
+    }
+  };
+
+  const handleRejectInstructor = async (id: number) => {
+    try {
+      await adminApi.rejectInstructor(id);
+      await loadInstructors();
+      alert('강사가 거부되었습니다.');
+    } catch (error) {
+      console.error('강사 거부 실패:', error);
+      alert('강사 거부에 실패했습니다.');
+    }
   };
 
   return (
@@ -258,28 +272,30 @@ export default function MasterDashboard() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">마스터 관리자 대시보드</h1>
               <p className="text-gray-600">전체 시스템 관리 및 모니터링</p>
             </div>
-            <button
-              onClick={() => setActiveSection('platform')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                activeSection === 'platform'
-                  ? 'bg-orange-100 text-orange-700 border border-orange-200'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              플랫폼 관리
-            </button>
-            <button
-              onClick={() => setActiveSection('settings')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                activeSection === 'settings'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              시스템 설정
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveSection('platform')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  activeSection === 'platform'
+                    ? 'bg-orange-500 text-white border border-orange-600 shadow-md'
+                    : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                플랫폼 관리
+              </button>
+              <button
+                onClick={() => setActiveSection('settings')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  activeSection === 'settings'
+                    ? 'bg-blue-500 text-white border border-blue-600 shadow-md'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                시스템 설정
+              </button>
+            </div>
           </div>
         </div>
 
@@ -448,11 +464,17 @@ export default function MasterDashboard() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <StudentManagement
-                students={students}
-                onStudentWithdraw={handleStudentWithdraw}
-                showActions={true}
-              />
+              {loading.students ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-gray-500">로딩 중...</div>
+                </div>
+              ) : (
+                <StudentManagement
+                  students={students.map(s => ({ ...s, enrolledCourses: s.enrolledCourses || [] }))}
+                  onStudentWithdraw={handleStudentWithdraw}
+                  showActions={true}
+                />
+              )}
             </Card>
           </div>
         )}
@@ -470,14 +492,20 @@ export default function MasterDashboard() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <CourseManagement
-                courses={courses}
-                onCourseEdit={handleCourseEdit}
-                onCourseDelete={handleCourseDelete}
-                onCourseApprove={handleCourseApprove}
-                onCourseReject={handleCourseReject}
-                showActions={true}
-              />
+              {loading.courses ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-gray-500">로딩 중...</div>
+                </div>
+              ) : (
+                <CourseManagement
+                  courses={courses}
+                  onCourseEdit={handleCourseEdit}
+                  onCourseDelete={handleCourseDelete}
+                  onCourseApprove={handleCourseApprove}
+                  onCourseReject={handleCourseReject}
+                  showActions={true}
+                />
+              )}
             </Card>
           </div>
         )}
@@ -495,13 +523,19 @@ export default function MasterDashboard() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <SubAdminManagement
-                subAdmins={subAdmins}
-                onCreateSubAdmin={handleCreateSubAdmin}
-                onEditSubAdmin={handleEditSubAdmin}
-                onDeleteSubAdmin={handleDeleteSubAdmin}
-                showActions={true}
-              />
+              {loading.subAdmins ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-gray-500">로딩 중...</div>
+                </div>
+              ) : (
+                <SubAdminManagement
+                  subAdmins={subAdmins}
+                  onCreateSubAdmin={handleCreateSubAdmin}
+                  onEditSubAdmin={handleEditSubAdmin}
+                  onDeleteSubAdmin={handleDeleteSubAdmin}
+                  showActions={true}
+                />
+              )}
             </Card>
           </div>
         )}
@@ -519,12 +553,18 @@ export default function MasterDashboard() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <InstructorApproval
-                instructors={instructors}
-                onApproveInstructor={handleApproveInstructor}
-                onRejectInstructor={handleRejectInstructor}
-                showActions={true}
-              />
+              {loading.instructors ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-gray-500">로딩 중...</div>
+                </div>
+              ) : (
+                <InstructorApproval
+                  instructors={instructors}
+                  onApproveInstructor={handleApproveInstructor}
+                  onRejectInstructor={handleRejectInstructor}
+                  showActions={true}
+                />
+              )}
             </Card>
           </div>
         )}
@@ -542,10 +582,16 @@ export default function MasterDashboard() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <NoticeManagement
-                inquiries={inquiries}
-                showActions={true}
-              />
+              {loading.inquiries ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-gray-500">로딩 중...</div>
+                </div>
+              ) : (
+                <NoticeManagement
+                  inquiries={inquiries}
+                  showActions={true}
+                />
+              )}
             </Card>
           </div>
         )}

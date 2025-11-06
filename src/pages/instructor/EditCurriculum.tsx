@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { ChevronDown, ChevronRight, FileText, Edit, Save, Upload, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileText, Edit, Save, Upload, X, Plus, GripVertical, Trash2, MoveUp, MoveDown, Image, Video } from 'lucide-react'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 import TinyEditor from '../../components/editor/TinyEditor'
 import MarkdownEditor from '../../components/editor/MarkdownEditor'
@@ -11,6 +11,14 @@ import { getCurriculum, createCurriculum, updateCurriculum, deleteCurriculum, cr
 import { transformApiToEditFormat } from '../../utils/curriculumTransform'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+
+type ContentBlockType = 'text' | 'markdown' | 'pdf' | 'video' | 'image'
+
+interface ContentBlock {
+  id: string
+  type: ContentBlockType
+  content: string
+}
 
 interface Lesson {
   id: string
@@ -38,15 +46,12 @@ export default function EditCurriculum() {
   const [expandedCurriculums, setExpandedCurriculums] = useState<string[]>([])
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [numPages, setNumPages] = useState<number>(0)
-  const [pageNumber, setPageNumber] = useState<number>(1)
-  const [pageInput, setPageInput] = useState<string>('1')
-  const [pdfContainerWidth, setPdfContainerWidth] = useState<number>(0)
-  const pdfContainerRef = useRef<HTMLDivElement>(null)
   const [content, setContent] = useState<string>('')
   const [editorType, setEditorType] = useState<'text' | 'markdown'>('text')
   const [savedEditorType, setSavedEditorType] = useState<'text' | 'markdown'>('text')
+  const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([])
+  const [pdfPages, setPdfPages] = useState<Record<string, number>>({})
+  const [pdfPageNumbers, setPdfPageNumbers] = useState<Record<string, number>>({})
   const [showAddCurriculumForm, setShowAddCurriculumForm] = useState(false)
   const [newCurriculumTitle, setNewCurriculumTitle] = useState('')
   const [editingCurriculumId, setEditingCurriculumId] = useState<string | null>(null)
@@ -72,53 +77,80 @@ export default function EditCurriculum() {
     setIsEditMode(false)
   }
 
-  useEffect(() => {
-    const updateWidth = () => {
-      if (pdfContainerRef.current) {
-        const width = pdfContainerRef.current.clientWidth - 32 // padding 제거
-        setPdfContainerWidth(width)
-      }
+  // 블록 추가
+  const addContentBlock = (type: ContentBlockType) => {
+    const newBlock: ContentBlock = {
+      id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      content: '',
     }
-
-    updateWidth()
-    window.addEventListener('resize', updateWidth)
-    return () => window.removeEventListener('resize', updateWidth)
-  }, [selectedLesson]) // selectedLesson이 변경될 때마다 다시 계산
-
-  const handlePdfUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file && file.type === 'application/pdf') {
-      const url = URL.createObjectURL(file)
-      setPdfUrl(url)
-      setPageNumber(1)
-      setPageInput('1')
-    }
+    setContentBlocks(prev => [...prev, newBlock])
   }
 
-  const handleRemovePdf = () => {
-    if (pdfUrl) {
-      URL.revokeObjectURL(pdfUrl)
-    }
-    setPdfUrl(null)
-    setPageNumber(1)
-    setPageInput('1')
+  // 블록 삭제
+  const removeContentBlock = (blockId: string) => {
+    setContentBlocks(prev => prev.filter(b => b.id !== blockId))
   }
 
-  const goToPrevPage = () => {
-    if (pageNumber > 1) {
-      const newPage = pageNumber - 1
-      setPageNumber(newPage)
-      setPageInput(newPage.toString())
-    }
+  // 블록 내용 업데이트
+  const updateBlockContent = (blockId: string, content: string) => {
+    setContentBlocks(prev => prev.map(b => b.id === blockId ? { ...b, content } : b))
   }
 
-  const goToNextPage = () => {
-    if (pageNumber < numPages) {
-      const newPage = pageNumber + 1
-      setPageNumber(newPage)
-      setPageInput(newPage.toString())
-    }
+  // 블록 순서 변경
+  const moveBlock = (blockId: string, direction: 'up' | 'down') => {
+    setContentBlocks(prev => {
+      const blocks = [...prev]
+      const index = blocks.findIndex(b => b.id === blockId)
+      if (index === -1) return prev
+
+      const newIndex = direction === 'up' ? index - 1 : index + 1
+      if (newIndex < 0 || newIndex >= blocks.length) return prev
+
+      [blocks[index], blocks[newIndex]] = [blocks[newIndex], blocks[index]]
+      return blocks
+    })
   }
+
+  // PDF 파일 업로드 (블록용)
+  const handlePdfUploadForBlock = (blockId: string, file: File) => {
+    if (!file.type.includes('pdf')) {
+      alert('PDF 파일만 업로드 가능합니다.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      updateBlockContent(blockId, reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // 이미지 파일 업로드 (블록용)
+  const handleImageUploadForBlock = (blockId: string, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      updateBlockContent(blockId, reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // PDF 페이지 수 로드 (블록용)
+  const onDocumentLoadSuccessForBlock = (blockId: string, { numPages }: { numPages: number }) => {
+    setPdfPages(prev => ({ ...prev, [blockId]: numPages }))
+    setPdfPageNumbers(prev => ({ ...prev, [blockId]: 1 }))
+  }
+
+  const getYouTubeVideoId = (url: string) => {
+    if (!url) return null
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
 
   // DB에서 커리큘럼 데이터 로드
   useEffect(() => {
@@ -377,9 +409,9 @@ export default function EditCurriculum() {
     return (
     <div
       key={lesson.id}
-        className={`group p-3 cursor-pointer hover:bg-white transition-colors border-b border-gray-200 last:border-b-0 ${
+        className={`group p-3 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0 ${
         lesson.isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-        } ${isEditing ? 'bg-yellow-50' : ''} ${!isEditMode ? 'hover:bg-blue-50' : ''}`}
+        } ${isEditing ? 'bg-yellow-50' : ''} ${!isEditMode ? 'hover:bg-gray-100' : ''}`}
         onClick={() => !isEditing && setSelectedLesson(lesson)}
         onDoubleClick={(e) => {
           if (!isEditing) {
@@ -395,8 +427,33 @@ export default function EditCurriculum() {
         title={!isEditMode && !isEditing ? '더블클릭하여 편집 모드 활성화 및 제목 수정' : isEditMode && !isEditing ? '더블클릭하여 제목 수정' : ''}
     >
       <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 ml-4 flex-1 min-w-0">
-            <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" aria-hidden="true" />
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            {/* 편집 버튼을 좌측으로 이동 */}
+            {isEditMode && !isEditing && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleStartEditLesson(lesson.id, lesson.title)
+                }}
+                className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-1 rounded flex-shrink-0"
+                title="제목 편집"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            )}
+            {!isEditMode && !isEditing && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsEditMode(true)
+                  handleStartEditLesson(lesson.id, lesson.title)
+                }}
+                className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                title="제목 편집"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            )}
             {isEditing ? (
               <div className="flex items-center space-x-2 flex-1 min-w-0">
                 <input
@@ -404,7 +461,7 @@ export default function EditCurriculum() {
                   value={editingLessonTitle}
                   onChange={(e) => setEditingLessonTitle(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-2 py-1 border border-blue-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleSaveLessonTitle(lesson.id)
@@ -419,7 +476,7 @@ export default function EditCurriculum() {
                     e.stopPropagation()
                     handleSaveLessonTitle(lesson.id)
                   }}
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50 p-1 rounded"
                   title="저장"
                 >
                   <Save className="h-4 w-4" />
@@ -437,7 +494,7 @@ export default function EditCurriculum() {
               </div>
             ) : (
               <>
-          <span className="text-sm text-gray-700">{lesson.title}</span>
+          <span className="text-sm font-medium text-gray-900">{lesson.title}</span>
           {lesson.isNew && (
             <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">NEW</span>
                 )}
@@ -449,34 +506,9 @@ export default function EditCurriculum() {
             <span className="text-xs text-gray-500">수강일: {lesson.studyDate}</span>
           )}
           {lesson.completed && lesson.total && lesson.completed === lesson.total && !isEditMode && (
-            <FileText className="h-4 w-4 text-blue-500" aria-hidden="true" />
+            <FileText className="h-4 w-4 text-green-600" aria-hidden="true" />
           )}
-            {!isEditMode && !isEditing && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsEditMode(true)
-                  handleStartEditLesson(lesson.id, lesson.title)
-                }}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                title="제목 편집"
-              >
-                <Edit className="h-4 w-4" />
-              </button>
-            )}
-            {isEditMode && !isEditing && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleStartEditLesson(lesson.id, lesson.title)
-                }}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded"
-                title="제목 편집"
-              >
-                <Edit className="h-4 w-4" />
-              </button>
-          )}
-          {isEditMode && (
+          {isEditMode && !isEditing && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -531,7 +563,7 @@ export default function EditCurriculum() {
       <div className="flex gap-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
         {/* 강의 구성 사이드바 */}
         <div className="w-80 flex-shrink-0">
-          <div className="bg-white rounded-xl shadow-md flex flex-col">
+          <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 flex flex-col">
             {/* 헤더 */}
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between mb-3">
@@ -602,7 +634,7 @@ export default function EditCurriculum() {
                 </div>
               )}
               {/* 전체 열기/닫기 버튼 */}
-              <div className="mt-3">
+              <div className="mt-3 flex justify-center">
                 <button
                   onClick={() => {
                     if (expandedCurriculums.length === curriculums.length) {
@@ -611,7 +643,7 @@ export default function EditCurriculum() {
                       setExpandedCurriculums(curriculums.map(c => c.id))
                     }
                   }}
-                  className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 hover:bg-gray-100 rounded transition-colors"
+                  className="text-sm font-bold text-gray-700 hover:text-gray-900 px-4 py-2 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 rounded-lg transition-all shadow-sm"
                 >
                   {expandedCurriculums.length === curriculums.length ? '전체목록 닫기' : '전체목록 열기'}
                 </button>
@@ -640,9 +672,9 @@ export default function EditCurriculum() {
                   >
                     {/* 과정 제목 */}
                     <div
-                      className={`group p-3 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      className={`group p-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-200 ${
                         editingCurriculumId === curriculum.id ? 'bg-yellow-50' : ''
-                      } ${isEditMode && editingCurriculumId !== curriculum.id ? 'cursor-move' : ''} ${!isEditMode ? 'hover:bg-blue-50' : ''}`}
+                      } ${isEditMode && editingCurriculumId !== curriculum.id ? 'cursor-move' : ''} ${!isEditMode ? 'hover:bg-gray-50' : ''}`}
                       onClick={() => editingCurriculumId !== curriculum.id && toggleCurriculum(curriculum.id)}
                       onDoubleClick={(e) => {
                         if (!isEditMode) {
@@ -658,9 +690,35 @@ export default function EditCurriculum() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1 flex items-center space-x-2 min-w-0">
-                          <span className="text-blue-500 font-medium text-sm flex-shrink-0">
+                          <span className="text-gray-600 font-semibold text-sm flex-shrink-0">
                             {(index + 1).toString().padStart(2, '0')}
                           </span>
+                          {/* 편집 버튼을 좌측으로 이동 */}
+                          {isEditMode && editingCurriculumId !== curriculum.id && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleStartEditCurriculum(curriculum.id, curriculum.title)
+                              }}
+                              className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-1 rounded flex-shrink-0"
+                              title="제목 편집"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          )}
+                          {!isEditMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setIsEditMode(true)
+                                handleStartEditCurriculum(curriculum.id, curriculum.title)
+                              }}
+                              className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                              title="제목 편집"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          )}
                           {editingCurriculumId === curriculum.id ? (
                             <div className="flex items-center space-x-2 flex-1 min-w-0">
                               <input
@@ -668,7 +726,7 @@ export default function EditCurriculum() {
                                 value={editingCurriculumTitle}
                                 onChange={(e) => setEditingCurriculumTitle(e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="flex-1 px-2 py-1 border border-blue-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                                 onKeyPress={(e) => {
                                   if (e.key === 'Enter') {
                                     handleSaveCurriculumTitle(curriculum.id)
@@ -683,7 +741,7 @@ export default function EditCurriculum() {
                                   e.stopPropagation()
                                   handleSaveCurriculumTitle(curriculum.id)
                                 }}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded flex-shrink-0"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 p-1 rounded flex-shrink-0"
                                 title="저장"
                               >
                                 <Save className="h-4 w-4" />
@@ -700,58 +758,33 @@ export default function EditCurriculum() {
                               </button>
                             </div>
                           ) : (
-                            <h4 className="font-medium text-gray-900 text-sm truncate">{curriculum.title}</h4>
+                            <h4 className="font-semibold text-gray-900 text-base truncate">{curriculum.title}</h4>
                           )}
                         </div>
                         <div className="flex items-center space-x-2 flex-shrink-0">
-                          {!isEditMode && (
-                            <>
-                            <span className="text-xs text-gray-600">
-                              {completed}/{total}
-                            </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setIsEditMode(true)
-                                  handleStartEditCurriculum(curriculum.id, curriculum.title)
-                                }}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="제목 편집"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
-                          {isEditMode && editingCurriculumId !== curriculum.id && (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleStartEditCurriculum(curriculum.id, curriculum.title)
-                                }}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded"
-                                title="제목 편집"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteCurriculum(curriculum.id)
-                              }}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded"
-                              title="과정 삭제"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                            </>
-                          )}
                           {editingCurriculumId !== curriculum.id && (
                             <>
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                              {!isEditMode && (
+                                <span className="text-xs text-gray-600 font-medium">
+                                  {completed}/{total}
+                                </span>
+                              )}
+                              {isEditMode && editingCurriculumId !== curriculum.id && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDeleteCurriculum(curriculum.id)
+                                  }}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded"
+                                  title="과정 삭제"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-gray-500" aria-hidden="true" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-gray-500" aria-hidden="true" />
                               )}
                             </>
                           )}
@@ -764,18 +797,18 @@ export default function EditCurriculum() {
                       <div className="bg-gray-50">
                         {curriculum.lessons.map(lesson => renderLesson(lesson, curriculum.id))}
 
-                        {/* 강의 추가 폼 */}
+                        {/* 강의 추가 버튼 - 목차 칸 내부로 이동 */}
                         {isEditMode && (
                           <>
                             {addingLessonToCurriculum === curriculum.id ? (
-                              <div className="p-3 bg-blue-50 border-b border-gray-200">
+                              <div className="p-3 bg-gray-100 border-t border-gray-200">
                                 <div className="space-y-2">
                                   <input
                                     type="text"
                                     value={newLessonTitle}
                                     onChange={(e) => setNewLessonTitle(e.target.value)}
                                     placeholder="강의 제목을 입력하세요"
-                                    className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                                     onKeyPress={(e) => {
                                       if (e.key === 'Enter') {
                                         handleAddLesson(curriculum.id)
@@ -809,10 +842,10 @@ export default function EditCurriculum() {
                             ) : (
                               <button
                                 onClick={() => setAddingLessonToCurriculum(curriculum.id)}
-                                className="w-full p-3 text-left hover:bg-gray-100 transition-colors border-t border-gray-200 flex items-center space-x-2 text-blue-600"
+                                className="w-full p-2.5 text-left hover:bg-gray-200 transition-colors border-t border-gray-200 flex items-center justify-center space-x-2 text-gray-700 font-medium bg-gray-100"
                               >
-                                <span className="text-lg">+</span>
-                                <span className="text-sm font-medium">강의 추가</span>
+                                <Plus className="h-4 w-4" />
+                                <span className="text-sm">강의 추가</span>
                               </button>
                             )}
                           </>
@@ -827,7 +860,7 @@ export default function EditCurriculum() {
         </div>
 
         {/* 편집 에디터 영역 */}
-        <div className="flex-1 bg-white rounded-xl shadow-md overflow-auto">
+        <div className="flex-1 bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-auto">
           {/* 상태 메시지 */}
           {isEditMode && (
             <div className="p-4 bg-orange-50 border-b border-orange-200 sticky top-0 z-10">
@@ -847,185 +880,327 @@ export default function EditCurriculum() {
                   <h2 className="text-3xl font-bold text-gray-900">{selectedLesson.title}</h2>
                 </div>
 
-                {/* PDF 영역 */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden mt-8">
-                  {isEditMode && !pdfUrl && (
-                    <div className="bg-gray-50 border-b border-gray-200 p-4 flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <span className="font-medium text-gray-700">PDF가 없습니다</span>
+                {/* 강의 내용 편집 영역 - 블록 기반 */}
+                <div className="mt-8">
+                  {isEditMode ? (
+                    <div className="space-y-6">
+                      {/* 추가 버튼들 */}
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900">강의 내용</h3>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => addContentBlock('text')}
+                            className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Text 편집기</span>
+                          </button>
+                          <button
+                            onClick={() => addContentBlock('markdown')}
+                            className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Markdown 편집기</span>
+                          </button>
+                          <button
+                            onClick={() => addContentBlock('pdf')}
+                            className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>PDF 추가</span>
+                          </button>
+                          <button
+                            onClick={() => addContentBlock('video')}
+                            className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>동영상 추가</span>
+                          </button>
+                          <button
+                            onClick={() => addContentBlock('image')}
+                            className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>이미지 추가</span>
+                          </button>
+                        </div>
                       </div>
-                      <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg cursor-pointer flex items-center space-x-2">
-                        <Upload className="h-4 w-4" />
-                        <span>PDF 업로드</span>
-                        <input
-                          type="file"
-                          accept="application/pdf"
-                          onChange={handlePdfUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  )}
 
-                  {/* PDF 제어 헤더 */}
-                  {pdfUrl && (
-                    <div className="bg-gray-50 border-b border-gray-200 p-4 flex items-center justify-between">
-                      {isEditMode && (
-                        <button
-                          onClick={handleRemovePdf}
-                          className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded"
-                          title="PDF 삭제"
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
+                      {/* 블록이 없을 때 안내 메시지 */}
+                      {contentBlocks.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                          <FileText className="h-12 w-12 text-gray-400 mb-4" />
+                          <p className="text-sm text-gray-600 font-medium mb-2">버튼을 눌러 강의를 추가하세요</p>
+                          <p className="text-xs text-gray-500">상단의 버튼을 클릭하여 Text 편집기, Markdown, PDF, 동영상, 이미지를 추가할 수 있습니다</p>
+                        </div>
                       )}
 
-                      <div className="flex items-center space-x-3 flex-1 justify-center">
-                        <button
-                          onClick={goToPrevPage}
-                          disabled={pageNumber <= 1}
-                          className="px-3 py-1 rounded hover:bg-gray-200 disabled:opacity-30 border border-gray-300"
-                        >
-                          <span className="text-sm">이전</span>
-                        </button>
-                        <div className="flex items-center space-x-1">
-                          <input
-                            type="number"
-                            min="1"
-                            max={numPages}
-                            value={pageInput}
-                            onChange={(e) => setPageInput(e.target.value)}
-                            onBlur={(e) => {
-                              const value = parseInt(e.target.value)
-                              if (!value || value < 1) {
-                                setPageInput('1')
-                                setPageNumber(1)
-                              } else if (value > numPages) {
-                                setPageInput(numPages.toString())
-                                setPageNumber(numPages)
-                              } else {
-                                setPageInput(value.toString())
-                                setPageNumber(value)
-                              }
-                            }}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                e.currentTarget.blur()
-                              }
-                            }}
-                            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded text-center"
-                          />
-                          <span className="text-sm text-gray-600">/ {numPages}</span>
+                      {/* 블록 목록 */}
+                      {contentBlocks.length > 0 && (
+                        <div className="space-y-4">
+                          {contentBlocks.map((block, index) => (
+                            <div key={block.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                              {/* 블록 헤더 */}
+                              <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-b border-gray-200">
+                                <div className="flex items-center space-x-2">
+                                  <GripVertical className="h-4 w-4 text-gray-400" />
+                                  <span className="text-sm font-medium text-gray-700">
+                                    {block.type === 'text' && 'Text 편집기'}
+                                    {block.type === 'markdown' && 'Markdown 편집기'}
+                                    {block.type === 'pdf' && 'PDF'}
+                                    {block.type === 'video' && '동영상'}
+                                    {block.type === 'image' && '이미지'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => moveBlock(block.id, 'up')}
+                                    disabled={index === 0}
+                                    className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="위로 이동"
+                                  >
+                                    <MoveUp className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => moveBlock(block.id, 'down')}
+                                    disabled={index === contentBlocks.length - 1}
+                                    className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="아래로 이동"
+                                  >
+                                    <MoveDown className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => removeContentBlock(block.id)}
+                                    className="p-1.5 text-red-400 hover:text-red-600"
+                                    title="삭제"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 블록 내용 */}
+                              <div className="p-4">
+                                {block.type === 'text' && (
+                                  <TinyEditor
+                                    initialValue={block.content}
+                                    onChange={(html) => updateBlockContent(block.id, html)}
+                                    height={400}
+                                  />
+                                )}
+                                {block.type === 'markdown' && (
+                                  <MarkdownEditor
+                                    initialValue={block.content}
+                                    onChange={(md) => updateBlockContent(block.id, md)}
+                                    height={400}
+                                  />
+                                )}
+                                {block.type === 'pdf' && (
+                                  <div className="space-y-4">
+                                    {block.content ? (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-gray-600">PDF 미리보기</span>
+                                          <button
+                                            onClick={() => updateBlockContent(block.id, '')}
+                                            className="text-sm text-red-500 hover:text-red-700"
+                                          >
+                                            제거
+                                          </button>
+                                        </div>
+                                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                                          <Document
+                                            file={block.content}
+                                            onLoadSuccess={(pdf) => onDocumentLoadSuccessForBlock(block.id, pdf)}
+                                            loading={<div className="p-8 text-center text-gray-500">PDF 로딩 중...</div>}
+                                            error={<div className="p-8 text-center text-red-500">PDF 로드 실패</div>}
+                                          >
+                                            <Page
+                                              pageNumber={pdfPageNumbers[block.id] || 1}
+                                              width={600}
+                                              renderTextLayer={false}
+                                              renderAnnotationLayer={false}
+                                            />
+                                          </Document>
+                                        </div>
+                                        {pdfPages[block.id] && (
+                                          <div className="flex items-center justify-center space-x-2">
+                                            <button
+                                              onClick={() => setPdfPageNumbers(prev => ({ ...prev, [block.id]: Math.max(1, (prev[block.id] || 1) - 1) }))}
+                                              disabled={pdfPageNumbers[block.id] === 1}
+                                              className="px-3 py-1 border border-gray-300 rounded disabled:opacity-30"
+                                            >
+                                              이전
+                                            </button>
+                                            <span className="text-sm text-gray-600">
+                                              {pdfPageNumbers[block.id] || 1} / {pdfPages[block.id]}
+                                            </span>
+                                            <button
+                                              onClick={() => setPdfPageNumbers(prev => ({ ...prev, [block.id]: Math.min(pdfPages[block.id], (prev[block.id] || 1) + 1) }))}
+                                              disabled={pdfPageNumbers[block.id] === pdfPages[block.id]}
+                                              className="px-3 py-1 border border-gray-300 rounded disabled:opacity-30"
+                                            >
+                                              다음
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <label className="block">
+                                        <input
+                                          type="file"
+                                          accept="application/pdf"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) handlePdfUploadForBlock(block.id, file)
+                                          }}
+                                          className="hidden"
+                                        />
+                                        <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer">
+                                          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                          <p className="text-sm text-gray-700 mb-2">PDF 파일 업로드</p>
+                                          <p className="text-xs text-gray-500">클릭하여 파일 선택</p>
+                                        </div>
+                                      </label>
+                                    )}
+                                  </div>
+                                )}
+                                {block.type === 'video' && (
+                                  <div className="space-y-4">
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        동영상 URL (YouTube, Vimeo) 또는 파일 업로드
+                                      </label>
+                                      <div className="flex space-x-2">
+                                        <input
+                                          type="text"
+                                          value={block.content}
+                                          onChange={(e) => updateBlockContent(block.id, e.target.value)}
+                                          placeholder="https://youtube.com/watch?v=..."
+                                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm"
+                                        />
+                                        <label className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm flex items-center">
+                                          <Upload className="h-4 w-4 mr-1" />
+                                          파일
+                                          <input
+                                            type="file"
+                                            accept="video/*"
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0]
+                                              if (file) {
+                                                const reader = new FileReader()
+                                                reader.onloadend = () => {
+                                                  updateBlockContent(block.id, reader.result as string)
+                                                }
+                                                reader.readAsDataURL(file)
+                                              }
+                                            }}
+                                            className="hidden"
+                                          />
+                                        </label>
+                                      </div>
+                                    </div>
+                                    {block.content && (
+                                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                        {getYouTubeVideoId(block.content) ? (
+                                          <iframe
+                                            width="100%"
+                                            height="400"
+                                            src={`https://www.youtube.com/embed/${getYouTubeVideoId(block.content)}`}
+                                            frameBorder={0}
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                          />
+                                        ) : (
+                                          <video controls className="w-full" src={block.content} />
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {block.type === 'image' && (
+                                  <div className="space-y-4">
+                                    {block.content ? (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-gray-600">이미지 미리보기</span>
+                                          <button
+                                            onClick={() => updateBlockContent(block.id, '')}
+                                            className="text-sm text-red-500 hover:text-red-700"
+                                          >
+                                            제거
+                                          </button>
+                                        </div>
+                                        <img src={block.content} alt="Uploaded" className="max-w-full rounded-lg border border-gray-200" />
+                                      </div>
+                                    ) : (
+                                      <label className="block">
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) handleImageUploadForBlock(block.id, file)
+                                          }}
+                                          className="hidden"
+                                        />
+                                        <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer">
+                                          <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                          <p className="text-sm text-gray-700 mb-2">이미지 파일 업로드</p>
+                                          <p className="text-xs text-gray-500">클릭하여 파일 선택</p>
+                                        </div>
+                                      </label>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <button
-                          onClick={goToNextPage}
-                          disabled={pageNumber >= numPages}
-                          className="px-3 py-1 rounded hover:bg-gray-200 disabled:opacity-30 border border-gray-300"
-                        >
-                          <span className="text-sm">다음</span>
-                        </button>
-                      </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 min-h-[400px] flex items-center justify-center">
+                      {contentBlocks.length === 0 ? (
+                        <div className="text-center">
+                          {savedEditorType === 'markdown' ? (
+                            <div
+                              className="prose max-w-none"
+                              dangerouslySetInnerHTML={{ __html: content ? marked(content) : '<p class="text-gray-500">이 곳에 강의 내용이 표시됩니다.</p>' }}
+                            />
+                          ) : (
+                            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: content || '<p class="text-gray-500">이 곳에 강의 내용이 표시됩니다.</p>' }} />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {contentBlocks.map((block) => (
+                            <div key={block.id} className="bg-white p-4 rounded border border-gray-200">
+                              {block.type === 'text' && (
+                                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: block.content || '내용 없음' }} />
+                              )}
+                              {block.type === 'markdown' && (
+                                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: block.content ? marked(block.content) : '내용 없음' }} />
+                              )}
+                              {block.type === 'pdf' && block.content && (
+                                <div className="text-sm text-gray-500">PDF 파일 업로드됨</div>
+                              )}
+                              {block.type === 'video' && block.content && (
+                                <div className="text-sm text-gray-500">동영상 콘텐츠</div>
+                              )}
+                              {block.type === 'image' && block.content && (
+                                <img src={block.content} alt="Preview" className="max-w-full h-40 object-cover rounded" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-
-                  {/* PDF 표시 영역 */}
-                  <div ref={pdfContainerRef} className="bg-white overflow-auto p-4" style={{ minHeight: '600px' }}>
-                    {pdfUrl ? (
-                      <div className="flex justify-center items-start h-full">
-                        <Document
-                          file={pdfUrl}
-                          onLoadSuccess={({ numPages }) => {
-                            setNumPages(numPages)
-                            setPageNumber(1)
-                            setPageInput('1')
-                          }}
-                          loading={
-                            <div className="flex items-center justify-center h-full">
-                              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                            </div>
-                          }
-                        >
-                          <Page
-                            pageNumber={pageNumber}
-                            width={pdfContainerWidth || 800}
-                            className="shadow-lg"
-                            renderTextLayer={false}
-                            renderAnnotationLayer={false}
-                          />
-                        </Document>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center">
-                          <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600 font-medium">
-                            {isEditMode ? 'PDF를 업로드하세요' : 'PDF가 없습니다'}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
-
-                {/* 에디터 내용 */}
-                {isEditMode ? (
-                  <div className="space-y-4">
-                    {/* 에디터 타입 선택 버튼 */}
-                    <div className="flex items-center space-x-2 border-b border-gray-200 pb-3">
-                      <button
-                        onClick={() => handleEditorTypeChange('text')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          editorType === 'text'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Text 편집기
-                      </button>
-                      <button
-                        onClick={() => handleEditorTypeChange('markdown')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          editorType === 'markdown'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Markdown 편집기
-                      </button>
-                      <span className="text-xs text-gray-500 ml-2">입력기 변경 시 입력한 내용이 전부 사라집니다.</span>
-                    </div>
-
-                    {/* 선택된 에디터 렌더링 */}
-                    {editorType === 'text' ? (
-                      <TinyEditor
-                        initialValue={content}
-                        onChange={handleContentChange}
-                        height={400}
-                      />
-                    ) : (
-                      <MarkdownEditor
-                        initialValue={content}
-                        onChange={handleContentChange}
-                        height={400}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 min-h-[400px]">
-                    {savedEditorType === 'markdown' ? (
-                      <div
-                        className="prose max-w-none"
-                        dangerouslySetInnerHTML={{ __html: content ? marked(content) : '이 곳에 강의 내용이 표시됩니다.' }}
-                      />
-                    ) : (
-                      <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: content || '이 곳에 강의 내용이 표시됩니다.' }} />
-                    )}
-                  </div>
-                )}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full min-h-[600px]">
                 <div className="text-center">
                   <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-700 mb-2">강의를 선택하세요</h3>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Phone } from 'lucide-react';
+import { User, Mail, Lock, Phone, Loader2 } from 'lucide-react';
 import Header from '../../layout/Header';
+import { sendVerificationCode, registerWithVerification } from '../../core/api/auth';
 
 export default function SignupInstructor() {
   const navigate = useNavigate();
@@ -14,19 +15,86 @@ export default function SignupInstructor() {
     phone: ''
   });
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmitStep1 = (e: React.FormEvent) => {
+  const handleSubmitStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Send verification code to email
-    setStep(2);
+    setError('');
+
+    // 비밀번호 확인
+    if (formData.password !== formData.passwordConfirm) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    // 비밀번호 길이 확인
+    if (formData.password.length < 6) {
+      setError('비밀번호는 6자 이상이어야 합니다.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 이메일 인증 코드 발송
+      await sendVerificationCode(formData.email);
+      setStep(2);
+    } catch (err: any) {
+      console.error('인증 코드 발송 실패:', err);
+      setError(err.response?.data?.message || '인증 코드 발송에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleVerificationSubmit = (e: React.FormEvent) => {
+  const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     const code = verificationCode.join('');
-    // TODO: Verify code and complete signup
-    // Navigate to pending approval page
-    navigate('/signup/pending');
+    if (code.length !== 6) {
+      setError('6자리 인증 코드를 모두 입력해주세요.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // username은 email에서 @ 앞부분 사용
+      const username = formData.email.split('@')[0];
+
+      // 회원가입 요청
+      await registerWithVerification({
+        username,
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        phone: formData.phone,
+        role: 'instructor',
+        verificationCode: code
+      });
+
+      // 강사는 승인 대기 페이지로 이동
+      navigate('/signup/pending');
+    } catch (err: any) {
+      console.error('회원가입 실패:', err);
+      setError(err.response?.data?.message || '회원가입에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await sendVerificationCode(formData.email);
+      alert('인증 코드를 재전송했습니다.');
+    } catch (err: any) {
+      console.error('인증 코드 재전송 실패:', err);
+      setError(err.response?.data?.message || '인증 코드 재전송에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCodeChange = (index: number, value: string) => {
@@ -106,17 +174,27 @@ export default function SignupInstructor() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
+              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
               인증 완료
             </button>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
 
             {/* Resend Link */}
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => alert('인증코드를 재전송했습니다.')}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                onClick={handleResendCode}
+                disabled={loading}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 이메일을 받지 못하셨나요? 다시 보내기
               </button>
@@ -273,11 +351,20 @@ export default function SignupInstructor() {
             개인정보 보호정책을 인정한 것으로 간주됩니다
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg"
+            disabled={loading}
+            className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
+            {loading && <Loader2 className="w-5 h-5 animate-spin" />}
             회원가입
           </button>
 
