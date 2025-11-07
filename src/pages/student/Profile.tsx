@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { User, Mail, Phone, MapPin, Edit3, Save, X, BookOpen, Award, Clock } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Edit3, Save, X } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -317,40 +317,6 @@ export default function Profile() {
                         {lang}
                       </span>
                     ))}
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card className="p-6 mt-6">
-              <h3 className="text-lg font-semibold text-base-content mb-4">최근 활동</h3>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 p-3 bg-neutral-50 rounded-lg">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <BookOpen className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-base-content">React 기초 강의 완료</p>
-                    <p className="text-xs text-base-content/70">2시간 전</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3 p-3 bg-neutral-50 rounded-lg">
-                  <div className="w-8 h-8 bg-success/10 rounded-full flex items-center justify-center">
-                    <Award className="h-4 w-4 text-success" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-base-content">JavaScript 중급 수료증 취득</p>
-                    <p className="text-xs text-base-content/70">1일 전</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3 p-3 bg-neutral-50 rounded-lg">
-                  <div className="w-8 h-8 bg-warning/10 rounded-full flex items-center justify-center">
-                    <Clock className="h-4 w-4 text-warning" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-base-content">Node.js 고급 강의 시작</p>
-                    <p className="text-xs text-base-content/70">3일 전</p>
                   </div>
                 </div>
               </div>
