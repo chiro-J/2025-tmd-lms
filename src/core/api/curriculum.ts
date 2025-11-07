@@ -114,6 +114,20 @@ export const updateLesson = async (courseId: number, curriculumId: number, lesso
 };
 
 /**
+ * 레슨 상세 조회 (contentBlocks 포함)
+ * GET /api/courses/:courseId/curriculum/:curriculumId/lessons/:lessonId
+ */
+export const getLesson = async (courseId: number, curriculumId: number, lessonId: number): Promise<Lesson> => {
+  try {
+    const response = await apiClient.get<Lesson>(`/courses/${courseId}/curriculum/${curriculumId}/lessons/${lessonId}`);
+    return response.data;
+  } catch (error) {
+    console.error('레슨 조회 실패:', error);
+    throw error;
+  }
+};
+
+/**
  * 레슨 삭제
  * DELETE /api/courses/:courseId/curriculum/:curriculumId/lessons/:lessonId
  */

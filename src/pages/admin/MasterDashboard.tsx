@@ -14,14 +14,14 @@ import type { SubAdmin, Instructor, Student, Course, Notice, Inquiry } from '../
 export default function MasterDashboard() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'overview' | 'students' | 'courses' | 'subAdmins' | 'instructors' | 'platform' | 'settings'>('overview');
-  
+
   // 데이터 상태
   const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [subAdmins, setSubAdmins] = useState<SubAdmin[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
-  
+
   // 로딩 상태
   const [loading, setLoading] = useState<Record<string, boolean>>({
     students: false,
@@ -240,6 +240,18 @@ export default function MasterDashboard() {
     }
   };
 
+  const handleActivateSubAdmin = async (id: number) => {
+    if (!confirm('이 서브 관리자를 활성화하시겠습니까?')) return;
+    try {
+      await adminApi.updateSubAdmin(id, { status: 'active' });
+      await loadSubAdmins();
+      alert('서브 관리자가 활성화되었습니다.');
+    } catch (error) {
+      console.error('서브 관리자 활성화 실패:', error);
+      alert('서브 관리자 활성화에 실패했습니다.');
+    }
+  };
+
   const handleApproveInstructor = async (id: number) => {
     try {
       await adminApi.approveInstructor(id);
@@ -259,6 +271,51 @@ export default function MasterDashboard() {
     } catch (error) {
       console.error('강사 거부 실패:', error);
       alert('강사 거부에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteInstructor = async (id: number) => {
+    if (!confirm('정말 이 강사를 삭제하시겠습니까?')) return;
+    try {
+      await adminApi.deleteInstructor(id);
+      await loadInstructors();
+      alert('강사가 삭제되었습니다.');
+    } catch (error) {
+      console.error('강사 삭제 실패:', error);
+      alert('강사 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleCreateCourse = async (data: adminApi.CreateCourseData) => {
+    try {
+      await adminApi.createCourse(data);
+      await loadCourses();
+      alert('강좌가 생성되었습니다.');
+    } catch (error) {
+      console.error('강좌 생성 실패:', error);
+      alert('강좌 생성에 실패했습니다.');
+    }
+  };
+
+  const handleUpdateCourse = async (id: number, data: Partial<Course>) => {
+    try {
+      await adminApi.updateCourse(id, data);
+      await loadCourses();
+      alert('강좌 정보가 수정되었습니다.');
+    } catch (error) {
+      console.error('강좌 수정 실패:', error);
+      alert('강좌 수정에 실패했습니다.');
+    }
+  };
+
+  const handleRespondToInquiry = async (id: number, response: string) => {
+    try {
+      await adminApi.respondToInquiry(id, response);
+      await loadInquiries();
+      alert('문의사항 답변이 전달되었습니다.');
+    } catch (error) {
+      console.error('문의사항 답변 실패:', error);
+      alert('문의사항 답변에 실패했습니다.');
     }
   };
 
@@ -500,6 +557,8 @@ export default function MasterDashboard() {
                 <CourseManagement
                   courses={courses}
                   onCourseEdit={handleCourseEdit}
+                  onCourseCreate={handleCreateCourse}
+                  onCourseUpdate={handleUpdateCourse}
                   onCourseDelete={handleCourseDelete}
                   onCourseApprove={handleCourseApprove}
                   onCourseReject={handleCourseReject}
@@ -533,6 +592,7 @@ export default function MasterDashboard() {
                   onCreateSubAdmin={handleCreateSubAdmin}
                   onEditSubAdmin={handleEditSubAdmin}
                   onDeleteSubAdmin={handleDeleteSubAdmin}
+                  onActivateSubAdmin={handleActivateSubAdmin}
                   showActions={true}
                 />
               )}
@@ -562,6 +622,7 @@ export default function MasterDashboard() {
                   instructors={instructors}
                   onApproveInstructor={handleApproveInstructor}
                   onRejectInstructor={handleRejectInstructor}
+                  onDeleteInstructor={handleDeleteInstructor}
                   showActions={true}
                 />
               )}
@@ -589,6 +650,7 @@ export default function MasterDashboard() {
               ) : (
                 <NoticeManagement
                   inquiries={inquiries}
+                  onRespondToInquiry={handleRespondToInquiry}
                   showActions={true}
                 />
               )}

@@ -5,7 +5,7 @@ import Header from '../../layout/Header';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, quickLogin } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -55,7 +55,18 @@ export default function Login() {
         navigate('/student/dashboard');
       }
     } catch (error: any) {
-      setError(error.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
+      let errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+
+      // 네트워크 에러 확인
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        errorMessage = '백엔드 서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.\n\n터미널에서 다음 명령어로 백엔드를 실행하세요:\ncd apps/api && npm run start:dev';
+      } else if (error.response?.status === 401) {
+        errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      } else {
+        errorMessage = error.response?.data?.message || error.message || errorMessage;
+      }
+
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -68,43 +79,28 @@ export default function Login() {
     alert('Kakao OAuth는 아직 구현되지 않았습니다.');
   };
 
-  // 빠른 로그인 함수들
+  // 빠른 로그인 함수들 (Mock 데이터 사용 - 테스트용)
   const handleQuickLogin = async (role: 'student' | 'instructor' | 'admin' | 'subadmin') => {
-    let email = '';
-    let password = '';
-    let redirectPath = '';
-
-    switch (role) {
-      case 'student':
-        email = 'student@example.com';
-        password = 'pass1234';
-        redirectPath = '/student/dashboard';
-        break;
-      case 'instructor':
-        email = 'instructor@example.com';
-        password = 'pass1234';
-        redirectPath = '/instructor/dashboard';
-        break;
-      case 'admin':
-        email = 'admin@example.com';
-        password = 'admin1234';
-        redirectPath = '/admin/master-dashboard';
-        break;
-      case 'subadmin':
-        email = 'subadmin@example.com';
-        password = 'sub123';
-        redirectPath = '/admin/sub-dashboard';
-        break;
-    }
-
     setIsLoading(true);
     setError('');
 
     try {
-      await login(email, password);
-      navigate(redirectPath);
-    } catch (error) {
-      alert('빠른 로그인에 실패했습니다. 해당 계정이 존재하지 않습니다.');
+      // subadmin을 sub-admin으로 변환
+      const userRole = role === 'subadmin' ? 'sub-admin' : role;
+      const user = await quickLogin(userRole);
+
+      // 사용자 역할에 따라 올바른 경로로 리다이렉트
+      if (user.role === 'instructor') {
+        navigate('/instructor/dashboard');
+      } else if (user.role === 'admin') {
+        navigate('/admin/master-dashboard');
+      } else if (user.role === 'sub-admin') {
+        navigate('/admin/sub-dashboard');
+      } else {
+        navigate('/student/dashboard');
+      }
+    } catch (error: any) {
+      setError('빠른 로그인에 실패했습니다.');
       setIsLoading(false);
     }
   };
@@ -183,7 +179,7 @@ export default function Login() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm whitespace-pre-line">
               {error}
             </div>
           )}
@@ -325,12 +321,3 @@ export default function Login() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

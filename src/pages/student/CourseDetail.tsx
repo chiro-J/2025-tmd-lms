@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { mockResources, mockQnA } from '../../mocks'
 import type { Resource, QnAItem } from '../../types'
-import { getCurriculum } from '../../core/api/curriculum'
+// curriculum API는 동적 import로 로드
 import { transformApiToDetailFormat } from '../../utils/curriculumTransform'
 import { getCourse } from '../../core/api/courses'
 import { getAssignments } from '../../core/api/assignments'
@@ -112,6 +112,7 @@ export default function CourseDetail() {
         setLoading(true)
 
         // 커리큘럼 데이터 로드
+        const { getCurriculum } = await import('../../core/api/curriculum')
         const apiModules = await getCurriculum(courseId)
         const transformed = transformApiToDetailFormat(apiModules)
 

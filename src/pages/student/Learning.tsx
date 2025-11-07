@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 import { Play, Pause, SkipBack, SkipForward, Volume2, Settings, PanelRight, Maximize, PictureInPicture, Camera, Subtitles } from 'lucide-react'
 import VideoSideNav from '../../components/learning/VideoSideNav'
 import { autoRecordLesson } from '../../utils/calendarStorage'
 
 export default function Learning() {
+  const params = useParams()
+  const courseId = Number(params.id) || 1
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const hideControlsTimeoutRef = useRef<number | null>(null)
@@ -22,25 +25,126 @@ export default function Learning() {
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // 선택된 강의별 임시 콘텐츠 맵 (DB 연동 전)
-  type ContentType = 'video' | 'slide' | 'text' | 'link' | 'code'
-  const lessonContent: Record<string, { type: ContentType; title: string; src?: string; text?: string; code?: string; linkUrl?: string }> = {
-    '4-1': { type: 'video', title: '타입스크립트 소개', src: '/videos/sample.mp4' },
-    '4-2': { type: 'text', title: '타입스크립트 기초 개념', text: '타입, 인터페이스, 유니온, 제네릭의 핵심 개념을 간단 요약합니다.' },
-    '4-3': { type: 'code', title: 'ES6 예제 코드', code: 'const sum = (a: number, b: number): number => a + b;\nconsole.log(sum(2, 3));' },
-    '2-1': { type: 'slide', title: 'HTML/CSS 기초 슬라이드', src: '/photo/Fullstack.png' },
-    '2-2': { type: 'link', title: 'JavaScript 기초 문서 링크', linkUrl: 'https://developer.mozilla.org/ko/docs/Web/JavaScript' }
-  }
+  type ContentType = 'video' | 'slide' | 'text' | 'link' | 'code' | 'pdf'
+  const [curriculumModules, setCurriculumModules] = useState<any[]>([])
+  const [selectedLessonData, setSelectedLessonData] = useState<any>(null)
+  const [loadingLesson, setLoadingLesson] = useState(false)
 
-  const selectedLesson = useMemo(() => searchParams.get('lesson') || '', [searchParams])
+  const selectedLessonId = useMemo(() => searchParams.get('lesson') || '', [searchParams])
+
+  // 커리큘럼 데이터 로드
+  useEffect(() => {
+    const loadCurriculum = async () => {
+      try {
+        const { getCurriculum } = await import('../../core/api/curriculum')
+        const modules = await getCurriculum(courseId)
+        setCurriculumModules(modules)
+      } catch (error) {
+        console.error('커리큘럼 로드 실패:', error)
+      }
+    }
+    loadCurriculum()
+  }, [courseId])
+
+  // 선택된 레슨 데이터 찾기 및 DB에서 contentBlocks 불러오기
+  useEffect(() => {
+    if (!selectedLessonId || curriculumModules.length === 0) {
+      setSelectedLessonData(null)
+      return
+    }
+
+    setLoadingLesson(true)
+    const lessonId = Number(selectedLessonId)
+
+    // 모든 모듈의 레슨 중에서 선택된 레슨 찾기
+    const loadLessonContent = async () => {
+      for (const module of curriculumModules) {
+        const lesson = module.lessons?.find((l: any) => l.id === lessonId)
+        if (lesson) {
+          try {
+            // DB에서 레슨 상세 정보 불러오기
+            const { getLesson } = await import('../../core/api/curriculum')
+            const lessonData = await getLesson(courseId, module.id, lessonId)
+
+            // description을 사용하여 표시
+            let description = lessonData.description || lesson.description
+
+            // description이 JSON 형식인지 확인 (contentBlocks 배열)
+            if (description) {
+              try {
+                const parsed = JSON.parse(description)
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  // JSON 배열인 경우: 텍스트 블록들만 추출하여 합치기
+                  description = parsed
+                    .filter((block: any) => block.type === 'text' || block.type === 'markdown')
+                    .map((block: any) => block.content || '')
+                    .filter((content: string) => content.trim() !== '')
+                    .join('\n\n')
+                }
+              } catch {
+                // JSON이 아닌 경우: 기존 텍스트 그대로 사용
+              }
+            }
+
+            if (!description || description.trim() === '') {
+              // 레슨 제목에 따라 기본 설명 텍스트 생성
+              const title = lesson.title.toLowerCase()
+              if (title.includes('타입스크립트') || title.includes('typescript')) {
+                description = '타입스크립트는 JavaScript에 정적 타입을 추가한 언어입니다. 이 강의에서는 타입스크립트의 기본 문법, 타입 정의, 인터페이스, 제네릭 등의 핵심 개념을 학습하고 실습을 통해 활용 방법을 익힙니다.'
+              } else {
+                description = `${lesson.title}에 대한 강의입니다.\n\n이 강의에서는 ${lesson.title}의 핵심 개념과 실무 활용 방법을 학습합니다.`
+              }
+            }
+
+            setSelectedLessonData({
+              type: 'text' as ContentType,
+              title: lesson.title,
+              text: description
+            })
+          } catch (error: any) {
+            // 404 에러는 무시하고 기본 내용으로 표시
+            if (error?.response?.status !== 404) {
+              console.error('레슨 내용 불러오기 실패:', error)
+            }
+            // 에러 시 기본 텍스트로 표시
+            setSelectedLessonData({
+              type: 'text' as ContentType,
+              title: lesson.title,
+              text: lesson.description || `${lesson.title}에 대한 강의입니다.`
+            })
+          }
+
+          setLoadingLesson(false)
+          return
+        }
+      }
+
+      setSelectedLessonData(null)
+      setLoadingLesson(false)
+    }
+
+    loadLessonContent()
+  }, [selectedLessonId, curriculumModules, courseId])
+
   const selectedContent = useMemo(() => {
-    const content = selectedLesson ? lessonContent[selectedLesson] : undefined
-    return (
-      content || ({ type: 'text', title: '학습 자료를 선택해 주세요', text: '오른쪽 커리큘럼에서 학습 항목을 선택하면 해당 자료가 표시됩니다.' } as {
-        type: ContentType; title: string; src?: string; text?: string; code?: string; linkUrl?: string
-      })
-    )
-  }, [selectedLesson])
+    if (loadingLesson) {
+      return {
+        type: 'text' as ContentType,
+        title: '로딩 중...',
+        text: '강의 내용을 불러오는 중입니다.'
+      }
+    }
+
+    if (selectedLessonData) {
+      return selectedLessonData
+    }
+
+    return {
+      type: 'text' as ContentType,
+      title: '학습 자료를 선택해 주세요',
+      text: '오른쪽 커리큘럼에서 학습 항목을 선택하면 해당 자료가 표시됩니다.'
+    }
+  }, [selectedLessonData, loadingLesson])
 
   // URL 변경 감지 (뒤로가기 등)
   useEffect(() => {
@@ -224,13 +328,13 @@ export default function Learning() {
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime)
-      
+
       // 비디오가 80% 이상 재생되면 자동으로 일정 기록 (한 번만)
       if (video.duration > 0 && video.currentTime / video.duration >= 0.8) {
         const progress = Math.round((video.currentTime / video.duration) * 100)
         if (progress >= 80 && selectedContent.title) {
           // localStorage에 완료 표시를 저장하여 중복 기록 방지
-          const completionKey = `lesson_completed_${selectedLesson}_${selectedContent.title}`
+          const completionKey = `lesson_completed_${selectedLessonId}_${selectedContent.title}`
           if (!localStorage.getItem(completionKey)) {
             autoRecordLesson(
               selectedContent.title,
@@ -245,7 +349,7 @@ export default function Learning() {
 
     const handlePlay = () => {
       setIsPlaying(true)
-      
+
       // 강의 시작 시 일정 기록
       if (selectedContent.title) {
         const today = new Date().toISOString().split('T')[0]
@@ -263,7 +367,7 @@ export default function Learning() {
 
     const handleEnded = () => {
       setIsPlaying(false)
-      
+
       // 비디오 완료 시 일정 기록
       if (selectedContent.title) {
         autoRecordLesson(
@@ -290,7 +394,7 @@ export default function Learning() {
       video.removeEventListener('pause', handlePause)
       video.removeEventListener('ended', handleEnded)
     }
-  }, [selectedContent.title, selectedLesson])
+  }, [selectedContent.title, selectedLessonId])
 
   return (
     <div
@@ -313,23 +417,33 @@ export default function Learning() {
 
       {/* Header / GNB */}
       <div
-        className={`fixed top-0 left-0 z-40 bg-gradient-to-b from-black/80 to-transparent transition-all duration-300 ${
-          showHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        className={`fixed top-0 left-0 z-40 transition-all duration-300 ${
+          selectedContent.type === 'video'
+            ? `bg-gradient-to-b from-black/80 to-transparent ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`
+            : 'bg-white border-b border-gray-200 shadow-sm'
         }`}
         style={{
           width: isSideNavExpanded ? 'calc(100vw - 448px)' : '100vw'
         }}
-        onMouseEnter={() => setShowHeader(true)}
-        onMouseLeave={() => setShowHeader(false)}
+        onMouseEnter={() => selectedContent.type === 'video' && setShowHeader(true)}
+        onMouseLeave={() => selectedContent.type === 'video' && setShowHeader(false)}
       >
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-white text-xl font-bold mb-1 whitespace-normal break-words leading-snug">{selectedContent.title}</h1>
+              <h1 className={`text-xl font-bold mb-1 whitespace-normal break-words leading-snug ${
+                selectedContent.type === 'video' ? 'text-white' : 'text-gray-900'
+              }`}>
+                {selectedContent.title}
+              </h1>
             </div>
             <button
               onClick={() => window.history.back()}
-              className="text-white hover:bg-white/20 px-4 py-2 rounded-lg transition-colors"
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                selectedContent.type === 'video'
+                  ? 'text-white hover:bg-white/20'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               ← 뒤로가기
             </button>
@@ -340,8 +454,10 @@ export default function Learning() {
       {/* Content Container */}
       <div
         ref={videoContainerRef}
-        className={`fixed top-0 bottom-0 left-0 bg-gray-900 transition-all duration-300 group ${
-          selectedContent.type === 'video' && !showControls && isPlaying ? 'cursor-none' : 'cursor-default'
+        className={`fixed top-16 bottom-0 left-0 transition-all duration-300 group ${
+          selectedContent.type === 'video'
+            ? `bg-gray-900 ${!showControls && isPlaying ? 'cursor-none' : 'cursor-default'}`
+            : 'bg-gray-50'
         }`}
         style={{
           width: isSideNavExpanded ? 'calc(100vw - 448px)' : '100vw'
@@ -372,29 +488,74 @@ export default function Learning() {
           </video>
         )}
         {selectedContent.type === 'slide' && (
-          <div className="w-full h-full bg-black flex items-center justify-center">
-            <img src={selectedContent.src} alt="slide" className="max-w-[95%] max-h-[95%] object-contain rounded-lg shadow-2xl" />
+          <div className="w-full h-full bg-gray-50 overflow-y-auto">
+            <div className="w-full min-h-full flex items-center justify-center p-8">
+              <img src={selectedContent.src} alt="slide" className="max-w-full h-auto object-contain rounded-lg shadow-lg" />
+            </div>
           </div>
         )}
         {selectedContent.type === 'text' && (
-          <div className="w-full h-full bg-black flex items-center justify-center p-8">
-            <div className="max-w-2xl w-full bg-white rounded-xl p-6 shadow-2xl">
-              <h2 className="text-lg font-semibold mb-3">요약</h2>
-              <p className="text-sm text-gray-700 leading-6">{selectedContent.text}</p>
+          <div className="w-full h-full bg-gray-50 overflow-y-auto">
+            <div className="max-w-none w-full bg-white min-h-full">
+              {/* 경로 표시 */}
+              {(() => {
+                const currentModule = curriculumModules.find((m: any) =>
+                  m.lessons?.some((l: any) => l.id === Number(selectedLessonId))
+                )
+                const currentLesson = currentModule?.lessons?.find((l: any) => l.id === Number(selectedLessonId))
+                return currentModule && currentLesson ? (
+                  <div className="px-8 pt-8 pb-4 border-b border-gray-200">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <span className="font-medium text-gray-900">{currentModule.title}</span>
+                      <span>/</span>
+                      <span className="text-gray-700">{currentLesson.title}</span>
+                    </div>
+                  </div>
+                ) : null
+              })()}
+              <div className="prose prose-lg max-w-none px-8 py-12">
+                {selectedContent.text ? (
+                  <div
+                    className="text-gray-900 leading-relaxed text-base"
+                    dangerouslySetInnerHTML={{
+                      __html: selectedContent.text.includes('<') && selectedContent.text.includes('>')
+                        ? selectedContent.text
+                        : selectedContent.text.replace(/\n/g, '<br>')
+                    }}
+                  />
+                ) : (
+                  <div className="text-gray-500">강의 내용이 없습니다.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {selectedContent.type === 'pdf' && selectedContent.src && (
+          <div className="w-full h-full bg-gray-50 overflow-y-auto">
+            <div className="w-full h-full">
+              <iframe
+                src={selectedContent.src}
+                className="w-full h-full border-0"
+                title={selectedContent.title}
+              />
             </div>
           </div>
         )}
         {selectedContent.type === 'link' && (
-          <div className="w-full h-full bg-black flex items-center justify-center p-8">
-            <div className="max-w-xl w-full bg-white rounded-xl p-6 text-center shadow-2xl">
-              <p className="text-sm text-gray-700 mb-4">외부 자료로 이동합니다.</p>
-              <a href={selectedContent.linkUrl} target="_blank" rel="noreferrer" className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">열기</a>
+          <div className="w-full h-full bg-gray-50 overflow-y-auto">
+            <div className="w-full min-h-full flex items-center justify-center p-8">
+              <div className="max-w-xl w-full bg-white rounded-xl p-8 text-center shadow-lg">
+                <p className="text-base text-gray-700 mb-6">외부 자료로 이동합니다.</p>
+                <a href={selectedContent.linkUrl} target="_blank" rel="noreferrer" className="inline-block px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium">링크 열기</a>
+              </div>
             </div>
           </div>
         )}
         {selectedContent.type === 'code' && (
-          <div className="w-full h-full bg-black flex items-center justify-center p-8">
-            <pre className="max-w-3xl w-full bg-[#0b1021] text-[#e6edf3] rounded-xl p-6 overflow-auto text-sm shadow-2xl"><code>{selectedContent.code}</code></pre>
+          <div className="w-full h-full bg-gray-50 overflow-y-auto">
+            <div className="w-full min-h-full p-8">
+              <pre className="w-full bg-[#0b1021] text-[#e6edf3] rounded-lg p-6 overflow-auto text-sm shadow-lg"><code>{selectedContent.code}</code></pre>
+            </div>
           </div>
         )}
 
@@ -624,6 +785,7 @@ export default function Learning() {
         onTabChange={setSideNavTab}
         isExpanded={isSideNavExpanded}
         onExpandChange={setIsSideNavExpanded}
+        courseId={courseId}
       />
     </div>
   )

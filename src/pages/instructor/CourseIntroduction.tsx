@@ -37,11 +37,11 @@ export default function CourseIntroduction() {
       // CourseCreationData를 DB Course 타입으로 변환
       const courseDataToSave = {
         title: formData.title,
-        thumbnail: formData.thumbnail || null,
-        videoUrl: formData.videoUrl || null,
-        content: formData.content || null,
+        thumbnail: formData.thumbnail || undefined,
+        videoUrl: formData.videoUrl || undefined,
+        content: formData.content || undefined,
         instructor: '김강사', // TODO: 실제 로그인한 강사 정보 사용
-        status: 'published', // TODO: isPublic 필드 사용
+        status: '공개' as const, // TODO: isPublic 필드 사용
         progress: 0,
       }
 

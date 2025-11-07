@@ -29,7 +29,7 @@ export default function CoursePageLayout({ currentPageTitle, rightActions, child
           setCurrentCourse({
             id: String(course.id),
             title: course.title,
-            status: course.status === 'published' ? '공개' : '비공개'
+            status: (course.status as string) === 'published' ? '공개' : '비공개'
           })
         }
       } catch (error) {

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { 
-  UserPlus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Users
+import {
+  UserPlus,
+  Search,
+  Edit,
+  Trash2,
+  Users,
+  CheckCircle
 } from "lucide-react";
 import Card from "../ui/Card";
 
@@ -29,22 +30,24 @@ interface SubAdminManagementProps {
   onCreateSubAdmin?: (data: any) => void;
   onEditSubAdmin?: (id: number, data: any) => void;
   onDeleteSubAdmin?: (id: number) => void;
+  onActivateSubAdmin?: (id: number) => void;
   showActions?: boolean;
 }
 
-export default function SubAdminManagement({ 
-  subAdmins, 
-  onCreateSubAdmin, 
-  onEditSubAdmin, 
-  onDeleteSubAdmin, 
-  showActions = true 
+export default function SubAdminManagement({
+  subAdmins,
+  onCreateSubAdmin,
+  onEditSubAdmin,
+  onDeleteSubAdmin,
+  onActivateSubAdmin,
+  showActions = true
 }: SubAdminManagementProps) {
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<SubAdmin | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -78,7 +81,7 @@ export default function SubAdminManagement({
   const generatePassword = () => {
     setIsGenerating(true);
     setTimeout(() => {
-      const password = Math.random().toString(36).slice(-12) + 
+      const password = Math.random().toString(36).slice(-12) +
                      Math.random().toString(36).slice(-4).toUpperCase();
       setFormData(prev => ({ ...prev, password, confirmPassword: password }));
       setIsGenerating(false);
@@ -90,11 +93,11 @@ export default function SubAdminManagement({
       alert("비밀번호가 일치하지 않습니다.");
       return;
     }
-    
+
     if (onCreateSubAdmin) {
       onCreateSubAdmin(formData);
     }
-    
+
     // 폼 리셋
     setFormData({
       name: "",
@@ -255,6 +258,15 @@ export default function SubAdminManagement({
 
                   {showActions && (
                     <div className="flex gap-2">
+                      {admin.status === 'pending' && onActivateSubAdmin && (
+                        <button
+                          onClick={() => onActivateSubAdmin(admin.id)}
+                          className="flex-1 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          활성화
+                        </button>
+                      )}
                       <button
                         onClick={() => onEditSubAdmin?.(admin.id, admin)}
                         className="flex-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
@@ -282,7 +294,7 @@ export default function SubAdminManagement({
           <div className="space-y-6">
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 break-words">새 서브 관리자 생성</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
@@ -295,7 +307,7 @@ export default function SubAdminManagement({
                       placeholder="이름을 입력하세요"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 break-words">이메일</label>
                     <input
@@ -306,7 +318,7 @@ export default function SubAdminManagement({
                       placeholder="이메일을 입력하세요"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 break-words">역할</label>
                     <select
@@ -320,7 +332,7 @@ export default function SubAdminManagement({
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 break-words">비밀번호</label>
@@ -341,7 +353,7 @@ export default function SubAdminManagement({
                       </button>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 break-words">비밀번호 확인</label>
                     <input
@@ -354,7 +366,7 @@ export default function SubAdminManagement({
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3 break-words">권한 설정</label>
                 <div className="grid grid-cols-2 gap-4">
@@ -408,7 +420,7 @@ export default function SubAdminManagement({
                   </label>
                 </div>
               </div>
-              
+
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={() => setActiveTab("list")}
@@ -443,7 +455,7 @@ export default function SubAdminManagement({
                   <p className="text-sm text-gray-600 break-words">이 작업은 되돌릴 수 없습니다</p>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-gray-700 break-words">
                   <strong>{selectedAdmin.name}</strong> ({selectedAdmin.email}) 서브 관리자를 삭제하시겠습니까?

@@ -9,7 +9,7 @@
 export interface User {
   id: string | number
   username: string
-  password: string
+  password?: string
   email: string
   role: 'instructor' | 'student' | 'admin' | 'sub-admin'
   name: string

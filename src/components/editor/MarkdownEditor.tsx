@@ -25,14 +25,11 @@ export default function MarkdownEditor({
 
   return (
     <div className="w-full border border-gray-300 rounded-lg overflow-hidden" style={{ height }}>
-      <div className="bg-gray-50 border-b border-gray-300 px-4 py-2">
-        <span className="text-sm font-medium text-gray-700">Markdown 에디터</span>
-      </div>
       <textarea
         value={markdown}
         onChange={handleChange}
         className="w-full p-4 resize-none focus:outline-none font-mono text-sm"
-        style={{ height: height - 40 }}
+        style={{ height }}
         placeholder="# 제목
 
 ## 소제목
@@ -47,8 +44,3 @@ export default function MarkdownEditor({
     </div>
   )
 }
-
-
-
-
-

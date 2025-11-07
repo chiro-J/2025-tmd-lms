@@ -210,6 +210,15 @@ export const rejectInstructor = async (id: number): Promise<Instructor> => {
   }
 };
 
+export const deleteInstructor = async (id: number): Promise<void> => {
+  try {
+    await apiClient.delete(`/admin/instructors/${id}`);
+  } catch (error) {
+    console.error('강사 삭제 실패:', error);
+    throw error;
+  }
+};
+
 // ========== 수강생 관련 ==========
 export const getStudents = async (): Promise<Student[]> => {
   try {
@@ -381,5 +390,35 @@ export const deleteCourse = async (id: number): Promise<void> => {
     throw error;
   }
 };
+
+export interface CreateCourseData {
+  title: string;
+  instructor: string;
+  thumbnail?: string;
+  content?: string;
+  videoUrl?: string;
+  status?: string;
+}
+
+export const createCourse = async (data: CreateCourseData): Promise<Course> => {
+  try {
+    const response = await apiClient.post<Course>('/courses', data);
+    return response.data;
+  } catch (error) {
+    console.error('강좌 생성 실패:', error);
+    throw error;
+  }
+};
+
+export const updateCourse = async (id: number, data: Partial<Course>): Promise<Course> => {
+  try {
+    const response = await apiClient.put<Course>(`/courses/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('강좌 수정 실패:', error);
+    throw error;
+  }
+};
+
 
 

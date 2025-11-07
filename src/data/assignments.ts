@@ -88,6 +88,8 @@ export const mockAssignments: Assignment[] = [
   }
 ]
 
+// mockSubmissionsByAssignment는 사용되지 않으므로 주석 처리
+/*
 export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]> = {
   1: [
     {
@@ -565,7 +567,4 @@ export const mockSubmissionsByAssignment: Record<number, AssignmentSubmission[]>
     }
   ]
 }
-
-export function getAssignmentById(id: number): Assignment | undefined {
-  return mockAssignments.find(a => a.id === id)
-}
+*/

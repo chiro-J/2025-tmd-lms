@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { 
-  CheckCircle, 
-  XCircle, 
-  Eye, 
-  GraduationCap
+import {
+  CheckCircle,
+  XCircle,
+  Eye,
+  GraduationCap,
+  Trash2
 } from "lucide-react";
 import Card from "../ui/Card";
+import InstructorDetailModal from "./InstructorDetailModal";
+import InstructorDeleteModal from "./InstructorDeleteModal";
 
 interface Instructor {
   id: number;
@@ -27,17 +30,20 @@ interface InstructorApprovalProps {
   instructors: Instructor[];
   onApproveInstructor?: (id: number) => void;
   onRejectInstructor?: (id: number) => void;
+  onDeleteInstructor?: (id: number) => void;
   showActions?: boolean;
 }
 
-export default function InstructorApproval({ 
-  instructors, 
-  onApproveInstructor, 
-  onRejectInstructor, 
-  showActions = true 
+export default function InstructorApproval({
+  instructors,
+  onApproveInstructor,
+  onRejectInstructor,
+  onDeleteInstructor,
+  showActions = true
 }: InstructorApprovalProps) {
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
 
   const filteredInstructors = instructors.filter(instructor => {
@@ -48,6 +54,19 @@ export default function InstructorApproval({
   const handleViewDetails = (instructor: Instructor) => {
     setSelectedInstructor(instructor);
     setShowDetailModal(true);
+  };
+
+  const handleDelete = (instructor: Instructor) => {
+    setSelectedInstructor(instructor);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedInstructor && onDeleteInstructor) {
+      onDeleteInstructor(selectedInstructor.id);
+    }
+    setShowDeleteModal(false);
+    setSelectedInstructor(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -172,7 +191,7 @@ export default function InstructorApproval({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleViewDetails(instructor)}
@@ -181,21 +200,32 @@ export default function InstructorApproval({
                   >
                     <Eye className="w-4 h-4" />
                   </button>
-                  {showActions && instructor.status === 'pending' && (
+                  {showActions && (
                     <>
+                      {instructor.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => onApproveInstructor?.(instructor.id)}
+                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="승인"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onRejectInstructor?.(instructor.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="거부"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                       <button
-                        onClick={() => onApproveInstructor?.(instructor.id)}
-                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="승인"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onRejectInstructor?.(instructor.id)}
+                        onClick={() => handleDelete(instructor)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="거부"
+                        title="삭제"
                       >
-                        <XCircle className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </>
                   )}
@@ -216,132 +246,37 @@ export default function InstructorApproval({
 
       {/* 상세보기 모달 */}
       {showDetailModal && selectedInstructor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <GraduationCap className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 break-words">강사 신청 상세 정보</h3>
-                  <p className="text-sm text-gray-600 break-words">{selectedInstructor.name}님의 신청 정보</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">이름</label>
-                    <p className="text-sm text-gray-900 break-words">{selectedInstructor.name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">이메일</label>
-                    <p className="text-sm text-gray-900 break-words">{selectedInstructor.email}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">전화번호</label>
-                    <p className="text-sm text-gray-900 break-words">{selectedInstructor.phone}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">전문분야</label>
-                    <p className="text-sm text-gray-900 break-words">{selectedInstructor.specialization}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">경력</label>
-                    <p className="text-sm text-gray-900 break-words">{selectedInstructor.experience}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">학력</label>
-                    <p className="text-sm text-gray-900 break-words">{selectedInstructor.education}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">신청일</label>
-                    <p className="text-sm text-gray-900 break-words">{selectedInstructor.appliedDate}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">상태</label>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedInstructor.status)}`}>
-                      {getStatusText(selectedInstructor.status)}
-                    </span>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">포트폴리오</label>
-                    <a 
-                      href={selectedInstructor.portfolio} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 break-words"
-                    >
-                      {selectedInstructor.portfolio}
-                    </a>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 break-words">첨부 문서</label>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedInstructor.documents.map((doc, index) => (
-                        <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded break-words">
-                          {doc}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">지원 동기</label>
-                  <p className="text-sm text-gray-900 break-words bg-gray-50 p-3 rounded-lg">
-                    {selectedInstructor.motivation}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">이전 경험</label>
-                  <p className="text-sm text-gray-900 break-words bg-gray-50 p-3 rounded-lg">
-                    {selectedInstructor.previousExperience}
-                  </p>
-                </div>
-              </div>
+        <InstructorDetailModal
+          instructor={selectedInstructor}
+          showActions={showActions}
+          onClose={() => setShowDetailModal(false)}
+          onApprove={(id) => {
+            onApproveInstructor?.(id);
+            setShowDetailModal(false);
+          }}
+          onReject={(id) => {
+            onRejectInstructor?.(id);
+            setShowDetailModal(false);
+          }}
+          onDelete={(instructor) => {
+            setShowDetailModal(false);
+            handleDelete(instructor);
+          }}
+          getStatusColor={getStatusColor}
+          getStatusText={getStatusText}
+        />
+      )}
 
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  닫기
-                </button>
-                {showActions && selectedInstructor.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={() => {
-                        onRejectInstructor?.(selectedInstructor.id);
-                        setShowDetailModal(false);
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      거부
-                    </button>
-                    <button
-                      onClick={() => {
-                        onApproveInstructor?.(selectedInstructor.id);
-                        setShowDetailModal(false);
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      승인
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </Card>
-        </div>
+      {/* 삭제 확인 모달 */}
+      {showDeleteModal && selectedInstructor && (
+        <InstructorDeleteModal
+          instructor={selectedInstructor}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => {
+            setShowDeleteModal(false);
+            setSelectedInstructor(null);
+          }}
+        />
       )}
     </>
   );

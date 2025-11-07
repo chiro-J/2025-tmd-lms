@@ -110,7 +110,6 @@ export default function AssignmentManagement() {
         instructions: data.instructions,
         allowedFileTypes: data.allowedFileTypes,
         maxFileSize: data.maxFileSize,
-        contentBlocks: data.contentBlocks,
       });
 
       // 목록 새로고침

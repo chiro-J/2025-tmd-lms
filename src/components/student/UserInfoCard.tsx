@@ -81,40 +81,41 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${backgroundImage})` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/60"></div>
+            {/* hover 시에만 명암 표시 */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/60 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200"></div>
           </div>
         )}
 
-        {/* 세션 시간 표시 - 좌상단 */}
-        <div className="absolute top-3 left-3 z-20">
-          <div className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border-2 text-xs font-medium ${
+        {/* 세션 시간 표시 - 좌상단, hover 시에만 보임 */}
+        <div className="absolute top-3 left-3 z-20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200">
+          <div className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border-2 text-xs font-medium shadow-[0_4px_12px_rgba(0,0,0,0.5)] ${
             backgroundImage
-              ? 'border-white/80 text-white'
+              ? 'border-white/80 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
               : 'border-gray-700 text-gray-700'
           }`}>
-            <Clock className="h-3.5 w-3.5" />
-            <span>{sessionTime}</span>
+            <Clock className="h-3.5 w-3.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{sessionTime}</span>
           </div>
         </div>
 
         {/* 배경 편집 버튼 - hover 시 보임 */}
         <button
           onClick={() => setIsBackgroundModalOpen(true)}
-          className={`absolute top-3 right-3 p-2.5 border-2 rounded-lg transition-all z-20 group flex items-center justify-center opacity-0 group-hover/card:opacity-100 ${
+          className={`absolute top-3 right-3 p-2.5 border-2 rounded-lg transition-all z-20 group flex items-center justify-center opacity-0 group-hover/card:opacity-100 shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(59,130,246,0.8),0_0_40px_rgba(59,130,246,0.5)] ${
             backgroundImage
-              ? 'border-white/80 text-white hover:bg-white/10'
-              : 'border-gray-700 text-gray-700 hover:bg-gray-700/10'
+              ? 'border-white/80 text-white hover:border-blue-400 hover:text-blue-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
+              : 'border-gray-700 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)]'
           }`}
           title="배경 이미지 설정"
           aria-label="배경 이미지 설정"
         >
-          <ImageIcon className="h-5 w-5" />
+          <ImageIcon className="h-5 w-5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
         </button>
 
         {/* 컨텐츠 */}
         <div className="p-6 h-full flex flex-col items-center justify-center text-center space-y-4 relative z-10">
-          {/* Avatar */}
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 ring-4 ring-white/50">
+          {/* Avatar - hover 시에만 보임 */}
+          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 ring-4 ring-white/50 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
             {user.avatar ? (
               <img
                 src={user.avatar}
@@ -122,16 +123,16 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <span aria-hidden="true">{getInitials(user.name)}</span>
+              <span aria-hidden="true" className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{getInitials(user.name)}</span>
             )}
           </div>
 
           {/* User Info - hover 시 보임 */}
           <div className="space-y-2 text-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-200">
-            <h2 className={`text-lg font-semibold ${backgroundImage ? 'text-white drop-shadow-lg' : 'text-base-content'}`}>
+            <h2 className={`text-lg font-semibold ${backgroundImage ? 'text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]' : 'text-base-content'}`}>
               {user.name}
             </h2>
-            <p className={`text-sm break-all ${backgroundImage ? 'text-white/90 drop-shadow' : 'text-base-content/70'}`}>
+            <p className={`text-sm break-all ${backgroundImage ? 'text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]' : 'text-base-content/70'}`}>
               {user.email}
             </p>
           </div>
@@ -139,15 +140,15 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
           {/* Profile Edit Button - hover 시 보임 */}
           <Link
             to="/student/profile"
-            className={`w-full inline-flex items-center justify-center space-x-2 font-medium text-sm transition-all focus-visible:ring-2 focus-visible:outline-none rounded-lg px-3 py-2 border-2 opacity-0 group-hover/card:opacity-100 ${
+            className={`w-full inline-flex items-center justify-center space-x-2 font-medium text-sm transition-all focus-visible:ring-2 focus-visible:outline-none rounded-lg px-3 py-2 border-2 opacity-0 group-hover/card:opacity-100 shadow-[0_4px_12px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(59,130,246,0.8),0_0_40px_rgba(59,130,246,0.5)] ${
               backgroundImage
-                ? 'border-white/80 text-white hover:bg-white/10 focus-visible:ring-white'
-                : 'border-gray-700 text-gray-700 hover:bg-gray-700/10 focus-visible:ring-gray-700'
+                ? 'border-white/80 text-white hover:border-blue-400 hover:text-blue-300 focus-visible:ring-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
+                : 'border-gray-700 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-[0_0_20px_rgba(59,130,246,0.6)] focus-visible:ring-gray-700'
             }`}
             aria-label="프로필 수정 페이지로 이동"
           >
-            <User className="h-4 w-4" aria-hidden="true" />
-            <span>프로필 수정</span>
+            <User className="h-4 w-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" aria-hidden="true" />
+            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">프로필 수정</span>
           </Link>
 
           {/* Social Links - hover 시 보임 */}
@@ -158,15 +159,15 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
                   href={githubUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`p-2 rounded-lg border-2 transition-all hover:scale-110 ${
+                  className={`p-2 rounded-lg border-2 transition-all hover:scale-110 shadow-[0_4px_12px_rgba(0,0,0,0.5)] ${
                     backgroundImage
-                      ? 'border-white/80 text-white hover:bg-white/10'
+                      ? 'border-white/80 text-white hover:bg-white/10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
                       : 'border-gray-700 text-gray-700 hover:bg-gray-700/10'
                   }`}
                   title="GitHub"
                   aria-label="GitHub 프로필로 이동"
                 >
-                  <Github className="h-4 w-4" />
+                  <Github className="h-4 w-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
                 </a>
               )}
               {notionUrl && (
@@ -174,15 +175,15 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
                   href={notionUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`p-2 rounded-lg border-2 transition-all hover:scale-110 ${
+                  className={`p-2 rounded-lg border-2 transition-all hover:scale-110 shadow-[0_4px_12px_rgba(0,0,0,0.5)] ${
                     backgroundImage
-                      ? 'border-white/80 text-white hover:bg-white/10'
+                      ? 'border-white/80 text-white hover:bg-white/10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'
                       : 'border-gray-700 text-gray-700 hover:bg-gray-700/10'
                   }`}
                   title="Notion"
                   aria-label="Notion 페이지로 이동"
                 >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="h-4 w-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
                   </svg>
                 </a>

@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { List, MessageCircle, HelpCircle, ClipboardList, Smile, Subtitles, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { getCurriculumData } from '../../data/curriculum'
+import { getCourse } from '../../core/api/courses'
+import type { Course } from '../../types'
 
 interface VideoSideNavProps {
   onTabChange: (tab: string) => void
   activeTab: string
   isExpanded: boolean
   onExpandChange: (isExpanded: boolean) => void
+  courseId: number
 }
 
 interface NavItem {
@@ -24,7 +26,7 @@ const navItems: NavItem[] = [
   { id: 'scripts', label: '스크립트', icon: Subtitles },
 ]
 
-export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExpandChange }: VideoSideNavProps) {
+export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExpandChange, courseId }: VideoSideNavProps) {
 
   return (
     <>
@@ -50,7 +52,7 @@ export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExp
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {activeTab === 'curriculum' && <CurriculumContent />}
+            {activeTab === 'curriculum' && <CurriculumContent courseId={courseId} />}
             {activeTab === 'scripts' && <ScriptContent />}
             {activeTab === 'qna' && <QnAContent />}
             {activeTab === 'notes' && <NotesContent />}
@@ -84,15 +86,48 @@ export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExp
 }
 
 // Curriculum Content Component
-function CurriculumContent() {
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
+interface CurriculumContentProps {
+  courseId: number
+}
 
-  // 통합 데이터 소스: data/curriculum.ts
-  const modules = useMemo(() => getCurriculumData(), [])
+function CurriculumContent({ courseId }: CurriculumContentProps) {
+  const [expandedSection, setExpandedSection] = useState<number | null>(null)
+  const [modules, setModules] = useState<any[]>([])
+  const [course, setCourse] = useState<Course | null>(null)
+  const [loading, setLoading] = useState(true)
 
+  // DB에서 커리큘럼과 강좌 정보 로드
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const { getCurriculum } = await import('../../core/api/curriculum')
+        const [curriculumData, courseData] = await Promise.all([
+          getCurriculum(courseId),
+          getCourse(courseId)
+        ])
+        setModules(curriculumData)
+        setCourse(courseData)
+      } catch (error) {
+        console.error('커리큘럼 로드 실패:', error)
+        setModules([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [courseId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-gray-500">로딩 중...</div>
+      </div>
+    )
+  }
 
   // 임시 진행률(목업). 실제로는 사용자 진행 데이터와 결합
-  const totalLectures = modules.reduce((acc, m) => acc + (m.lectures?.length || 0), 0)
+  const totalLectures = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)
   const completedLectures = 1
   const percentage = totalLectures > 0 ? Math.floor((completedLectures / totalLectures) * 100) : 0
 
@@ -101,51 +136,64 @@ function CurriculumContent() {
       {/* Course Header */}
       <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-900 mb-2 whitespace-normal break-words leading-snug">
-          문과생도, 비전공자도, 누구나 배울 수 있는 파이썬 (Python)!
+          {course?.title || '강좌 제목을 불러올 수 없습니다'}
         </h3>
         {/* 부가 설명/진도율 바 제거 요청에 따라 미노출 */}
       </div>
 
       {/* Sections */}
-      {modules.map((module) => (
-        <div key={module.id} className="border border-gray-200 rounded-xl overflow-hidden">
-          <button
-            onClick={() => setExpandedSection(expandedSection === module.id ? null : module.id)}
-            className="w-full p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-          >
-            <div className="text-left flex-1 flex items-center space-x-2 min-w-0">
-              <span className="bg-blue-500 text-white font-bold text-sm px-2 py-0.5 rounded whitespace-nowrap">
-                {String((modules.findIndex(m => m.id === module.id)) + 1).padStart(2, '0')}
-              </span>
-              <h4 className="font-medium text-gray-900 text-sm truncate">{module.title}</h4>
-            </div>
-            <svg
-              className={`h-5 w-5 text-gray-400 transition-transform ${expandedSection === module.id ? 'rotate-180' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {expandedSection === module.id && (module.lectures?.length || 0) > 0 && (
-            <div className="bg-white">
-              {module.lectures!.map((lecture, idx) => (
-                <button
-                  key={lecture.id}
-                  className="w-full p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
-                >
-                  <div className="flex-1 text-left flex items-center space-x-2 min-w-0">
-                    <span className="text-gray-500 font-normal text-xs whitespace-nowrap ml-1">{String(idx + 1).padStart(2, '0')}</span>
-                    <p className="text-sm font-medium text-gray-900 truncate">{lecture.title}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+      {modules.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          커리큘럼이 없습니다.
         </div>
-      ))}
+      ) : (
+        modules.map((module, moduleIndex) => (
+          <div key={module.id} className="border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setExpandedSection(expandedSection === module.id ? null : module.id)}
+              className="w-full p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="text-left flex-1 flex items-center space-x-2 min-w-0">
+                <span className="bg-blue-500 text-white font-bold text-sm px-2 py-0.5 rounded whitespace-nowrap">
+                  {String(moduleIndex + 1).padStart(2, '0')}
+                </span>
+                <h4 className="font-medium text-gray-900 text-sm truncate">{module.title}</h4>
+              </div>
+              <svg
+                className={`h-5 w-5 text-gray-400 transition-transform ${expandedSection === module.id ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {expandedSection === module.id && (module.lessons?.length || 0) > 0 && (
+              <div className="bg-white">
+                {module.lessons.map((lesson: any, idx: number) => (
+                  <button
+                    key={lesson.id}
+                    onClick={() => {
+                      // URL 파라미터에 레슨 ID 추가
+                      const newUrl = new URL(window.location.href)
+                      newUrl.searchParams.set('lesson', `${lesson.id}`)
+                      window.history.pushState({}, '', newUrl.toString())
+                      window.dispatchEvent(new PopStateEvent('popstate'))
+                    }}
+                    className="w-full p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
+                  >
+                    <div className="flex-1 text-left flex items-center space-x-2 min-w-0">
+                      <span className="text-gray-500 font-normal text-xs whitespace-nowrap ml-1">{String(idx + 1).padStart(2, '0')}</span>
+                      <p className="text-sm font-medium text-gray-900 truncate">{lesson.title}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))
+      )}
     </div>
   )
 }

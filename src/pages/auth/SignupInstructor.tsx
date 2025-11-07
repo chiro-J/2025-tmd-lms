@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Phone, Loader2 } from 'lucide-react';
+import { User, Mail, Lock, Phone } from 'lucide-react';
 import Header from '../../layout/Header';
-import { sendVerificationCode, registerWithVerification } from '../../core/api/auth';
+import { sendVerificationCode, verifyCode, registerWithVerification } from '../../core/api/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function SignupInstructor() {
   const navigate = useNavigate();
@@ -15,8 +16,10 @@ export default function SignupInstructor() {
     phone: ''
   });
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  const { refreshUserProfile } = useAuth();
 
   const handleSubmitStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,70 +33,79 @@ export default function SignupInstructor() {
 
     // 비밀번호 길이 확인
     if (formData.password.length < 6) {
-      setError('비밀번호는 6자 이상이어야 합니다.');
+      setError('비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     try {
-      // 이메일 인증 코드 발송
       await sendVerificationCode(formData.email);
       setStep(2);
     } catch (err: any) {
-      console.error('인증 코드 발송 실패:', err);
-      setError(err.response?.data?.message || '인증 코드 발송에 실패했습니다.');
+      setError(err.message || err.response?.data?.message || '인증 코드 발송에 실패했습니다.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const code = verificationCode.join('');
     setError('');
 
-    const code = verificationCode.join('');
     if (code.length !== 6) {
-      setError('6자리 인증 코드를 모두 입력해주세요.');
+      setError('인증 코드를 모두 입력해주세요.');
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     try {
-      // username은 email에서 @ 앞부분 사용
+      // 인증 코드 검증
+      await verifyCode(formData.email, code);
+      setIsVerified(true);
+
+      // 사용자명 자동 생성 (이메일 앞부분)
       const username = formData.email.split('@')[0];
 
-      // 회원가입 요청
-      await registerWithVerification({
-        username,
+      // 회원가입 (이미 토큰 포함)
+      const result = await registerWithVerification({
         email: formData.email,
         password: formData.password,
         name: formData.name,
+        username,
         phone: formData.phone,
         role: 'instructor',
-        verificationCode: code
       });
 
-      // 강사는 승인 대기 페이지로 이동
+      // 회원가입 응답에서 받은 토큰으로 직접 로그인 처리
+      localStorage.setItem('accessToken', result.accessToken);
+      localStorage.setItem('refreshToken', result.refreshToken);
+      localStorage.setItem('user', JSON.stringify(result.user));
+      localStorage.setItem('isLoggedIn', 'true');
+
+      // AuthContext 상태 업데이트
+      await refreshUserProfile();
+
+      alert('회원가입이 완료되었습니다. 관리자 승인을 기다려주세요.');
       navigate('/signup/pending');
     } catch (err: any) {
-      console.error('회원가입 실패:', err);
-      setError(err.response?.data?.message || '회원가입에 실패했습니다.');
+      setError(err.message || err.response?.data?.message || '인증 또는 회원가입에 실패했습니다.');
+      setIsVerified(false);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleResendCode = async () => {
     setError('');
-    setLoading(true);
+    setIsLoading(true);
     try {
       await sendVerificationCode(formData.email);
       alert('인증 코드를 재전송했습니다.');
     } catch (err: any) {
-      console.error('인증 코드 재전송 실패:', err);
-      setError(err.response?.data?.message || '인증 코드 재전송에 실패했습니다.');
+      setError(err.message || err.response?.data?.message || '인증 코드 재전송에 실패했습니다.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -171,30 +183,29 @@ export default function SignupInstructor() {
               ))}
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={isLoading || isVerified}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              인증 완료
+              {isLoading ? '처리 중...' : isVerified ? '인증 완료' : '인증 완료'}
             </button>
-
-            {/* Error Message */}
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
 
             {/* Resend Link */}
             <div className="text-center">
               <button
                 type="button"
                 onClick={handleResendCode}
-                disabled={loading}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400"
               >
                 이메일을 받지 못하셨나요? 다시 보내기
               </button>
@@ -353,19 +364,18 @@ export default function SignupInstructor() {
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
             </div>
           )}
 
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-            회원가입
+            {isLoading ? '처리 중...' : '회원가입'}
           </button>
 
           {/* Divider */}

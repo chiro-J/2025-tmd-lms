@@ -24,7 +24,7 @@ export default function CourseList() {
           return {
             id: String(course.id),
             title: course.title,
-            status: course.status === 'published' ? '게시됨' : course.status === 'draft' ? '초안' : course.status,
+            status: (course.status as string) === 'published' ? '공개' : (course.status as string) === 'draft' ? '초안' : (course.status as '초안' | '비공개' | '공개' | undefined),
             students: 0, // 나중에 실제 수강생 수로 교체
             rating: 0, // 나중에 실제 평점으로 교체
             lastEdited: courseWithDates.updatedAt ? new Date(courseWithDates.updatedAt).toLocaleDateString('ko-KR') : '방금 전',
