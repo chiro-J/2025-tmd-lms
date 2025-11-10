@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Phone, Check, X } from 'lucide-react';
 import Header from '../../layout/Header';
-import { sendVerificationCode, verifyCode, registerWithVerification, checkEmailExists, checkPhoneExists } from '../../core/api/auth';
+import { sendVerificationCode, verifyCode, registerWithVerification, checkEmailExists } from '../../core/api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 
-export default function SignupInstructor() {
+export default function SignupStudent() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -46,6 +46,7 @@ export default function SignupInstructor() {
       const { exists } = await checkEmailExists(email);
       if (exists) return '이미 사용 중인 이메일입니다.';
     } catch (error) {
+      // 네트워크 에러 등은 무시하고 진행 (form submit에서 다시 체크)
       console.error('이메일 중복 체크 실패:', error);
     }
 
@@ -69,19 +70,6 @@ export default function SignupInstructor() {
     if (!phone) return '전화번호를 입력해주세요.';
     if (!phoneRegex.test(phone.replace(/-/g, ''))) return '유효한 전화번호 형식이 아닙니다.';
     return '';
-  };
-
-  // 전화번호 자동 하이픈 삽입
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/[^0-9]/g, '');
-    if (numbers.length <= 3) {
-      return numbers;
-    } else if (numbers.length <= 7) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    } else if (numbers.length <= 11) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-    }
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
   // Blur 이벤트 핸들러
@@ -109,19 +97,14 @@ export default function SignupInstructor() {
 
   // 입력 변경 핸들러
   const handleInputChange = async (field: string, value: string) => {
-    // 전화번호는 자동으로 하이픈 삽입
-    let formattedValue = value;
-    if (field === 'phone') {
-      formattedValue = formatPhoneNumber(value);
-    }
-
-    setFormData({ ...formData, [field]: formattedValue });
+    setFormData({ ...formData, [field]: value });
 
     // 이미 터치된 필드라면 실시간으로 검증
     if (touchedFields[field as keyof typeof touchedFields]) {
       let errorMsg = '';
       switch (field) {
         case 'email':
+          // 이메일은 debounce 효과를 위해 입력 중에는 형식만 체크
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!value) {
             errorMsg = '이메일을 입력해주세요.';
@@ -131,6 +114,7 @@ export default function SignupInstructor() {
           break;
         case 'password':
           errorMsg = validatePassword(value);
+          // 비밀번호 확인도 다시 체크
           if (touchedFields.passwordConfirm) {
             setFieldErrors(prev => ({
               ...prev,
@@ -142,7 +126,7 @@ export default function SignupInstructor() {
           errorMsg = validatePasswordConfirm(value, formData.password);
           break;
         case 'phone':
-          errorMsg = validatePhone(formattedValue);
+          errorMsg = validatePhone(value);
           break;
       }
       setFieldErrors({ ...fieldErrors, [field]: errorMsg });
@@ -216,7 +200,7 @@ export default function SignupInstructor() {
         name: formData.name,
         username,
         phone: formData.phone,
-        role: 'instructor',
+        role: 'student',
       });
 
       // 회원가입 응답에서 받은 토큰으로 직접 로그인 처리
@@ -228,8 +212,8 @@ export default function SignupInstructor() {
       // AuthContext 상태 업데이트
       await refreshUserProfile();
 
-      alert('회원가입이 완료되었습니다. 관리자 승인을 기다려주세요.');
-      navigate('/signup/pending');
+      alert('회원가입이 완료되었습니다!');
+      navigate('/student/dashboard');
     } catch (err: any) {
       setError(err.message || err.response?.data?.message || '인증 또는 회원가입에 실패했습니다.');
       setIsVerified(false);
@@ -325,13 +309,6 @@ export default function SignupInstructor() {
               ))}
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-
             {/* Submit Button */}
             <button
               type="submit"
@@ -340,6 +317,13 @@ export default function SignupInstructor() {
             >
               {isLoading ? '처리 중...' : isVerified ? '인증 완료' : '인증 완료'}
             </button>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
             {/* Resend Link */}
             <div className="text-center">
@@ -413,7 +397,7 @@ export default function SignupInstructor() {
 
         {/* Title */}
         <h1 className="text-center text-2xl font-bold text-gray-900 mb-2">
-          강의자 회원가입
+          수강생 회원가입
         </h1>
         <p className="text-center text-gray-600 mb-8">
           이메일로 회원가입하세요
@@ -432,12 +416,11 @@ export default function SignupInstructor() {
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   onBlur={() => handleBlur('email')}
-                  required
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.email
                       ? fieldErrors.email
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-green-500 focus:ring-green-500'
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
@@ -462,16 +445,15 @@ export default function SignupInstructor() {
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="password"
-                  placeholder="비밀번호를 입력하세요 (최소 6자)"
+                  placeholder="비밀번호를 입력하세요"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   onBlur={() => handleBlur('password')}
-                  required
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.password
                       ? fieldErrors.password
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-green-500 focus:ring-green-500'
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
@@ -500,12 +482,11 @@ export default function SignupInstructor() {
                   value={formData.passwordConfirm}
                   onChange={(e) => handleInputChange('passwordConfirm', e.target.value)}
                   onBlur={() => handleBlur('passwordConfirm')}
-                  required
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.passwordConfirm
                       ? fieldErrors.passwordConfirm
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-green-500 focus:ring-green-500'
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
@@ -545,16 +526,15 @@ export default function SignupInstructor() {
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="tel"
-                  placeholder="전화번호를 입력하세요 (010-1234-5678)"
+                  placeholder="전화번호를 입력하세요 (예: 010-1234-5678)"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   onBlur={() => handleBlur('phone')}
-                  required
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.phone
                       ? fieldErrors.phone
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-green-500 focus:ring-green-500'
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />

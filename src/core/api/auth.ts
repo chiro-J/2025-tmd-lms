@@ -47,6 +47,26 @@ export const login = async (email: string, password: string): Promise<LoginRespo
   }
 };
 
+export const checkEmailExists = async (email: string): Promise<{ exists: boolean }> => {
+  try {
+    const response = await apiClient.post<{ exists: boolean }>('/auth/check-email', { email });
+    return response.data;
+  } catch (error) {
+    console.error('이메일 중복 체크 실패:', error);
+    throw error;
+  }
+};
+
+export const checkPhoneExists = async (phone: string): Promise<{ exists: boolean }> => {
+  try {
+    const response = await apiClient.post<{ exists: boolean }>('/auth/check-phone', { phone });
+    return response.data;
+  } catch (error) {
+    console.error('전화번호 중복 체크 실패:', error);
+    throw error;
+  }
+};
+
 export const logout = async (): Promise<void> => {
   try {
     await apiClient.post('/auth/logout');
