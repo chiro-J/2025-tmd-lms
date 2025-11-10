@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Phone, Check, X } from 'lucide-react';
 import Header from '../../layout/Header';
-import { sendVerificationCode, verifyCode, registerWithVerification, checkEmailExists } from '../../core/api/auth';
+import { sendVerificationCode, verifyCode, registerWithVerification, checkEmailExists, checkPhoneExists } from '../../core/api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function SignupStudent() {
@@ -34,6 +34,9 @@ export default function SignupStudent() {
     passwordConfirm: false,
     phone: false
   });
+
+  // Debounce를 위한 타이머
+  const [debounceTimers, setDebounceTimers] = useState<{ [key: string]: NodeJS.Timeout }>({});
 
   // 유효성 검사 함수
   const validateEmail = async (email: string) => {
@@ -82,6 +85,7 @@ export default function SignupStudent() {
       const { exists } = await checkPhoneExists(phone);
       if (exists) return '이미 사용 중인 전화번호입니다.';
     } catch (error) {
+      // 네트워크 에러 등은 무시하고 진행 (form submit에서 다시 체크)
       console.error('전화번호 중복 체크 실패:', error);
     }
 
@@ -106,30 +110,12 @@ export default function SignupStudent() {
     }
   };
 
-  // Blur 이벤트 핸들러
-  const handleBlur = async (field: 'email' | 'password' | 'passwordConfirm' | 'phone') => {
+  // Focus 이벤트 핸들러 - 필드를 터치한 것으로 표시
+  const handleFocus = (field: 'email' | 'password' | 'passwordConfirm' | 'phone') => {
     setTouchedFields({ ...touchedFields, [field]: true });
-
-    let errorMsg = '';
-    switch (field) {
-      case 'email':
-        errorMsg = await validateEmail(formData.email);
-        break;
-      case 'password':
-        errorMsg = validatePassword(formData.password);
-        break;
-      case 'passwordConfirm':
-        errorMsg = validatePasswordConfirm(formData.passwordConfirm, formData.password);
-        break;
-      case 'phone':
-        errorMsg = validatePhone(formData.phone);
-        break;
-    }
-
-    setFieldErrors({ ...fieldErrors, [field]: errorMsg });
   };
 
-  // 입력 변경 핸들러
+  // 입력 변경 핸들러 - 실시간 검증
   const handleInputChange = async (field: string, value: string) => {
     // 전화번호는 자동으로 하이픈 삽입
     let formattedValue = value;
@@ -139,37 +125,70 @@ export default function SignupStudent() {
 
     setFormData({ ...formData, [field]: formattedValue });
 
-    // 이미 터치된 필드라면 실시간으로 검증
-    if (touchedFields[field as keyof typeof touchedFields]) {
-      let errorMsg = '';
-      switch (field) {
-        case 'email':
-          // 이메일은 debounce 효과를 위해 입력 중에는 형식만 체크
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!value) {
-            errorMsg = '이메일을 입력해주세요.';
-          } else if (!emailRegex.test(value)) {
-            errorMsg = '유효한 이메일 형식이 아닙니다.';
+    // 필드를 터치한 것으로 표시
+    if (!touchedFields[field as keyof typeof touchedFields]) {
+      setTouchedFields({ ...touchedFields, [field]: true });
+    }
+
+    // 기존 타이머 제거
+    if (debounceTimers[field]) {
+      clearTimeout(debounceTimers[field]);
+    }
+
+    // 즉시 형식 검증 (빠른 피드백)
+    let errorMsg = '';
+    switch (field) {
+      case 'email':
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!value) {
+          errorMsg = '';  // 빈 값이면 에러 표시 안 함
+        } else if (!emailRegex.test(value)) {
+          errorMsg = '유효한 이메일 형식이 아닙니다.';
+        }
+        break;
+      case 'password':
+        errorMsg = value ? validatePassword(value) : '';
+        // 비밀번호 확인도 다시 체크
+        if (touchedFields.passwordConfirm && formData.passwordConfirm) {
+          setFieldErrors(prev => ({
+            ...prev,
+            passwordConfirm: validatePasswordConfirm(formData.passwordConfirm, value)
+          }));
+        }
+        break;
+      case 'passwordConfirm':
+        errorMsg = value ? validatePasswordConfirm(value, formData.password) : '';
+        break;
+      case 'phone':
+        if (!formattedValue) {
+          errorMsg = '';  // 빈 값이면 에러 표시 안 함
+        } else {
+          const cleanPhone = formattedValue.replace(/-/g, '');
+          const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
+          if (cleanPhone.length < 10 || cleanPhone.length > 11) {
+            errorMsg = '유효한 전화번호 형식이 아닙니다.';
+          } else if (!phoneRegex.test(formattedValue)) {
+            errorMsg = '유효한 전화번호 형식이 아닙니다.';
           }
-          break;
-        case 'password':
-          errorMsg = validatePassword(value);
-          // 비밀번호 확인도 다시 체크
-          if (touchedFields.passwordConfirm) {
-            setFieldErrors(prev => ({
-              ...prev,
-              passwordConfirm: validatePasswordConfirm(formData.passwordConfirm, value)
-            }));
-          }
-          break;
-        case 'passwordConfirm':
-          errorMsg = validatePasswordConfirm(value, formData.password);
-          break;
-        case 'phone':
-          errorMsg = validatePhone(formattedValue);
-          break;
-      }
-      setFieldErrors({ ...fieldErrors, [field]: errorMsg });
+        }
+        break;
+    }
+
+    setFieldErrors({ ...fieldErrors, [field]: errorMsg });
+
+    // DB 중복 체크는 debounce 적용 (이메일, 전화번호만)
+    if ((field === 'email' || field === 'phone') && value && !errorMsg) {
+      const timer = setTimeout(async () => {
+        let dbErrorMsg = '';
+        if (field === 'email') {
+          dbErrorMsg = await validateEmail(value);
+        } else if (field === 'phone') {
+          dbErrorMsg = await validatePhone(formattedValue);
+        }
+        setFieldErrors(prev => ({ ...prev, [field]: dbErrorMsg }));
+      }, 150);  // 150ms 대기 후 DB 체크
+
+      setDebounceTimers({ ...debounceTimers, [field]: timer });
     }
   };
 
@@ -181,7 +200,7 @@ export default function SignupStudent() {
     const emailError = await validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
     const passwordConfirmError = validatePasswordConfirm(formData.passwordConfirm, formData.password);
-    const phoneError = validatePhone(formData.phone);
+    const phoneError = await validatePhone(formData.phone);
 
     setFieldErrors({
       email: emailError,
@@ -455,7 +474,13 @@ export default function SignupStudent() {
                   placeholder="이메일을 입력하세요"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  onBlur={() => handleBlur('email')}
+                  onFocus={() => handleFocus('email')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      document.querySelector<HTMLInputElement>('input[type="password"]')?.focus();
+                    }
+                  }}
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.email
                       ? fieldErrors.email
@@ -464,7 +489,7 @@ export default function SignupStudent() {
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
-                {touchedFields.email && (
+                {touchedFields.email && formData.email && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     {fieldErrors.email ? (
                       <X className="w-5 h-5 text-red-500" />
@@ -488,7 +513,14 @@ export default function SignupStudent() {
                   placeholder="비밀번호를 입력하세요"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  onBlur={() => handleBlur('password')}
+                  onFocus={() => handleFocus('password')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const inputs = document.querySelectorAll<HTMLInputElement>('input[type="password"]');
+                      inputs[1]?.focus();
+                    }
+                  }}
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.password
                       ? fieldErrors.password
@@ -497,7 +529,7 @@ export default function SignupStudent() {
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
-                {touchedFields.password && (
+                {touchedFields.password && formData.password && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     {fieldErrors.password ? (
                       <X className="w-5 h-5 text-red-500" />
@@ -521,7 +553,13 @@ export default function SignupStudent() {
                   placeholder="비밀번호를 다시 입력하세요"
                   value={formData.passwordConfirm}
                   onChange={(e) => handleInputChange('passwordConfirm', e.target.value)}
-                  onBlur={() => handleBlur('passwordConfirm')}
+                  onFocus={() => handleFocus('passwordConfirm')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      document.querySelector<HTMLInputElement>('input[type="text"]')?.focus();
+                    }
+                  }}
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.passwordConfirm
                       ? fieldErrors.passwordConfirm
@@ -530,7 +568,7 @@ export default function SignupStudent() {
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
-                {touchedFields.passwordConfirm && (
+                {touchedFields.passwordConfirm && formData.passwordConfirm && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     {fieldErrors.passwordConfirm ? (
                       <X className="w-5 h-5 text-red-500" />
@@ -554,6 +592,12 @@ export default function SignupStudent() {
                   placeholder="이름을 입력하세요"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      document.querySelector<HTMLInputElement>('input[type="tel"]')?.focus();
+                    }
+                  }}
                   required
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                 />
@@ -569,7 +613,13 @@ export default function SignupStudent() {
                   placeholder="전화번호를 입력하세요 (예: 010-1234-5678)"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  onBlur={() => handleBlur('phone')}
+                  onFocus={() => handleFocus('phone')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSubmitStep1(e as any);
+                    }
+                  }}
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
                     touchedFields.phone
                       ? fieldErrors.phone
@@ -578,7 +628,7 @@ export default function SignupStudent() {
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
-                {touchedFields.phone && (
+                {touchedFields.phone && formData.phone && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     {fieldErrors.phone ? (
                       <X className="w-5 h-5 text-red-500" />
