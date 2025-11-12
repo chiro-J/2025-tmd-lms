@@ -1,39 +1,65 @@
 import { useState, useEffect } from 'react'
-import { User, Mail, Phone, MapPin, Edit3, Save, X } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Edit3, Save, X, Loader2 } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function Profile() {
+  const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
-  const userId = 1 // mockUser.id를 사용해야 하지만 여기서는 하드코딩
+  const [loading, setLoading] = useState(true)
+  const userId = typeof user?.id === 'number' ? user.id : (typeof user?.id === 'string' ? parseInt(user.id, 10) : 0)
 
   const [formData, setFormData] = useState({
-    name: 'Alex Kim',
-    email: 'alex@example.com',
-    phone: '010-1234-5678',
-    address: '서울특별시 강남구',
-    job: '프론트엔드 개발자',
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: '',
+    job: '',
     language: '한국어',
-    bio: '열정적인 개발자로서 지속적인 학습과 성장을 추구합니다.',
-    languages: ['C/C++', 'PYTHON', 'JAVASCRIPT'],
+    bio: '',
+    languages: [] as string[],
     githubUrl: '',
     notionUrl: ''
   })
 
-  // localStorage에서 소셜 링크 로드
+  // 로그인 체크 및 데이터 로드
   useEffect(() => {
+    if (!user) {
+      setLoading(false)
+      return
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || ''
+    }))
+
+    // localStorage에서 추가 정보 로드
+    const savedAddress = localStorage.getItem(`address_${userId}`)
+    const savedJob = localStorage.getItem(`job_${userId}`)
+    const savedBio = localStorage.getItem(`bio_${userId}`)
+    const savedLanguages = localStorage.getItem(`languages_${userId}`)
     const savedGithub = localStorage.getItem(`github_url_${userId}`)
     const savedNotion = localStorage.getItem(`notion_url_${userId}`)
+    const savedPhone = localStorage.getItem(`phone_${userId}`)
 
-    if (savedGithub || savedNotion) {
-      setFormData(prev => ({
-        ...prev,
-        githubUrl: savedGithub || '',
-        notionUrl: savedNotion || ''
-      }))
-    }
-  }, [userId])
+    setFormData(prev => ({
+      ...prev,
+      address: savedAddress || '',
+      job: savedJob || '',
+      bio: savedBio || '',
+      languages: savedLanguages ? JSON.parse(savedLanguages) : [],
+      githubUrl: savedGithub || '',
+      notionUrl: savedNotion || '',
+      phone: user.phone || savedPhone || ''
+    }))
+
+    setLoading(false)
+  }, [user, userId])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -41,8 +67,31 @@ export default function Profile() {
   }
 
   const handleSave = () => {
-    // 실제로는 API 호출
-    // localStorage에 소셜 링크 저장
+    // 모든 프로필 정보를 localStorage에 저장
+    if (formData.address) {
+      localStorage.setItem(`address_${userId}`, formData.address)
+    } else {
+      localStorage.removeItem(`address_${userId}`)
+    }
+
+    if (formData.job) {
+      localStorage.setItem(`job_${userId}`, formData.job)
+    } else {
+      localStorage.removeItem(`job_${userId}`)
+    }
+
+    if (formData.bio) {
+      localStorage.setItem(`bio_${userId}`, formData.bio)
+    } else {
+      localStorage.removeItem(`bio_${userId}`)
+    }
+
+    if (formData.languages.length > 0) {
+      localStorage.setItem(`languages_${userId}`, JSON.stringify(formData.languages))
+    } else {
+      localStorage.removeItem(`languages_${userId}`)
+    }
+
     if (formData.githubUrl) {
       localStorage.setItem(`github_url_${userId}`, formData.githubUrl)
     } else {
@@ -55,27 +104,59 @@ export default function Profile() {
       localStorage.removeItem(`notion_url_${userId}`)
     }
 
+    if (formData.phone) {
+      localStorage.setItem(`phone_${userId}`, formData.phone)
+    } else {
+      localStorage.removeItem(`phone_${userId}`)
+    }
+
     setIsEditing(false)
   }
 
   const handleCancel = () => {
     setIsEditing(false)
-    // 취소 시 localStorage에서 다시 로드
+    // 취소 시 user 데이터 우선 사용, localStorage에서 추가 정보 로드
+    const savedAddress = localStorage.getItem(`address_${userId}`)
+    const savedJob = localStorage.getItem(`job_${userId}`)
+    const savedBio = localStorage.getItem(`bio_${userId}`)
+    const savedLanguages = localStorage.getItem(`languages_${userId}`)
     const savedGithub = localStorage.getItem(`github_url_${userId}`)
     const savedNotion = localStorage.getItem(`notion_url_${userId}`)
+    const savedPhone = localStorage.getItem(`phone_${userId}`)
 
     setFormData({
-      name: 'Alex Kim',
-      email: 'alex@example.com',
-      phone: '010-1234-5678',
-      address: '서울특별시 강남구',
-      job: '프론트엔드 개발자',
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || savedPhone || '',
+      address: savedAddress || '',
+      job: savedJob || '',
       language: '한국어',
-      bio: '열정적인 개발자로서 지속적인 학습과 성장을 추구합니다.',
-      languages: ['C/C++', 'PYTHON', 'JAVASCRIPT'],
+      bio: savedBio || '',
+      languages: savedLanguages ? JSON.parse(savedLanguages) : [],
       githubUrl: savedGithub || '',
       notionUrl: savedNotion || ''
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-200 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 text-gray-400 mx-auto mb-2 animate-spin" />
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-base-200 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">로그인이 필요합니다.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -149,6 +230,7 @@ export default function Profile() {
                 </div>
               </div>
             </Card>
+
           </div>
 
           {/* Profile Details */}

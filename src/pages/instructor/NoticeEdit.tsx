@@ -1,15 +1,42 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Card from '../../components/ui/Card'
 import Input from '../../components/ui/Input'
 import { useParams, useNavigate } from 'react-router-dom'
-import { createCourseNotice } from '../../core/api/courses'
+import { getCourseNotices, updateCourseNotice, type CourseNotice } from '../../core/api/courses'
 
-function NoticeEditor() {
-  const { id } = useParams()
+function NoticeEdit() {
+  const { id, noticeId } = useParams()
   const navigate = useNavigate()
+  const courseId = Number(id) || 1
+  const noticeIdNum = Number(noticeId) || 0
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingNotice, setLoadingNotice] = useState(true)
+
+  useEffect(() => {
+    const loadNotice = async () => {
+      try {
+        setLoadingNotice(true)
+        const notices = await getCourseNotices(courseId)
+        const notice = notices.find(n => n.id === noticeIdNum)
+        if (notice) {
+          setTitle(notice.title)
+          setContent(notice.content)
+        } else {
+          alert('공지사항을 찾을 수 없습니다.')
+          navigate(-1)
+        }
+      } catch (error) {
+        console.error('공지사항 로드 실패:', error)
+        alert('공지사항을 불러오는데 실패했습니다.')
+        navigate(-1)
+      } finally {
+        setLoadingNotice(false)
+      }
+    }
+    loadNotice()
+  }, [courseId, noticeIdNum, navigate])
 
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -21,31 +48,39 @@ function NoticeEditor() {
     e.preventDefault()
     e.stopPropagation()
 
-    if (!title.trim() || !content.trim() || !id) {
+    if (!title.trim() || !content.trim()) {
       return
     }
 
     try {
       setLoading(true)
-      await createCourseNotice(Number(id), {
+      await updateCourseNotice(courseId, noticeIdNum, {
         title: title.trim(),
         content: content.trim(),
       })
-      alert('등록되었습니다.')
+      alert('수정되었습니다.')
       navigate(-1)
     } catch (error) {
-      console.error('공지사항 등록 실패:', error)
-      alert('공지사항 등록에 실패했습니다. 다시 시도해주세요.')
+      console.error('공지사항 수정 실패:', error)
+      alert('공지사항 수정에 실패했습니다. 다시 시도해주세요.')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loadingNotice) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <p className="text-gray-500">로딩 중...</p>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="flex items-center justify-between relative z-10">
-          <h1 className="text-xl font-semibold text-gray-900">공지사항 작성</h1>
+          <h1 className="text-xl font-semibold text-gray-900">공지사항 수정</h1>
           <div className="space-x-2 flex-shrink-0">
             <button
               type="button"
@@ -68,7 +103,7 @@ function NoticeEditor() {
               disabled={!title.trim() || !content.trim() || loading}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors cursor-pointer relative z-20"
             >
-              {loading ? '등록 중...' : '등록'}
+              {loading ? '수정 중...' : '수정'}
             </button>
           </div>
         </div>
@@ -96,4 +131,6 @@ function NoticeEditor() {
   )
 }
 
-export default NoticeEditor
+export default NoticeEdit
+
+

@@ -4,7 +4,8 @@ import {
   Users,
   BookOpen,
   Settings,
-  Shield
+  Shield,
+  X
 } from "lucide-react";
 import Section from "../../components/ui/Section";
 import Card from "../../components/ui/Card";
@@ -13,6 +14,7 @@ import StudentManagement from "../../components/admin/StudentManagement";
 import CourseManagement from "../../components/admin/CourseManagement";
 import InstructorApproval from "../../components/admin/InstructorApproval";
 import NoticeManagement from "../../components/admin/NoticeManagement";
+import InquiryManagement from "../../components/admin/InquiryManagement";
 import SystemSettings from "../../components/admin/SystemSettings";
 import * as adminApi from "../../core/api/admin";
 import type { SubAdmin, Instructor, Student, Course, Notice, Inquiry } from "../../core/api/admin";
@@ -193,6 +195,17 @@ export default function SubDashboard() {
     } catch (error) {
       console.error('강사 거부 실패:', error);
       alert('강사 거부에 실패했습니다.');
+    }
+  };
+
+  const handlePendingInstructor = async (id: number) => {
+    try {
+      await adminApi.pendingInstructor(id);
+      await loadInstructors();
+      alert('강사가 대기 상태로 변경되었습니다.');
+    } catch (error) {
+      console.error('강사 대기 상태 변경 실패:', error);
+      alert('강사 대기 상태 변경에 실패했습니다.');
     }
   };
 
@@ -415,25 +428,31 @@ export default function SubDashboard() {
 
               <Section title="시스템 상태">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 break-words">승인 대기 강사</span>
-                    <div className="flex items-center gap-2">
-                      <ProgressBar value={stats.pendingApprovals > 0 ? (stats.pendingApprovals / (stats.totalInstructors + stats.pendingApprovals)) * 100 : 0} />
-                      <span className="text-sm font-medium text-gray-600">{stats.pendingApprovals}명</span>
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-600 w-36 flex-shrink-0">승인 대기 강사</span>
+                    <div className="flex items-center flex-1 gap-4">
+                      <div className="flex-1">
+                        <ProgressBar value={stats.pendingApprovals > 0 ? (stats.pendingApprovals / (stats.totalInstructors + stats.pendingApprovals)) * 100 : 0} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600 w-16 text-right">{stats.pendingApprovals}명</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 break-words">활성 강좌 비율</span>
-                    <div className="flex items-center gap-2">
-                      <ProgressBar value={stats.totalCourses > 0 ? (courses.filter(c => c.status === 'active').length / stats.totalCourses) * 100 : 0} />
-                      <span className="text-sm font-medium text-gray-600">{courses.filter(c => c.status === 'active').length}/{stats.totalCourses}</span>
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-600 w-36 flex-shrink-0">활성 강좌 비율</span>
+                    <div className="flex items-center flex-1 gap-4">
+                      <div className="flex-1">
+                        <ProgressBar value={stats.totalCourses > 0 ? (courses.filter(c => c.status === 'active').length / stats.totalCourses) * 100 : 0} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600 w-16 text-right">{courses.filter(c => c.status === 'active').length}/{stats.totalCourses}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 break-words">활성 수강생 비율</span>
-                    <div className="flex items-center gap-2">
-                      <ProgressBar value={stats.totalStudents > 0 ? (students.filter(s => s.status === 'active').length / stats.totalStudents) * 100 : 0} />
-                      <span className="text-sm font-medium text-gray-600">{students.filter(s => s.status === 'active').length}/{stats.totalStudents}</span>
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-600 w-36 flex-shrink-0">활성 수강생 비율</span>
+                    <div className="flex items-center flex-1 gap-4">
+                      <div className="flex-1">
+                        <ProgressBar value={stats.totalStudents > 0 ? (students.filter(s => s.status === 'active').length / stats.totalStudents) * 100 : 0} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600 w-16 text-right">{students.filter(s => s.status === 'active').length}/{stats.totalStudents}</span>
                     </div>
                   </div>
                 </div>
@@ -443,79 +462,141 @@ export default function SubDashboard() {
 
           {/* 수강생 관리 섹션 */}
           {activeSection === "students" && (
-            <>
-              {loading.students ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-gray-500">로딩 중...</div>
+            <div className="mt-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">수강생 관리</h2>
+                  <button
+                    onClick={() => setActiveSection("overview")}
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="닫기"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              ) : (
-                <StudentManagement
-                  students={students.map(s => ({ ...s, enrolledCourses: s.enrolledCourses || [] }))}
-                  onStudentWithdraw={handleStudentWithdraw}
-                  showActions={true}
-                />
-              )}
-            </>
+                {loading.students ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-gray-500">로딩 중...</div>
+                  </div>
+                ) : (
+                  <StudentManagement
+                    students={students.map(s => ({ ...s, enrolledCourses: s.enrolledCourses || [] }))}
+                    onStudentWithdraw={handleStudentWithdraw}
+                    showActions={true}
+                  />
+                )}
+              </Card>
+            </div>
           )}
 
           {/* 강사 관리 섹션 */}
           {activeSection === "instructors" && (
-            <>
-              {loading.instructors ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-gray-500">로딩 중...</div>
+            <div className="mt-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">강사 승인 관리</h2>
+                  <button
+                    onClick={() => setActiveSection("overview")}
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="닫기"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              ) : (
-                <InstructorApproval
-                  instructors={instructors}
-                  onApproveInstructor={handleApproveInstructor}
-                  onRejectInstructor={handleRejectInstructor}
-                  showActions={true}
-                />
-              )}
-            </>
+                {loading.instructors ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-gray-500">로딩 중...</div>
+                  </div>
+                ) : (
+                  <InstructorApproval
+                    instructors={instructors}
+                    onApproveInstructor={handleApproveInstructor}
+                    onRejectInstructor={handleRejectInstructor}
+                    onPendingInstructor={handlePendingInstructor}
+                    showActions={true}
+                  />
+                )}
+              </Card>
+            </div>
           )}
 
           {/* 강좌 관리 섹션 */}
           {activeSection === "courses" && (
-            <>
-              {loading.courses ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-gray-500">로딩 중...</div>
+            <div className="mt-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">강좌 관리</h2>
+                  <button
+                    onClick={() => setActiveSection("overview")}
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="닫기"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              ) : (
-                <CourseManagement
-                  courses={courses}
-                  onCourseEdit={handleCourseEdit}
-                  onCourseDelete={handleCourseDelete}
-                  onCourseApprove={handleCourseApprove}
-                  onCourseReject={handleCourseReject}
-                  showActions={true}
-                />
-              )}
-            </>
+                {loading.courses ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-gray-500">로딩 중...</div>
+                  </div>
+                ) : (
+                  <CourseManagement
+                    courses={courses}
+                    onCourseDelete={handleCourseDelete}
+                    onCourseApprove={handleCourseApprove}
+                    onCourseReject={handleCourseReject}
+                    showActions={true}
+                  />
+                )}
+              </Card>
+            </div>
           )}
 
           {/* 플랫폼 관리 섹션 */}
           {activeSection === "platform" && (
-            <>
-              {(loading.inquiries || loading.notices) ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-gray-500">로딩 중...</div>
+            <div className="mt-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">플랫폼 관리</h2>
+                  <button
+                    onClick={() => setActiveSection("overview")}
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="닫기"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              ) : (
-                <NoticeManagement
-                  inquiries={inquiries}
-                  onRespondToInquiry={handleRespondToInquiry}
-                  showActions={true}
-                />
-              )}
-            </>
+                {(loading.inquiries || loading.notices) ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-gray-500">로딩 중...</div>
+                  </div>
+                ) : (
+                  <InquiryManagement
+                    inquiries={inquiries}
+                    onRespondToInquiry={handleRespondToInquiry}
+                    showActions={true}
+                  />
+                )}
+              </Card>
+            </div>
           )}
 
           {/* 시스템 설정 섹션 */}
           {activeSection === "settings" && (
-            <SystemSettings />
+            <div className="mt-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">시스템 설정</h2>
+                  <button
+                    onClick={() => setActiveSection("overview")}
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="닫기"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <SystemSettings />
+              </Card>
+            </div>
           )}
         </div>
       </div>

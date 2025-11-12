@@ -20,11 +20,14 @@ import StudentDashboard from "./pages/student/Dashboard";
 import CourseDetail from "./pages/student/CourseDetail";
 import Learning from "./pages/student/Learning";
 import Notice from "./pages/student/Notice";
+import NoticeDetail from "./pages/student/NoticeDetail";
 import Profile from "./pages/student/Profile";
 import AssignmentSubmit from "./pages/student/AssignmentSubmit";
 import QuizPlayer from "./pages/student/QuizPlayer";
 import Help from "./pages/student/Help";
+import InstructorHelp from "./pages/instructor/Help";
 import Calendar from "./pages/student/Calendar";
+import Notifications from "./pages/student/Notifications";
 
 // Instructor pages
 import InstructorDashboard from "./pages/instructor/Dashboard";
@@ -33,7 +36,6 @@ import CourseIntroduction from "./pages/instructor/CourseIntroduction";
 import CourseHome from "./pages/instructor/CourseHome";
 import EditCurriculum from "./pages/instructor/EditCurriculum";
 import ManageStudents from "./pages/instructor/ManageStudents";
-import AchievementAnalysis from "./pages/instructor/AchievementAnalysis";
 import ResourceManagement from "./pages/instructor/ResourceManagement";
 import QnAManagement from "./pages/instructor/QnAManagement";
 import CourseInfoEdit from "./pages/instructor/CourseInfoEdit";
@@ -43,15 +45,13 @@ import CreateExam from "./pages/instructor/CreateExam";
 import QuestionManagement from "./pages/instructor/QuestionManagement";
 import NoticeManagement from "./pages/instructor/NoticeManagement";
 import NoticeEditor from "./pages/instructor/NoticeEditor";
+import NoticeEdit from "./pages/instructor/NoticeEdit";
+import CourseNoticeDetail from "./pages/student/CourseNoticeDetail";
 import InstructorProfile from "./pages/instructor/InstructorProfile";
-import RealtimeProctoring from "./pages/instructor/RealtimeProctoring.tsx";
 import ResultsAnalysis from "./pages/instructor/ResultsAnalysis.tsx";
 import ExamDetail from "./pages/instructor/ExamDetail";
-import GradeReport from "./pages/instructor/GradeReport.tsx";
-import ReviewManagement from "./pages/instructor/ReviewManagement.tsx";
 import AssignmentManagement from "./pages/instructor/AssignmentManagement";
 import AssignmentSubmissions from "./pages/instructor/AssignmentSubmissions";
-import ActivityHistory from "./pages/instructor/ActivityHistory.tsx";
 import InviteStudents from "./pages/instructor/InviteStudents";
 import InviteByEmail from "./pages/instructor/InviteByEmail";
 import InviteByCode from "./pages/instructor/InviteByCode";
@@ -76,6 +76,14 @@ export default function App() {
       <Route path="/signup/pending" element={<SignupPending />} />
       <Route path="/admin/login" element={<Navigate to="/login" replace />} />
 
+      {/* Notice Editor - No layout */}
+      <Route path="/instructor/course/:id/notices/new" element={<NoticeEditor />} />
+      <Route path="/instructor/course/:id/notices/:noticeId/edit" element={<NoticeEdit />} />
+
+      {/* Course Notice Detail - No layout */}
+      <Route path="/student/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
+      <Route path="/instructor/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
+
       {/* Main app with layout */}
       <Route element={
         <CourseCreationProvider>
@@ -90,11 +98,13 @@ export default function App() {
         <Route path="/student/course/:id" element={<CourseDetail />} />
         <Route path="/student/learning/:id" element={<Learning />} />
         <Route path="/student/notice" element={<Notice />} />
+        <Route path="/student/notice/:id" element={<NoticeDetail />} />
         <Route path="/student/calendar" element={<Calendar />} />
         <Route path="/student/profile" element={<Profile />} />
         <Route path="/student/assignment/:id" element={<AssignmentSubmit />} />
         <Route path="/student/quiz/:id" element={<QuizPlayer />} />
         <Route path="/student/help" element={<Help />} />
+        <Route path="/student/notifications" element={<Notifications />} />
 
              {/* Instructor */}
              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
@@ -109,7 +119,6 @@ export default function App() {
              <Route path="/instructor/course/:id/invite-students" element={<InviteStudents />} />
              <Route path="/instructor/course/:id/invite-email" element={<InviteByEmail />} />
              <Route path="/instructor/course/:id/invite-code" element={<InviteByCode />} />
-             <Route path="/instructor/course/:id/achievement" element={<AchievementAnalysis />} />
              <Route path="/instructor/course/:id/co-instructors" element={<CoInstructorSettings />} />
              <Route path="/instructor/course/:id/exams" element={<ExamManagement />} />
              <Route path="/instructor/course/:id/assignments" element={<AssignmentManagement />} />
@@ -118,14 +127,10 @@ export default function App() {
              <Route path="/instructor/course/:id/create-exam" element={<CreateExam />} />
              <Route path="/instructor/course/:id/question-management" element={<QuestionManagement />} />
              <Route path="/instructor/course/:id/notices" element={<NoticeManagement />} />
-             <Route path="/instructor/course/:id/notices/new" element={<NoticeEditor />} />
-             <Route path="/instructor/course/:id/proctoring" element={<RealtimeProctoring />} />
              <Route path="/instructor/course/:id/results" element={<ResultsAnalysis />} />
-             <Route path="/instructor/course/:id/grade-report" element={<GradeReport />} />
-             <Route path="/instructor/course/:id/reviews" element={<ReviewManagement />} />
             {/* Removed duplicated settings (overlaps with course info edit) */}
-             <Route path="/instructor/course/:id/activity" element={<ActivityHistory />} />
              <Route path="/instructor/profile" element={<InstructorProfile />} />
+             <Route path="/instructor/help" element={<InstructorHelp />} />
 
         {/* Admin with layout */}
         <Route path="/admin/master-dashboard" element={<MasterDashboard />} />

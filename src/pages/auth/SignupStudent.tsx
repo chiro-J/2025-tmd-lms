@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Phone, Check, X } from 'lucide-react';
+import { User, Mail, Lock, Phone, CheckCircle, XCircle } from 'lucide-react';
 import Header from '../../layout/Header';
-import { sendVerificationCode, verifyCode, registerWithVerification, checkEmailExists, checkPhoneExists } from '../../core/api/auth';
+import { sendVerificationCode, verifyCode, registerWithVerification, checkEmail, checkPhone } from '../../core/api/auth';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function SignupStudent() {
@@ -21,204 +21,51 @@ export default function SignupStudent() {
   const [isVerified, setIsVerified] = useState(false);
   const { refreshUserProfile } = useAuth();
 
-  // 실시간 유효성 검사 상태
-  const [fieldErrors, setFieldErrors] = useState({
-    email: '',
-    password: '',
-    passwordConfirm: '',
-    phone: ''
-  });
-  const [touchedFields, setTouchedFields] = useState({
-    email: false,
-    password: false,
-    passwordConfirm: false,
-    phone: false
-  });
-
-  // Debounce를 위한 타이머
-  const [debounceTimers, setDebounceTimers] = useState<{ [key: string]: NodeJS.Timeout }>({});
-
-  // 유효성 검사 함수
-  const validateEmail = async (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) return '이메일을 입력해주세요.';
-    if (!emailRegex.test(email)) return '유효한 이메일 형식이 아닙니다.';
-
-    // DB 중복 체크
-    try {
-      const { exists } = await checkEmailExists(email);
-      if (exists) return '이미 사용 중인 이메일입니다.';
-    } catch (error) {
-      // 네트워크 에러 등은 무시하고 진행 (form submit에서 다시 체크)
-      console.error('이메일 중복 체크 실패:', error);
-    }
-
-    return '';
-  };
-
-  const validatePassword = (password: string) => {
-    if (!password) return '비밀번호를 입력해주세요.';
-    if (password.length < 6) return '비밀번호는 최소 6자 이상이어야 합니다.';
-    return '';
-  };
-
-  const validatePasswordConfirm = (passwordConfirm: string, password: string) => {
-    if (!passwordConfirm) return '비밀번호 확인을 입력해주세요.';
-    if (passwordConfirm !== password) return '비밀번호가 일치하지 않습니다.';
-    return '';
-  };
-
-  const validatePhone = async (phone: string) => {
-    // 10자리(010-123-4567) 또는 11자리(010-1234-5678) 모두 허용
-    const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
-    if (!phone) return '전화번호를 입력해주세요.';
-
-    const cleanPhone = phone.replace(/-/g, '');
-    if (cleanPhone.length < 10 || cleanPhone.length > 11) {
-      return '유효한 전화번호 형식이 아닙니다.';
-    }
-
-    if (!phoneRegex.test(phone)) return '유효한 전화번호 형식이 아닙니다.';
-
-    // DB 중복 체크
-    try {
-      const { exists } = await checkPhoneExists(phone);
-      if (exists) return '이미 사용 중인 전화번호입니다.';
-    } catch (error) {
-      // 네트워크 에러 등은 무시하고 진행 (form submit에서 다시 체크)
-      console.error('전화번호 중복 체크 실패:', error);
-    }
-
-    return '';
-  };
-
-  // 전화번호 자동 하이픈 삽입 (010-123-4567 또는 010-1234-5678)
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/[^0-9]/g, '');
-
-    if (numbers.length <= 3) {
-      return numbers;
-    } else if (numbers.length <= 6) {
-      // 3자리 중간번호 (010-123)
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    } else if (numbers.length <= 10) {
-      // 3자리 중간번호 (010-123-4567)
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`;
-    } else {
-      // 4자리 중간번호 (010-1234-5678)
-      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-    }
-  };
-
-  // Focus 이벤트 핸들러 - 필드를 터치한 것으로 표시
-  const handleFocus = (field: 'email' | 'password' | 'passwordConfirm' | 'phone') => {
-    setTouchedFields({ ...touchedFields, [field]: true });
-  };
-
-  // 입력 변경 핸들러 - 실시간 검증
-  const handleInputChange = async (field: string, value: string) => {
-    // 전화번호는 자동으로 하이픈 삽입
-    let formattedValue = value;
-    if (field === 'phone') {
-      formattedValue = formatPhoneNumber(value);
-    }
-
-    setFormData({ ...formData, [field]: formattedValue });
-
-    // 필드를 터치한 것으로 표시
-    if (!touchedFields[field as keyof typeof touchedFields]) {
-      setTouchedFields({ ...touchedFields, [field]: true });
-    }
-
-    // 기존 타이머 제거
-    if (debounceTimers[field]) {
-      clearTimeout(debounceTimers[field]);
-    }
-
-    // 즉시 형식 검증 (빠른 피드백)
-    let errorMsg = '';
-    switch (field) {
-      case 'email':
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!value) {
-          errorMsg = '';  // 빈 값이면 에러 표시 안 함
-        } else if (!emailRegex.test(value)) {
-          errorMsg = '유효한 이메일 형식이 아닙니다.';
-        }
-        break;
-      case 'password':
-        errorMsg = value ? validatePassword(value) : '';
-        // 비밀번호 확인도 다시 체크
-        if (touchedFields.passwordConfirm && formData.passwordConfirm) {
-          setFieldErrors(prev => ({
-            ...prev,
-            passwordConfirm: validatePasswordConfirm(formData.passwordConfirm, value)
-          }));
-        }
-        break;
-      case 'passwordConfirm':
-        errorMsg = value ? validatePasswordConfirm(value, formData.password) : '';
-        break;
-      case 'phone':
-        if (!formattedValue) {
-          errorMsg = '';  // 빈 값이면 에러 표시 안 함
-        } else {
-          const cleanPhone = formattedValue.replace(/-/g, '');
-          const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
-          if (cleanPhone.length < 10 || cleanPhone.length > 11) {
-            errorMsg = '유효한 전화번호 형식이 아닙니다.';
-          } else if (!phoneRegex.test(formattedValue)) {
-            errorMsg = '유효한 전화번호 형식이 아닙니다.';
-          }
-        }
-        break;
-    }
-
-    setFieldErrors({ ...fieldErrors, [field]: errorMsg });
-
-    // DB 중복 체크는 debounce 적용 (이메일, 전화번호만)
-    if ((field === 'email' || field === 'phone') && value && !errorMsg) {
-      const timer = setTimeout(async () => {
-        let dbErrorMsg = '';
-        if (field === 'email') {
-          dbErrorMsg = await validateEmail(value);
-        } else if (field === 'phone') {
-          dbErrorMsg = await validatePhone(formattedValue);
-        }
-        setFieldErrors(prev => ({ ...prev, [field]: dbErrorMsg }));
-      }, 150);  // 150ms 대기 후 DB 체크
-
-      setDebounceTimers({ ...debounceTimers, [field]: timer });
-    }
-  };
+  // 유효성 검사 상태
+  const [emailValidation, setEmailValidation] = useState<{
+    checking: boolean;
+    available: boolean | null;
+  }>({ checking: false, available: null });
+  const [phoneValidation, setPhoneValidation] = useState<{
+    checking: boolean;
+    available: boolean | null;
+  }>({ checking: false, available: null });
 
   const handleSubmitStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // 모든 필드 유효성 검사
-    const emailError = await validateEmail(formData.email);
-    const passwordError = validatePassword(formData.password);
-    const passwordConfirmError = validatePasswordConfirm(formData.passwordConfirm, formData.password);
-    const phoneError = await validatePhone(formData.phone);
+    // 이메일 유효성 검사
+    if (emailValidation.available === false) {
+      setError('이미 사용 중인 이메일입니다.');
+      return;
+    }
 
-    setFieldErrors({
-      email: emailError,
-      password: passwordError,
-      passwordConfirm: passwordConfirmError,
-      phone: phoneError
-    });
+    if (emailValidation.checking) {
+      setError('이메일 중복 확인 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
 
-    setTouchedFields({
-      email: true,
-      password: true,
-      passwordConfirm: true,
-      phone: true
-    });
+    // 전화번호 유효성 검사
+    if (phoneValidation.available === false) {
+      setError('이미 사용 중인 전화번호입니다.');
+      return;
+    }
 
-    // 에러가 있으면 제출 중단
-    if (emailError || passwordError || passwordConfirmError || phoneError) {
-      setError('입력 내용을 확인해주세요.');
+    if (phoneValidation.checking) {
+      setError('전화번호 중복 확인 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    // 비밀번호 확인
+    if (formData.password !== formData.passwordConfirm) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    // 비밀번호 길이 확인
+    if (formData.password.length < 6) {
+      setError('비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
 
@@ -307,6 +154,60 @@ export default function SignupStudent() {
       }
     }
   };
+
+  // 이메일 유효성 검사 (debounce)
+  useEffect(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!formData.email) {
+      setEmailValidation({ checking: false, available: null });
+      return;
+    }
+
+    if (!emailRegex.test(formData.email)) {
+      setEmailValidation({ checking: false, available: null });
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setEmailValidation({ checking: true, available: null });
+      try {
+        const result = await checkEmail(formData.email);
+        setEmailValidation({ checking: false, available: result.available });
+      } catch (error) {
+        setEmailValidation({ checking: false, available: false });
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.email]);
+
+  // 전화번호 유효성 검사 (debounce)
+  useEffect(() => {
+    const phoneRegex = /^[0-9-+\s()]+$/;
+
+    if (!formData.phone) {
+      setPhoneValidation({ checking: false, available: null });
+      return;
+    }
+
+    if (!phoneRegex.test(formData.phone) || formData.phone.length < 10) {
+      setPhoneValidation({ checking: false, available: null });
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setPhoneValidation({ checking: true, available: null });
+      try {
+        const result = await checkPhone(formData.phone);
+        setPhoneValidation({ checking: false, available: result.available });
+      } catch (error) {
+        setPhoneValidation({ checking: false, available: false });
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.phone]);
 
   const handleGoogleSignup = () => {
     alert('Google OAuth는 아직 구현되지 않았습니다.');
@@ -473,34 +374,33 @@ export default function SignupStudent() {
                   type="email"
                   placeholder="이메일을 입력하세요"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  onFocus={() => handleFocus('email')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      document.querySelector<HTMLInputElement>('input[type="password"]')?.focus();
-                    }
-                  }}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
-                    touchedFields.email
-                      ? fieldErrors.email
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:outline-none transition-colors ${
+                    emailValidation.available === true
+                      ? 'border-green-500 focus:ring-green-500 focus:border-green-500'
+                      : emailValidation.available === false
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
-                {touchedFields.email && formData.email && (
+                {emailValidation.checking && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    {fieldErrors.email ? (
-                      <X className="w-5 h-5 text-red-500" />
-                    ) : (
-                      <Check className="w-5 h-5 text-green-500" />
-                    )}
+                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 )}
+                {!emailValidation.checking && emailValidation.available === true && (
+                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 w-5 h-5" />
+                )}
+                {!emailValidation.checking && emailValidation.available === false && formData.email && (
+                  <XCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 w-5 h-5" />
+                )}
               </div>
-              {touchedFields.email && fieldErrors.email && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+              {emailValidation.available === false && formData.email && (
+                <p className="mt-1 text-sm text-red-600">이미 사용 중인 이메일입니다.</p>
+              )}
+              {emailValidation.available === true && formData.email && (
+                <p className="mt-1 text-sm text-green-600">사용 가능한 이메일입니다.</p>
               )}
             </div>
 
@@ -512,36 +412,11 @@ export default function SignupStudent() {
                   type="password"
                   placeholder="비밀번호를 입력하세요"
                   value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  onFocus={() => handleFocus('password')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const inputs = document.querySelectorAll<HTMLInputElement>('input[type="password"]');
-                      inputs[1]?.focus();
-                    }
-                  }}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
-                    touchedFields.password
-                      ? fieldErrors.password
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                 />
-                {touchedFields.password && formData.password && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    {fieldErrors.password ? (
-                      <X className="w-5 h-5 text-red-500" />
-                    ) : (
-                      <Check className="w-5 h-5 text-green-500" />
-                    )}
-                  </div>
-                )}
               </div>
-              {touchedFields.password && fieldErrors.password && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
-              )}
             </div>
 
             <div>
@@ -552,35 +427,11 @@ export default function SignupStudent() {
                   type="password"
                   placeholder="비밀번호를 다시 입력하세요"
                   value={formData.passwordConfirm}
-                  onChange={(e) => handleInputChange('passwordConfirm', e.target.value)}
-                  onFocus={() => handleFocus('passwordConfirm')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      document.querySelector<HTMLInputElement>('input[type="text"]')?.focus();
-                    }
-                  }}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
-                    touchedFields.passwordConfirm
-                      ? fieldErrors.passwordConfirm
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
+                  onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
+                  required
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                 />
-                {touchedFields.passwordConfirm && formData.passwordConfirm && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    {fieldErrors.passwordConfirm ? (
-                      <X className="w-5 h-5 text-red-500" />
-                    ) : (
-                      <Check className="w-5 h-5 text-green-500" />
-                    )}
-                  </div>
-                )}
               </div>
-              {touchedFields.passwordConfirm && fieldErrors.passwordConfirm && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.passwordConfirm}</p>
-              )}
             </div>
 
             <div>
@@ -592,12 +443,6 @@ export default function SignupStudent() {
                   placeholder="이름을 입력하세요"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      document.querySelector<HTMLInputElement>('input[type="tel"]')?.focus();
-                    }
-                  }}
                   required
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                 />
@@ -610,36 +455,35 @@ export default function SignupStudent() {
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="tel"
-                  placeholder="전화번호를 입력하세요 (예: 010-1234-5678)"
+                  placeholder="전화번호를 입력하세요"
                   value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  onFocus={() => handleFocus('phone')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleSubmitStep1(e as any);
-                    }
-                  }}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 outline-none transition-colors ${
-                    touchedFields.phone
-                      ? fieldErrors.phone
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-green-500 focus:ring-green-500 focus:border-green-500'
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:outline-none transition-colors ${
+                    phoneValidation.available === true
+                      ? 'border-green-500 focus:ring-green-500 focus:border-green-500'
+                      : phoneValidation.available === false
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                 />
-                {touchedFields.phone && formData.phone && (
+                {phoneValidation.checking && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    {fieldErrors.phone ? (
-                      <X className="w-5 h-5 text-red-500" />
-                    ) : (
-                      <Check className="w-5 h-5 text-green-500" />
-                    )}
+                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 )}
+                {!phoneValidation.checking && phoneValidation.available === true && (
+                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 w-5 h-5" />
+                )}
+                {!phoneValidation.checking && phoneValidation.available === false && formData.phone && (
+                  <XCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 w-5 h-5" />
+                )}
               </div>
-              {touchedFields.phone && fieldErrors.phone && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.phone}</p>
+              {phoneValidation.available === false && formData.phone && (
+                <p className="mt-1 text-sm text-red-600">이미 사용 중인 전화번호입니다.</p>
+              )}
+              {phoneValidation.available === true && formData.phone && (
+                <p className="mt-1 text-sm text-green-600">사용 가능한 전화번호입니다.</p>
               )}
             </div>
           </div>

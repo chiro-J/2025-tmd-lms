@@ -1,4 +1,4 @@
-import { BookOpen, Plus, Edit } from "lucide-react";
+import { Plus, Edit } from "lucide-react";
 import Card from "../ui/Card";
 
 interface CourseFormData {
@@ -146,4 +146,6 @@ export default function CourseForm({
     </Card>
   );
 }
+
+
 

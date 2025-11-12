@@ -210,6 +210,16 @@ export const rejectInstructor = async (id: number): Promise<Instructor> => {
   }
 };
 
+export const pendingInstructor = async (id: number): Promise<Instructor> => {
+  try {
+    const response = await apiClient.put<Instructor>(`/admin/instructors/${id}/pending`);
+    return response.data;
+  } catch (error) {
+    console.error('강사 대기 상태 변경 실패:', error);
+    throw error;
+  }
+};
+
 export const deleteInstructor = async (id: number): Promise<void> => {
   try {
     await apiClient.delete(`/admin/instructors/${id}`);
@@ -316,6 +326,33 @@ export const getInquiry = async (id: number): Promise<Inquiry> => {
     return response.data;
   } catch (error) {
     console.error('문의사항 조회 실패:', error);
+    throw error;
+  }
+};
+
+export const createInquiry = async (data: {
+  title: string;
+  content: string;
+  userName: string;
+  email: string;
+  courseName?: string;
+  courseNumber?: string;
+}): Promise<Inquiry> => {
+  try {
+    const response = await apiClient.post<Inquiry>('/admin/inquiries', data);
+    return response.data;
+  } catch (error) {
+    console.error('문의사항 생성 실패:', error);
+    throw error;
+  }
+};
+
+export const getMyInquiries = async (email: string): Promise<Inquiry[]> => {
+  try {
+    const response = await apiClient.get<Inquiry[]>(`/admin/inquiries/my/${encodeURIComponent(email)}`);
+    return response.data;
+  } catch (error) {
+    console.error('내 문의사항 조회 실패:', error);
     throw error;
   }
 };

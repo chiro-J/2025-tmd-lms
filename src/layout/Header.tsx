@@ -4,6 +4,7 @@ import { BookOpen, Bell, User, Menu, LogOut, ChevronDown, GraduationCap, Shield,
 import { useAuth } from '../contexts/AuthContext'
 import { mockNotifications, mockInstructorNotifications } from '../mocks'
 import type { Notification } from '../types'
+import * as adminApi from '../core/api/admin'
 
 export default function Header() {
   const location = useLocation()
@@ -59,13 +60,72 @@ export default function Header() {
 
   // 알림 데이터 로드
   useEffect(() => {
-    if (user) {
+    const loadNotifications = async () => {
+      if (!user) return
+
+      // 기본 알림 로드
+      let baseNotifications: Notification[] = []
       if (user.role === 'instructor') {
-        setNotifications(mockInstructorNotifications)
+        baseNotifications = mockInstructorNotifications
       } else {
-        setNotifications(mockNotifications)
+        baseNotifications = mockNotifications
+      }
+
+      // 시스템 공지사항 로드 (수강생과 강의자만)
+      if (user.role === 'student' || user.role === 'instructor') {
+        try {
+          const userId = typeof user.id === 'number' ? user.id : (typeof user.id === 'string' ? parseInt(user.id, 10) : 1)
+          const savedBlockNotifications = localStorage.getItem(`block_system_notifications_${userId}`)
+          const blockNotifications = savedBlockNotifications
+            ? JSON.parse(savedBlockNotifications)
+            : false
+
+          const systemNotices = await adminApi.getNotices()
+
+          // 활성 상태인 공지사항만 필터링
+          // 토글이 켜져 있으면 "높음" 중요도만, 꺼져 있으면 모두 포함
+          const filteredNotices = systemNotices.filter(notice => {
+            if (notice.status !== 'active') return false
+            if (blockNotifications) {
+              // 토글이 켜져 있으면 높음 중요도만
+              return notice.priority === 'high'
+            }
+            // 토글이 꺼져 있으면 모두 포함
+            return true
+          })
+
+          // 시스템 공지사항을 Notification 타입으로 변환
+          const systemNotifications: Notification[] = filteredNotices.map(notice => ({
+            id: notice.id + 10000, // 시스템 공지사항 ID는 10000 이상으로 구분
+            type: 'announcement',
+            title: notice.title,
+            message: notice.content.length > 100
+              ? notice.content.substring(0, 100) + '...'
+              : notice.content,
+            createdAt: notice.createdDate || new Date().toISOString(),
+            read: false,
+            link: '/student/notifications',
+            courseId: undefined,
+            courseTitle: undefined
+          }))
+
+          // 기본 알림과 시스템 공지사항 합치기 (최신순으로 정렬)
+          const allNotifications = [...baseNotifications, ...systemNotifications]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+          setNotifications(allNotifications)
+        } catch (error) {
+          console.error('시스템 공지사항 로드 실패:', error)
+          // 에러 발생 시 기본 알림만 표시
+          setNotifications(baseNotifications)
+        }
+      } else {
+        // 관리자는 기본 알림만
+        setNotifications(baseNotifications)
       }
     }
+
+    loadNotifications()
   }, [user])
 
   // 외부 클릭 시 드롭다운 메뉴 닫기
@@ -234,11 +294,27 @@ export default function Header() {
                     >
                       시스템 공지사항
                     </Link>
+                    <Link
+                      to="/instructor/help"
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        location.pathname.startsWith('/instructor/help')
+                          ? 'bg-gray-100 text-gray-900'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      도움말
+                    </Link>
                   </>
                 )}
                 {(user.role === 'admin' || user.role === 'sub-admin') && (
-                  <Link
-                    to={user.role === 'admin' ? '/admin/master-dashboard' : '/admin/sub-dashboard'}
+                  <button
+                    onClick={() => {
+                      if (user.role === 'admin') {
+                        navigate('/admin/master-dashboard')
+                      } else {
+                        navigate('/admin/sub-dashboard?section=overview')
+                      }
+                    }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       location.pathname.startsWith('/admin')
                         ? 'bg-gray-100 text-gray-900'
@@ -246,7 +322,7 @@ export default function Header() {
                     }`}
                   >
                     관리자 대시보드
-                  </Link>
+                  </button>
                 )}
               </>
             )}
@@ -324,7 +400,7 @@ export default function Header() {
                     </div>
 
                     {/* 푸터 */}
-                    <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+                    <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
                       <button
                         onClick={() => {
                           setNotifications(prev => prev.map(n => ({ ...n, read: true })))
@@ -333,6 +409,13 @@ export default function Header() {
                       >
                         모두 읽음 처리
                       </button>
+                      <Link
+                        to="/student/notifications"
+                        onClick={() => setShowNotificationMenu(false)}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        전체 보기 →
+                      </Link>
                     </div>
                   </div>
                 )}

@@ -1,10 +1,11 @@
-import { Eye, Calendar, Clock } from 'lucide-react'
+import { Calendar, Clock } from 'lucide-react'
 import type { ExamFormData } from '../../types/exam'
 import { getQuestionTypeLabel } from '../../utils/questionUtils'
+import type { QuestionType } from '../../types/question'
 
 interface AvailableQuestion {
   id: string
-  type: string
+  type: QuestionType | string
   question: string
   points: number
   status: string
@@ -162,7 +163,7 @@ export default function ExamPreview({ formData, availableQuestions = [] }: ExamP
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
                     <span className="text-xs text-gray-500">
-                      {getQuestionTypeLabel(question.type as any)}
+                      {getQuestionTypeLabel(question.type as QuestionType)}
                     </span>
                     <span className="text-xs font-medium text-gray-700">
                       {question.points}점

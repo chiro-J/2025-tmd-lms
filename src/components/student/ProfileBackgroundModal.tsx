@@ -14,10 +14,10 @@ interface ProfileBackgroundModalProps {
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
-// 프로필 카드 실제 크기 및 비율 (약 251 x 584)
-const OUTPUT_WIDTH = 251
-const OUTPUT_HEIGHT = 584
-const ASPECT_RATIO = OUTPUT_WIDTH / OUTPUT_HEIGHT // 약 1:2.33
+// 프로필 카드 실제 크기 및 비율 (250x380, 2:3 비율)
+const OUTPUT_WIDTH = 250
+const OUTPUT_HEIGHT = 380
+const ASPECT_RATIO = OUTPUT_WIDTH / OUTPUT_HEIGHT // 약 0.658 (약 2:3)
 
 export default function ProfileBackgroundModal({
   isOpen,
@@ -187,7 +187,7 @@ export default function ProfileBackgroundModal({
         {/* 안내 문구 */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm text-blue-800">
-            프로필 카드의 배경으로 사용할 이미지를 선택하세요. 크롭 영역의 비율은 프로필 카드와 동일하게 고정되어 있으며, 이미지를 드래그하여 위치를 조정하고 마우스 휠이나 버튼으로 줌을 조절할 수 있습니다.
+            프로필 카드의 배경으로 사용할 이미지를 선택하세요. 크롭 영역의 비율은 현재 프로필 크기(250x380, 2:3 비율)에 맞게 조정되어 있으며, 이미지를 드래그하여 위치를 조정하고 마우스 휠이나 버튼으로 줌을 조절할 수 있습니다.
           </p>
         </div>
 
@@ -297,7 +297,7 @@ export default function ProfileBackgroundModal({
             </div>
 
             <div className="flex items-center justify-center space-x-4 text-xs text-gray-500">
-              <p>크롭 비율: 약 1:2.33 (고정)</p>
+              <p>크롭 비율: 약 2:3 (고정)</p>
               <p>|</p>
               <p>출력 크기: {OUTPUT_WIDTH} x {OUTPUT_HEIGHT}</p>
             </div>
@@ -322,7 +322,7 @@ export default function ProfileBackgroundModal({
                   최소 {OUTPUT_WIDTH}x{OUTPUT_HEIGHT} 픽셀 이상
                 </p>
                 <div className="mt-6 inline-block px-4 py-2 border-2 border-dashed border-gray-400 rounded-lg">
-                  <p className="text-xs text-gray-500">프로필 카드 비율: 약 1:2.33 (고정)</p>
+                  <p className="text-xs text-gray-500">프로필 카드 비율: 약 2:3 (고정)</p>
                   <p className="text-xs text-gray-500">출력 크기: {OUTPUT_WIDTH} x {OUTPUT_HEIGHT}</p>
                 </div>
               </div>

@@ -21,9 +21,8 @@ interface Course {
 
 interface CourseManagementProps {
   courses: Course[];
-  onCourseEdit?: (course: Course) => void;
-  onCourseCreate?: (data: any) => void;
-  onCourseUpdate?: (id: number, data: any) => void;
+  onCourseCreate?: (data: Partial<Course>) => void;
+  onCourseUpdate?: (id: number, data: Partial<Course>) => void;
   onCourseDelete?: (courseId: number) => void;
   onCourseApprove?: (courseId: number) => void;
   onCourseReject?: (courseId: number) => void;
@@ -32,7 +31,6 @@ interface CourseManagementProps {
 
 export default function CourseManagement({
   courses,
-  onCourseEdit,
   onCourseCreate,
   onCourseUpdate,
   onCourseDelete,

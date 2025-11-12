@@ -88,8 +88,6 @@ export default function CoInstructorSettings() {
 
       <div className="flex">
         <CourseSidebar
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           currentCourse={currentCourse}
         />
 

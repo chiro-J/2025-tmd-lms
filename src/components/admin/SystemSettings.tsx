@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, Save, Bell, Shield, Globe, Database, Mail } from 'lucide-react'
+import { Save, Bell, Shield, Globe, Database, Mail } from 'lucide-react'
 import Card from '../ui/Card'
 import Button from '../ui/Button'
 
@@ -7,21 +7,21 @@ interface SystemSettingsData {
   // 알림 설정
   emailNotifications: boolean
   systemMaintenanceAlert: boolean
-  
+
   // 보안 설정
   passwordMinLength: number
   sessionTimeout: number
   twoFactorAuth: boolean
-  
+
   // 플랫폼 설정
   platformName: string
   defaultLanguage: string
   maintenanceMode: boolean
-  
+
   // 데이터베이스 설정
   autoBackup: boolean
   backupFrequency: string
-  
+
   // 이메일 설정
   smtpHost: string
   smtpPort: number
@@ -51,7 +51,7 @@ export default function SystemSettings() {
   const handleSave = async () => {
     setIsSaving(true)
     setSaveMessage(null)
-    
+
     // TODO: API 호출로 설정 저장
     setTimeout(() => {
       setIsSaving(false)

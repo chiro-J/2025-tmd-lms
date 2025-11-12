@@ -3,7 +3,7 @@ import type { ExamFormData } from '../../types/exam'
 
 interface ExamFormSectionProps {
   formData: ExamFormData
-  onInputChange: (field: keyof ExamFormData, value: any) => void
+  onInputChange: (field: keyof ExamFormData, value: string | number | boolean | string[] | undefined) => void
 }
 
 export default function ExamFormSection({ formData, onInputChange }: ExamFormSectionProps) {

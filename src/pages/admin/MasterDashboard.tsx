@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, UserPlus, CheckCircle, BookOpen, ArrowRight, X, Settings } from 'lucide-react'
+import { Users, UserPlus, CheckCircle, BookOpen, ArrowRight, X, Settings, Bell, MessageSquare } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import StudentManagement from '../../components/admin/StudentManagement'
 import CourseManagement from '../../components/admin/CourseManagement'
 import SubAdminManagement from '../../components/admin/SubAdminManagement'
 import InstructorApproval from '../../components/admin/InstructorApproval'
 import NoticeManagement from '../../components/admin/NoticeManagement'
+import InquiryManagement from '../../components/admin/InquiryManagement'
 import SystemSettings from '../../components/admin/SystemSettings'
 import * as adminApi from '../../core/api/admin'
 import type { SubAdmin, Instructor, Student, Course, Notice, Inquiry } from '../../core/api/admin'
@@ -14,6 +15,7 @@ import type { SubAdmin, Instructor, Student, Course, Notice, Inquiry } from '../
 export default function MasterDashboard() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'overview' | 'students' | 'courses' | 'subAdmins' | 'instructors' | 'platform' | 'settings'>('overview');
+  const [platformTab, setPlatformTab] = useState<'notices' | 'inquiries'>('notices');
 
   // 데이터 상태
   const [students, setStudents] = useState<Student[]>([]);
@@ -271,6 +273,17 @@ export default function MasterDashboard() {
     } catch (error) {
       console.error('강사 거부 실패:', error);
       alert('강사 거부에 실패했습니다.');
+    }
+  };
+
+  const handlePendingInstructor = async (id: number) => {
+    try {
+      await adminApi.pendingInstructor(id);
+      await loadInstructors();
+      alert('강사가 대기 상태로 변경되었습니다.');
+    } catch (error) {
+      console.error('강사 대기 상태 변경 실패:', error);
+      alert('강사 대기 상태 변경에 실패했습니다.');
     }
   };
 
@@ -556,8 +569,7 @@ export default function MasterDashboard() {
               ) : (
                 <CourseManagement
                   courses={courses}
-                  onCourseEdit={handleCourseEdit}
-                  onCourseCreate={handleCreateCourse}
+                  onCourseCreate={(data) => handleCreateCourse(data as adminApi.CreateCourseData)}
                   onCourseUpdate={handleUpdateCourse}
                   onCourseDelete={handleCourseDelete}
                   onCourseApprove={handleCourseApprove}
@@ -622,6 +634,7 @@ export default function MasterDashboard() {
                   instructors={instructors}
                   onApproveInstructor={handleApproveInstructor}
                   onRejectInstructor={handleRejectInstructor}
+                  onPendingInstructor={handlePendingInstructor}
                   onDeleteInstructor={handleDeleteInstructor}
                   showActions={true}
                 />
@@ -633,7 +646,7 @@ export default function MasterDashboard() {
         {activeSection === 'platform' && (
           <div className="mt-8">
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-gray-900">플랫폼 관리</h2>
                 <button
                   onClick={() => setActiveSection('overview')}
@@ -643,16 +656,48 @@ export default function MasterDashboard() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              {loading.inquiries ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-gray-500">로딩 중...</div>
-                </div>
+
+              {/* 탭 버튼 */}
+              <div className="flex gap-3 mb-6 border-b border-gray-200">
+                <button
+                  onClick={() => setPlatformTab('notices')}
+                  className={`px-6 py-3 font-semibold text-base transition-colors border-b-2 ${
+                    platformTab === 'notices'
+                      ? 'border-orange-600 text-orange-600 bg-orange-50'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Bell className="w-4 h-4 inline-block mr-2" />
+                  공지사항 관리
+                </button>
+                <button
+                  onClick={() => setPlatformTab('inquiries')}
+                  className={`px-6 py-3 font-semibold text-base transition-colors border-b-2 ${
+                    platformTab === 'inquiries'
+                      ? 'border-purple-600 text-purple-600 bg-purple-50'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4 inline-block mr-2" />
+                  문의사항 관리
+                </button>
+              </div>
+
+              {/* 탭 내용 */}
+              {platformTab === 'notices' ? (
+                <NoticeManagement showActions={true} />
               ) : (
-                <NoticeManagement
-                  inquiries={inquiries}
-                  onRespondToInquiry={handleRespondToInquiry}
-                  showActions={true}
-                />
+                loading.inquiries ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-gray-500">로딩 중...</div>
+                  </div>
+                ) : (
+                  <InquiryManagement
+                    inquiries={inquiries}
+                    onRespondToInquiry={handleRespondToInquiry}
+                    showActions={true}
+                  />
+                )
               )}
             </Card>
           </div>

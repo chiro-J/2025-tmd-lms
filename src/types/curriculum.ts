@@ -1,4 +1,4 @@
-export type ContentBlockType = 'text' | 'markdown' | 'pdf' | 'video' | 'image'
+export type ContentBlockType = 'text' | 'markdown' | 'lexical' | 'pdf' | 'video' | 'image'
 
 export interface ContentBlock {
   id: string
@@ -23,5 +23,6 @@ export interface Curriculum {
   title: string
   lessons: Lesson[]
 }
+
 
 

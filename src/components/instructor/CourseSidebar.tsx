@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Bell, Home, BookOpen, ClipboardList, Users, Settings, MessageCircle, FileText, HelpCircle, Edit3 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Bell, Home, BookOpen, ClipboardList, Users, Settings, MessageCircle, FileText } from 'lucide-react'
 import { mockInstructorNotifications } from '../../mocks'
 import type { Notification } from '../../types'
 
 interface CourseSidebarProps {
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
   currentCourse?: {
     id: string;
     title: string;
@@ -14,7 +12,7 @@ interface CourseSidebarProps {
   };
 }
 
-export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCourse }: CourseSidebarProps) {
+function CourseSidebar({ currentCourse }: CourseSidebarProps) {
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'assignments', 'exams', 'community', 'settings'])
   const courseId = currentCourse?.id || '1'
   const [showNotificationMenu, setShowNotificationMenu] = useState(false)
@@ -304,14 +302,8 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
                 }`}>
                   시험 문제
                 </Link>
-                <Link to={`/instructor/course/${courseId}/proctoring`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
-                  실시간 감독
-                </Link>
                 <Link to={`/instructor/course/${courseId}/results`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
                   결과 분석
-                </Link>
-                <Link to={`/instructor/course/${courseId}/grade-report`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
-                  성적 보고서 만들기
                 </Link>
               </div>
             )}
@@ -347,9 +339,6 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
                 }`}>
                   Q&A 관리
                 </Link>
-                <Link to={`/instructor/course/${courseId}/reviews`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
-                  후기 관리
-                </Link>
               </div>
             )}
           </div>
@@ -376,13 +365,6 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
                     : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
                 }`}>
                   전체 수강자
-                </Link>
-                <Link to={`/instructor/course/${courseId}/achievement`} className={`block px-4 py-2 text-sm rounded ${
-                  location.pathname === `/instructor/course/${courseId}/achievement`
-                    ? 'text-primary bg-primary/10'
-                    : 'text-gray-900 hover:text-gray-900 hover:bg-gray-100'
-                }`}>
-                  성취도 분석
                 </Link>
               </div>
             )}
@@ -412,9 +394,6 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
                 }`}>
                   공동 강의자 설정
                 </Link>
-                <Link to={`/instructor/course/${courseId}/activity`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
-                  활동 내역
-                </Link>
               </div>
             )}
           </div>
@@ -431,3 +410,5 @@ export default function CourseSidebar({ isCollapsed, onToggleCollapse, currentCo
     </div>
   )
 }
+
+export default CourseSidebar

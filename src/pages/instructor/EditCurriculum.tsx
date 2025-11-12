@@ -67,17 +67,23 @@ export default function EditCurriculum() {
               }
             } catch {
               // JSON이 아닌 경우: 기존 텍스트 형식
+              // 빈 내용이 아니고 실제 내용이 있을 때만 블록 생성
+              if (lessonData.description && lessonData.description.trim() !== '') {
+                const newBlock: ContentBlock = {
+                  id: `block-${lesson.id}-${Date.now()}`,
+                  type: 'markdown',
+                  content: lessonData.description
+                }
+                setContent(lessonData.description)
+                setContentBlocks([newBlock])
+                return true
+              }
             }
 
-            // 기존 텍스트 형식인 경우: 하나의 마크다운 블록으로 변환
-            const newBlock: ContentBlock = {
-              id: `block-${lesson.id}-${Date.now()}`,
-              type: 'markdown',
-              content: lessonData.description
-            }
-            setContent(lessonData.description)
-            setContentBlocks([newBlock])
-            return true
+            // 빈 내용인 경우
+            setContent('')
+            setContentBlocks([])
+            return false
           } else {
             setContent('')
             setContentBlocks([])
@@ -170,16 +176,20 @@ export default function EditCurriculum() {
   }
 
   // PDF 파일 업로드 (블록용)
-  const handlePdfUploadForBlock = (blockId: string, file: File) => {
+  const handlePdfUploadForBlock = async (blockId: string, file: File) => {
     if (!file.type.includes('pdf')) {
       alert('PDF 파일만 업로드 가능합니다.')
       return
     }
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      updateBlockContent(blockId, reader.result as string)
+    try {
+      const { uploadFile } = await import('../../core/api/upload')
+      const result = await uploadFile(file, 'pdf')
+      updateBlockContent(blockId, result.url)
+    } catch (error) {
+      console.error('PDF 업로드 실패:', error)
+      alert('파일 업로드에 실패했습니다. 다시 시도해주세요.')
+      // 폴백하지 않고 에러만 표시
     }
-    reader.readAsDataURL(file)
   }
 
   // PDF 페이지 수 로드 (블록용)
@@ -189,16 +199,20 @@ export default function EditCurriculum() {
   }
 
   // 이미지 파일 업로드 (블록용)
-  const handleImageUploadForBlock = (blockId: string, file: File) => {
+  const handleImageUploadForBlock = async (blockId: string, file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('이미지 파일만 업로드 가능합니다.')
       return
     }
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      updateBlockContent(blockId, reader.result as string)
+    try {
+      const { uploadFile } = await import('../../core/api/upload')
+      const result = await uploadFile(file, 'image')
+      updateBlockContent(blockId, result.url)
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error)
+      alert('파일 업로드에 실패했습니다. 다시 시도해주세요.')
+      // 폴백하지 않고 에러만 표시
     }
-    reader.readAsDataURL(file)
   }
 
   // YouTube 비디오 ID 추출
@@ -587,7 +601,7 @@ export default function EditCurriculum() {
     >
       <div className="flex gap-6 h-full">
         {/* 왼쪽 사이드바 - 커리큘럼 목록 */}
-        <div className="w-80 bg-white rounded-xl shadow-md border-2 border-gray-200 flex flex-col">
+        <div className="w-80 flex-shrink-0 bg-white rounded-xl shadow-md border-2 border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">강의 구성</h2>
             {isEditMode && (
@@ -812,7 +826,7 @@ export default function EditCurriculum() {
         </div>
 
         {/* 편집 에디터 영역 */}
-        <div className="flex-1 bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-auto">
+        <div className="flex-1 min-w-0 bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-auto">
           {/* 상태 메시지 */}
           {isEditMode && (
             <div className="p-4 bg-orange-50 border-b border-orange-200 sticky top-0 z-10">
@@ -824,7 +838,7 @@ export default function EditCurriculum() {
           )}
 
           {/* 내용 영역 */}
-          <div className="p-6">
+          <div className="p-6 max-w-6xl mx-auto">
             {selectedLesson ? (
               <LessonContentEditor
                 lesson={selectedLesson}

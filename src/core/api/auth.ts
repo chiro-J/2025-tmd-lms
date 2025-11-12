@@ -47,26 +47,6 @@ export const login = async (email: string, password: string): Promise<LoginRespo
   }
 };
 
-export const checkEmailExists = async (email: string): Promise<{ exists: boolean }> => {
-  try {
-    const response = await apiClient.post<{ exists: boolean }>('/auth/check-email', { email });
-    return response.data;
-  } catch (error) {
-    console.error('이메일 중복 체크 실패:', error);
-    throw error;
-  }
-};
-
-export const checkPhoneExists = async (phone: string): Promise<{ exists: boolean }> => {
-  try {
-    const response = await apiClient.post<{ exists: boolean }>('/auth/check-phone', { phone });
-    return response.data;
-  } catch (error) {
-    console.error('전화번호 중복 체크 실패:', error);
-    throw error;
-  }
-};
-
 export const logout = async (): Promise<void> => {
   try {
     await apiClient.post('/auth/logout');
@@ -144,6 +124,33 @@ export const registerWithVerification = async (data: RegisterWithVerificationDat
       throw new Error('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
     }
     throw new Error(error.response?.data?.message || '회원가입에 실패했습니다.');
+  }
+};
+
+// ========== 중복 체크 관련 API ==========
+
+export const checkEmail = async (email: string): Promise<{ exists: boolean; available: boolean }> => {
+  try {
+    const response = await apiClient.post<{ exists: boolean; available: boolean }>('/auth/check-email', { email });
+    return response.data;
+  } catch (error: any) {
+    console.error('이메일 중복 체크 실패:', error);
+    // 에러 발생 시 중복으로 간주
+    return { exists: true, available: false };
+  }
+};
+
+export const checkPhone = async (phone: string): Promise<{ exists: boolean; available: boolean }> => {
+  try {
+    if (!phone) {
+      return { exists: false, available: true };
+    }
+    const response = await apiClient.post<{ exists: boolean; available: boolean }>('/auth/check-phone', { phone });
+    return response.data;
+  } catch (error: any) {
+    console.error('전화번호 중복 체크 실패:', error);
+    // 에러 발생 시 중복으로 간주
+    return { exists: true, available: false };
   }
 };
 

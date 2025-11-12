@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ClipboardList, Edit3, AlertCircle, Star, Users, Play, Key } from 'lucide-react'
+import { ClipboardList, Edit3, AlertCircle, Play, Key } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
@@ -70,20 +70,7 @@ export default function CourseHome() {
 
             {/* Course Info */}
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-base-content mb-2">{course.title}</h2>
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="flex items-center space-x-1">
-                  <Star className="h-4 w-4 text-yellow-400" />
-                  <span className="text-sm text-gray-600">4.5</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">22명 수강</span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  최근편집 <span className="font-semibold text-gray-900">김강사</span> <span className="text-gray-400">|</span> 메인 강의자 <span className="text-gray-400">|</span> <span className="text-gray-500">25.09.02</span>
-                </div>
-              </div>
+              <h2 className="text-2xl font-bold text-base-content mb-4">{course.title}</h2>
 
               {/* Action Buttons */}
               <div className="flex items-center space-x-3">

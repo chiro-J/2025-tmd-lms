@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { PlusCircle, Users, Star, Home, BookOpen, Users2, Settings, Key } from 'lucide-react'
-import Card from '../../components/ui/Card'
+import { PlusCircle, Users, Home, BookOpen } from 'lucide-react'
 import { getCourses } from '../../core/api/courses'
 import type { Course } from '../../types'
 
 export default function InstructorDashboard() {
-  const [activeTab, setActiveTab] = useState<'my-courses' | 'joint-courses'>('my-courses')
   const [myCourses, setMyCourses] = useState<Course[]>([])
-  const [jointCourses] = useState<Course[]>([]) // 공동 제작은 나중에
   const [loading, setLoading] = useState(true)
 
   // DB에서 강좌 목록 로드
@@ -54,19 +51,6 @@ export default function InstructorDashboard() {
               <h2 className="text-lg text-gray-900 mb-1">김강사</h2>
               <p className="text-xs text-gray-600 mb-4">강의자님, 안녕하세요!</p>
 
-              {/* Stats */}
-              <div className="space-y-3 mb-6">
-                <div className="flex items-center justify-center space-x-2">
-                  <Users className="h-3 w-3 text-gray-600" />
-                  <span className="text-xs text-gray-700">누적 수강생</span>
-                  <span className="text-sm text-gray-900">0</span>
-                </div>
-                <div className="flex items-center justify-center space-x-2">
-                  <Star className="h-3 w-3 text-gray-600" />
-                  <span className="text-xs text-gray-700">평점</span>
-                  <span className="text-sm text-gray-900">0</span>
-                </div>
-              </div>
 
               {/* Create Course Button */}
               <Link
@@ -94,13 +78,6 @@ export default function InstructorDashboard() {
                 <BookOpen className="h-4 w-4" />
                 <span>내가 개설한 강좌</span>
               </Link>
-              <Link
-                to="/instructor/courses?tab=joint-courses"
-                className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-sm"
-              >
-                <Users2 className="h-4 w-4" />
-                <span>공동 제작 중인 강좌</span>
-              </Link>
             </nav>
           </div>
         </div>
@@ -119,39 +96,12 @@ export default function InstructorDashboard() {
               </div>
             </div>
 
-            {/* Course Tabs */}
-            <div className="mb-6">
-              <div className="border-b-2 border-gray-200">
-                <nav className="flex space-x-8">
-                  <button
-                    onClick={() => setActiveTab('my-courses')}
-                    className={`py-4 px-2 border-b-4 text-sm ${
-                      activeTab === 'my-courses'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    내가 개설한 강좌 {myCourses.length}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('joint-courses')}
-                    className={`py-4 px-2 border-b-4 text-sm ${
-                      activeTab === 'joint-courses'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    공동 제작 중인 강좌 {jointCourses.length}
-                  </button>
-                </nav>
-              </div>
-            </div>
 
             {/* Course Content */}
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
               {loading ? (
                 <div className="text-center py-8 text-gray-500">로딩 중...</div>
-              ) : activeTab === 'my-courses' ? (
+              ) : (
                 <div className="space-y-4">
                  {myCourses.length === 0 ? (
                    <div className="text-center py-12">
@@ -165,38 +115,6 @@ export default function InstructorDashboard() {
                      </Link>
                    </div>
                  ) : myCourses.map((c) => (
-                   <Link
-                     key={c.id}
-                     to={`/instructor/course/${c.id}/home`}
-                     className="block border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-lg transition-all"
-                   >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                            <img
-                              src={c.image || '/photo/bbb.jpg'}
-                              alt={c.title}
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                          </div>
-                          <div>
-                            <h3 className="text-lg text-gray-900 mb-1">{c.title}</h3>
-                            <p className="text-sm text-gray-500">상태: {c.status} · 마지막 편집: {c.lastEdited}</p>
-                          </div>
-                        </div>
-                        <span className="text-blue-600 text-sm">강좌 홈 열기 →</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                 {jointCourses.length === 0 ? (
-                   <div className="text-center py-12">
-                     <Users2 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                     <p className="text-gray-500">공동 제작 중인 강좌가 없습니다.</p>
-                   </div>
-                 ) : jointCourses.map((c) => (
                    <Link
                      key={c.id}
                      to={`/instructor/course/${c.id}/home`}

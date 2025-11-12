@@ -1,4 +1,4 @@
-import { GraduationCap, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { GraduationCap, CheckCircle, XCircle, Trash2, Clock } from "lucide-react";
 import Card from "../ui/Card";
 
 interface Instructor {
@@ -23,6 +23,7 @@ interface InstructorDetailModalProps {
   onClose: () => void;
   onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
+  onPending?: (id: number) => void;
   onDelete?: (instructor: Instructor) => void;
   getStatusColor: (status: string) => string;
   getStatusText: (status: string) => string;
@@ -34,6 +35,7 @@ export default function InstructorDetailModal({
   onClose,
   onApprove,
   onReject,
+  onPending,
   onDelete,
   getStatusColor,
   getStatusText,
@@ -163,6 +165,42 @@ export default function InstructorDetailModal({
                     </button>
                   </>
                 )}
+                {instructor.status === 'approved' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        onPending?.(instructor.id);
+                        onClose();
+                      }}
+                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center gap-2"
+                    >
+                      <Clock className="w-4 h-4" />
+                      대기 상태로 변경
+                    </button>
+                    <button
+                      onClick={() => {
+                        onReject?.(instructor.id);
+                        onClose();
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      거부
+                    </button>
+                  </>
+                )}
+                {instructor.status === 'rejected' && (
+                  <button
+                    onClick={() => {
+                      onApprove?.(instructor.id);
+                      onClose();
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    재승인
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     onClose();
@@ -181,4 +219,6 @@ export default function InstructorDetailModal({
     </div>
   );
 }
+
+
 

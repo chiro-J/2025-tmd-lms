@@ -71,3 +71,61 @@ export const getCourseByEnrollmentCode = async (code: string): Promise<Course> =
   }
 };
 
+/**
+ * 강좌별 공지사항 조회
+ * GET /api/courses/:id/notices
+ */
+export interface CourseNotice {
+  id: number;
+  courseId: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getCourseNotices = async (courseId: number): Promise<CourseNotice[]> => {
+  try {
+    const response = await apiClient.get<CourseNotice[]>(`/courses/${courseId}/notices`);
+    return response.data;
+  } catch (error) {
+    console.error('강좌별 공지사항 조회 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 강좌별 공지사항 생성
+ * POST /api/courses/:id/notices
+ */
+export const createCourseNotice = async (
+  courseId: number,
+  data: { title: string; content: string }
+): Promise<CourseNotice> => {
+  try {
+    const response = await apiClient.post<CourseNotice>(`/courses/${courseId}/notices`, data);
+    return response.data;
+  } catch (error) {
+    console.error('강좌별 공지사항 생성 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 강좌별 공지사항 수정
+ * PUT /api/courses/:id/notices/:noticeId
+ */
+export const updateCourseNotice = async (
+  courseId: number,
+  noticeId: number,
+  data: { title: string; content: string }
+): Promise<CourseNotice> => {
+  try {
+    const response = await apiClient.put<CourseNotice>(`/courses/${courseId}/notices/${noticeId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('강좌별 공지사항 수정 실패:', error);
+    throw error;
+  }
+};
+

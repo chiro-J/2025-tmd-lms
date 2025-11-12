@@ -1,27 +1,116 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { User, Mail, Phone, MapPin, Edit3, Save, X, BookOpen, Users, Award, Calendar } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Edit3, Save, X, BookOpen, Users, Award, Calendar, Loader2 } from 'lucide-react'
+
+// 알림 설정 카드 컴포넌트
+interface NotificationSettingsCardProps {
+  userId: number
+  blockNotifications: boolean
+  setBlockNotifications: (value: boolean) => void
+}
+
+function NotificationSettingsCard({ userId, blockNotifications, setBlockNotifications }: NotificationSettingsCardProps) {
+  const handleToggle = () => {
+    const newValue = !blockNotifications
+    setBlockNotifications(newValue)
+    localStorage.setItem(`block_system_notifications_${userId}`, JSON.stringify(newValue))
+  }
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold text-base-content mb-2">시스템 공지사항 알림 설정</h3>
+      <p className="text-sm text-base-content/70 mb-4">
+        중요도가 "높음"인 공지사항은 무조건 알림을 받습니다.
+        토글을 활성화하면 그 외 공지사항의 알림을 받지 않습니다.
+      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-base-content">
+            {blockNotifications ? '일반 공지사항 알림 수신 거부' : '모든 공지사항 알림 수신'}
+          </p>
+        </div>
+        <button
+          onClick={handleToggle}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            blockNotifications ? 'bg-gray-300' : 'bg-primary'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              blockNotifications ? 'translate-x-1' : 'translate-x-6'
+            }`}
+          />
+        </button>
+      </div>
+    </Card>
+  )
+}
 
 export default function InstructorProfile() {
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const userId = typeof user?.id === 'number' ? user.id : (typeof user?.id === 'string' ? parseInt(user.id, 10) : 1)
+
   const [formData, setFormData] = useState({
-    name: user?.name || '김강사',
-    email: user?.email || 'instructor@example.com',
-    phone: '010-1234-5678',
-    address: '서울특별시 강남구',
-    bio: '풀스택 개발 전문 강사입니다. React, Node.js, 데이터베이스 등 다양한 기술을 가르치고 있습니다.',
-    specialties: ['React', 'Node.js', 'TypeScript', 'MongoDB'],
-    experience: '5년',
-    education: '컴퓨터공학 학사',
-    totalCourses: 12,
-    totalStudents: 245,
-    averageRating: 4.8,
-    joinDate: '2023-01-15'
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: '',
+    bio: '',
+    specialties: [] as string[],
+    experience: '',
+    education: '',
+    totalCourses: 0,
+    totalStudents: 0,
+    averageRating: 0,
+    joinDate: ''
   })
+
+  const [blockNotifications, setBlockNotifications] = useState(false)
+
+  // 로그인 체크 및 데이터 로드
+  useEffect(() => {
+    if (!user) {
+      setLoading(false)
+      return
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || ''
+    }))
+
+    // localStorage에서 추가 정보 로드
+    const savedAddress = localStorage.getItem(`instructor_address_${userId}`)
+    const savedBio = localStorage.getItem(`instructor_bio_${userId}`)
+    const savedSpecialties = localStorage.getItem(`instructor_specialties_${userId}`)
+    const savedExperience = localStorage.getItem(`instructor_experience_${userId}`)
+    const savedEducation = localStorage.getItem(`instructor_education_${userId}`)
+    const savedPhone = localStorage.getItem(`instructor_phone_${userId}`)
+    const savedBlockNotifications = localStorage.getItem(`block_system_notifications_${userId}`)
+
+    setFormData(prev => ({
+      ...prev,
+      address: savedAddress || '',
+      bio: savedBio || '',
+      specialties: savedSpecialties ? JSON.parse(savedSpecialties) : [],
+      experience: savedExperience || '',
+      education: savedEducation || '',
+      phone: user.phone || savedPhone || ''
+    }))
+
+    if (savedBlockNotifications) {
+      setBlockNotifications(JSON.parse(savedBlockNotifications))
+    }
+
+    setLoading(false)
+  }, [user, userId])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -31,12 +120,88 @@ export default function InstructorProfile() {
   }
 
   const handleSave = () => {
-    // 실제로는 API 호출
+    // 모든 프로필 정보를 localStorage에 저장
+    if (formData.address) {
+      localStorage.setItem(`instructor_address_${userId}`, formData.address)
+    } else {
+      localStorage.removeItem(`instructor_address_${userId}`)
+    }
+
+    if (formData.bio) {
+      localStorage.setItem(`instructor_bio_${userId}`, formData.bio)
+    } else {
+      localStorage.removeItem(`instructor_bio_${userId}`)
+    }
+
+    if (formData.specialties.length > 0) {
+      localStorage.setItem(`instructor_specialties_${userId}`, JSON.stringify(formData.specialties))
+    } else {
+      localStorage.removeItem(`instructor_specialties_${userId}`)
+    }
+
+    if (formData.experience) {
+      localStorage.setItem(`instructor_experience_${userId}`, formData.experience)
+    } else {
+      localStorage.removeItem(`instructor_experience_${userId}`)
+    }
+
+    if (formData.education) {
+      localStorage.setItem(`instructor_education_${userId}`, formData.education)
+    } else {
+      localStorage.removeItem(`instructor_education_${userId}`)
+    }
+
+    if (formData.phone) {
+      localStorage.setItem(`instructor_phone_${userId}`, formData.phone)
+    } else {
+      localStorage.removeItem(`instructor_phone_${userId}`)
+    }
+
     setIsEditing(false)
   }
 
   const handleCancel = () => {
     setIsEditing(false)
+    // 취소 시 user 데이터 우선 사용, localStorage에서 추가 정보 로드
+    const savedAddress = localStorage.getItem(`instructor_address_${userId}`)
+    const savedBio = localStorage.getItem(`instructor_bio_${userId}`)
+    const savedSpecialties = localStorage.getItem(`instructor_specialties_${userId}`)
+    const savedExperience = localStorage.getItem(`instructor_experience_${userId}`)
+    const savedEducation = localStorage.getItem(`instructor_education_${userId}`)
+    const savedPhone = localStorage.getItem(`instructor_phone_${userId}`)
+
+    setFormData(prev => ({
+      ...prev,
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || savedPhone || '',
+      address: savedAddress || '',
+      bio: savedBio || '',
+      specialties: savedSpecialties ? JSON.parse(savedSpecialties) : [],
+      experience: savedExperience || '',
+      education: savedEducation || ''
+    }))
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 text-gray-400 mx-auto mb-2 animate-spin" />
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">로그인이 필요합니다.</p>
+        </div>
+      </div>
+    )
   }
 
   return (

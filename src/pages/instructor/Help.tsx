@@ -8,7 +8,36 @@ import type { FAQItem } from '../../types'
 import * as adminApi from '../../core/api/admin'
 import { useAuth } from '../../contexts/AuthContext'
 
-export default function Help() {
+// 강의자용 FAQ (실제로는 별도로 관리해야 할 수도 있음)
+const instructorFAQ: FAQItem[] = [
+  ...mockFAQ,
+  {
+    id: 'instructor-1',
+    question: '강의를 어떻게 생성하나요?',
+    answer: '대시보드에서 "강의 생성" 버튼을 클릭하거나, 강의 목록 페이지에서 "새 강의 만들기"를 선택하세요. 강의 정보, 커리큘럼, 강의 자료를 순서대로 입력하면 됩니다.',
+    category: '강의 관리'
+  },
+  {
+    id: 'instructor-2',
+    question: '수강생을 어떻게 초대하나요?',
+    answer: '강의 상세 페이지의 "학생 관리" 섹션에서 수강 코드 생성, 이메일 초대, 직접 초대 등의 방법으로 수강생을 추가할 수 있습니다.',
+    category: '학생 관리'
+  },
+  {
+    id: 'instructor-3',
+    question: '과제와 시험을 어떻게 등록하나요?',
+    answer: '강의 상세 페이지에서 "과제 관리" 또는 "시험 관리" 메뉴로 이동하여 새 과제/시험을 생성할 수 있습니다. 제출 기한, 배점, 문제 등을 설정할 수 있습니다.',
+    category: '평가 관리'
+  },
+  {
+    id: 'instructor-4',
+    question: '학생들의 학습 진도를 확인할 수 있나요?',
+    answer: '네, "학습 분석" 또는 "성적 관리" 메뉴에서 각 학생의 학습 진도, 과제 제출 현황, 시험 점수 등을 확인할 수 있습니다.',
+    category: '학습 분석'
+  }
+]
+
+export default function InstructorHelp() {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
@@ -29,7 +58,7 @@ export default function Help() {
   const [enrolledCourses, setEnrolledCourses] = useState<Array<{ courseId: number; courseName: string; courseNumber: string }>>([])
   const [selectedCourse, setSelectedCourse] = useState<{ courseName: string; courseNumber: string } | null>(null)
 
-  const filteredFAQ = mockFAQ.filter(item =>
+  const filteredFAQ = instructorFAQ.filter(item =>
     item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -44,6 +73,14 @@ export default function Help() {
     }
     setExpandedItems(newExpanded)
   }
+
+  const categories = [...new Set(instructorFAQ.map(item => item.category))]
+
+  // 카테고리별로 FAQ 그룹화
+  const faqByCategory = categories.reduce((acc, category) => {
+    acc[category] = filteredFAQ.filter(item => item.category === category)
+    return acc
+  }, {} as Record<string, FAQItem[]>)
 
   // 수강 코스 정보 로드
   useEffect(() => {
@@ -84,6 +121,7 @@ export default function Help() {
     loadMyInquiries()
   }, [user?.email])
 
+  // 문의 제출 후 목록 새로고침
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -124,31 +162,23 @@ export default function Help() {
     }
   }
 
-  const categories = [...new Set(mockFAQ.map(item => item.category))]
-
-  // 카테고리별로 FAQ 그룹화
-  const faqByCategory = categories.reduce((acc, category) => {
-    acc[category] = filteredFAQ.filter(item => item.category === category)
-    return acc
-  }, {} as Record<string, FAQItem[]>)
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50">
       <div className="container-page py-6">
         {/* 헤더 섹션 - 제목, 설명, 검색창을 하나의 박스로 */}
         <Card className="border-0 shadow-lg bg-white mb-6">
           <div className="p-5">
             <div className="flex items-start gap-4 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
                 <HelpCircle className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-bold text-gray-900 mb-1">도움말 센터</h1>
-                <p className="text-base text-gray-600">자주 묻는 질문을 확인하거나 관리자에게 직접 문의하세요</p>
+                <h1 className="text-lg font-bold text-gray-900 mb-1">강의자 도움말 센터</h1>
+                <p className="text-base text-gray-600">강의 운영에 필요한 정보를 확인하거나 관리자에게 직접 문의하세요</p>
               </div>
             </div>
             <div className="relative">
-              <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
+              <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-200 transition-all">
                 <div className="pl-4 pr-3">
                   <Search className="h-5 w-5 text-gray-400" />
                 </div>
@@ -180,7 +210,7 @@ export default function Help() {
               <Card className="border-0 shadow-lg bg-white">
                 <div className="p-5">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
                       <FileText className="h-5 w-5 text-white" />
                     </div>
                     <h2 className="text-lg font-bold text-gray-900">내 문의사항</h2>
@@ -190,7 +220,7 @@ export default function Help() {
                     {myInquiries.map((inquiry) => (
                       <div
                         key={inquiry.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                        className="border border-gray-200 rounded-lg p-4 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer"
                         onClick={() => {
                           setSelectedInquiry(inquiry)
                           setShowInquiryModal(true)
@@ -224,7 +254,7 @@ export default function Help() {
             <Card className="border-0 shadow-lg bg-white">
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
                     <BookOpen className="h-5 w-5 text-white" />
                   </div>
                   <h2 className="text-lg font-bold text-gray-900">자주하는 질문</h2>
@@ -236,7 +266,7 @@ export default function Help() {
                     onClick={() => setSearchQuery('')}
                     className={`px-4 py-2 rounded-lg text-base font-medium transition-all ${
                       searchQuery === ''
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-emerald-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -248,7 +278,7 @@ export default function Help() {
                       onClick={() => setSearchQuery(category)}
                       className={`px-4 py-2 rounded-lg text-base font-medium transition-all ${
                         searchQuery === category
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-emerald-600 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -279,7 +309,7 @@ export default function Help() {
                                     className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-start justify-between gap-3"
                                   >
                                     <span className={`text-base font-medium flex-1 ${
-                                      isExpanded ? 'text-blue-900' : 'text-gray-900'
+                                      isExpanded ? 'text-emerald-900' : 'text-gray-900'
                                     }`}>
                                       {item.question}
                                     </span>
@@ -307,7 +337,7 @@ export default function Help() {
                       <p className="text-base text-gray-500 mb-4">검색 결과가 없습니다</p>
                       <Button
                         onClick={() => setSearchQuery('')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-base px-5 py-2"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-base px-5 py-2"
                       >
                         전체 보기
                       </Button>
@@ -324,7 +354,7 @@ export default function Help() {
             <Card className="border-0 shadow-lg bg-white">
               <div className="p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
                     <MessageSquare className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -350,7 +380,7 @@ export default function Help() {
                       value={contactForm.name}
                       onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
                       required
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-2"
+                      className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-base py-2"
                     />
                   </div>
 
@@ -363,7 +393,7 @@ export default function Help() {
                       value={contactForm.email}
                       onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
                       required
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-2"
+                      className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-base py-2"
                     />
                   </div>
 
@@ -387,7 +417,7 @@ export default function Help() {
                               }))
                             }
                           }}
-                          className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-base appearance-none bg-white cursor-pointer"
+                          className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 text-base appearance-none bg-white cursor-pointer"
                         >
                           <option value="">코스를 선택하세요 (선택사항)</option>
                           {enrolledCourses.map((course, index) => (
@@ -411,7 +441,7 @@ export default function Help() {
                       onChange={(e) => setContactForm({...contactForm, subject: e.target.value})}
                       required
                       placeholder="문의 제목을 입력하세요"
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-2"
+                      className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-base py-2"
                     />
                   </div>
 
@@ -422,7 +452,7 @@ export default function Help() {
                     <textarea
                       value={contactForm.message}
                       onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 resize-none transition-all text-base"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 resize-none transition-all text-base"
                       rows={4}
                       required
                       placeholder="문의 내용을 자세히 입력해주세요"
@@ -432,7 +462,7 @@ export default function Help() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-base shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 text-base shadow-md hover:shadow-lg transition-all disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <span className="flex items-center justify-center gap-2">
@@ -494,7 +524,7 @@ export default function Help() {
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
                     <MessageSquare className="h-5 w-5 text-white" />
                   </div>
                   <h2 className="text-lg font-bold text-gray-900">문의사항 상세</h2>
@@ -533,10 +563,10 @@ export default function Help() {
                 {selectedInquiry.response ? (
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <Shield className="h-5 w-5 text-blue-600" />
+                      <Shield className="h-5 w-5 text-emerald-600" />
                       <h3 className="text-base font-bold text-gray-900">관리자 답변</h3>
                     </div>
-                    <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4">
+                    <div className="bg-emerald-50 border-l-4 border-emerald-500 rounded-lg p-4">
                       <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{selectedInquiry.response}</p>
                     </div>
                   </div>
@@ -565,4 +595,3 @@ export default function Help() {
     </div>
   )
 }
-

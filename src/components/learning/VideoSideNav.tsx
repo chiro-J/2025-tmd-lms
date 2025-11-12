@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react'
-import { List, MessageCircle, HelpCircle, ClipboardList, Smile, Subtitles, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { List, MessageCircle, HelpCircle, ClipboardList, Smile, Subtitles, X, ChevronDown, ChevronRight } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getCourse } from '../../core/api/courses'
 import type { Course } from '../../types'
@@ -31,11 +31,32 @@ export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExp
   return (
     <>
       {/* Expanded Side Panel */}
-      <div className={`fixed right-0 top-0 h-full bg-white shadow-2xl border-l border-gray-200 z-50 flex transition-transform duration-300 ease-in-out ${
-        isExpanded ? 'translate-x-0' : 'translate-x-full'
+      <div className={`fixed left-0 top-0 h-full bg-white z-50 flex transition-transform duration-300 ease-in-out ${
+        isExpanded ? 'translate-x-0' : '-translate-x-full'
       }`}>
+        {/* Side Menu Bar - Vertical navigation on the left */}
+        <div className="flex flex-col items-center justify-center bg-gray-50 p-2 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange(item.id)}
+                className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 ${
+                  activeTab === item.id
+                    ? 'bg-black text-white'
+                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                }`}
+                title={item.label}
+              >
+                <Icon className="h-5 w-5" />
+              </button>
+            )
+          })}
+        </div>
+
         {/* Main Content Area */}
-        <div className="flex flex-col h-full w-96">
+        <div className="flex flex-col h-full w-80">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-900">
@@ -59,27 +80,6 @@ export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExp
             {activeTab === 'reaction' && <ReactionContent />}
           </div>
         </div>
-
-        {/* Side Menu Bar - Vertical navigation on the right */}
-        <div className="flex flex-col items-center justify-center bg-gray-50 border-l border-gray-200 p-2 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.id}
-                onClick={() => onTabChange(item.id)}
-                className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 ${
-                  activeTab === item.id
-                    ? 'bg-black text-white'
-                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                }`}
-                title={item.label}
-              >
-                <Icon className="h-5 w-5" />
-              </button>
-            )
-          })}
-        </div>
       </div>
     </>
   )
@@ -92,7 +92,7 @@ interface CurriculumContentProps {
 
 function CurriculumContent({ courseId }: CurriculumContentProps) {
   const [expandedSection, setExpandedSection] = useState<number | null>(null)
-  const [modules, setModules] = useState<any[]>([])
+  const [modules, setModules] = useState<Array<{ id: number; title: string; lessons?: Array<{ id: number; title: string }> }>>([])
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -126,10 +126,6 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
     )
   }
 
-  // 임시 진행률(목업). 실제로는 사용자 진행 데이터와 결합
-  const totalLectures = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)
-  const completedLectures = 1
-  const percentage = totalLectures > 0 ? Math.floor((completedLectures / totalLectures) * 100) : 0
 
   return (
     <div className="space-y-3">
@@ -147,52 +143,55 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
           커리큘럼이 없습니다.
         </div>
       ) : (
-        modules.map((module, moduleIndex) => (
-          <div key={module.id} className="border border-gray-200 rounded-xl overflow-hidden">
-            <button
-              onClick={() => setExpandedSection(expandedSection === module.id ? null : module.id)}
-              className="w-full p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        modules.map((module) => {
+          const isExpanded = expandedSection === module.id
+          return (
+            <div
+              key={module.id}
+              className="border-b border-gray-200 last:border-b-0"
             >
-              <div className="text-left flex-1 flex items-center space-x-2 min-w-0">
-                <span className="bg-blue-500 text-white font-bold text-sm px-2 py-0.5 rounded whitespace-nowrap">
-                  {String(moduleIndex + 1).padStart(2, '0')}
-                </span>
-                <h4 className="font-medium text-gray-900 text-sm truncate">{module.title}</h4>
-              </div>
-              <svg
-                className={`h-5 w-5 text-gray-400 transition-transform ${expandedSection === module.id ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+              <div
+                className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => setExpandedSection(isExpanded ? null : module.id)}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {expandedSection === module.id && (module.lessons?.length || 0) > 0 && (
-              <div className="bg-white">
-                {module.lessons.map((lesson: any, idx: number) => (
-                  <button
-                    key={lesson.id}
-                    onClick={() => {
-                      // URL 파라미터에 레슨 ID 추가
-                      const newUrl = new URL(window.location.href)
-                      newUrl.searchParams.set('lesson', `${lesson.id}`)
-                      window.history.pushState({}, '', newUrl.toString())
-                      window.dispatchEvent(new PopStateEvent('popstate'))
-                    }}
-                    className="w-full p-4 flex items-center space-x-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
-                  >
-                    <div className="flex-1 text-left flex items-center space-x-2 min-w-0">
-                      <span className="text-gray-500 font-normal text-xs whitespace-nowrap ml-1">{String(idx + 1).padStart(2, '0')}</span>
-                      <p className="text-sm font-medium text-gray-900 truncate">{lesson.title}</p>
-                    </div>
-                  </button>
-                ))}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    {isExpanded ? (
+                      <ChevronDown className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                    )}
+                    <h4 className="text-base font-semibold text-gray-900 truncate">{module.title}</h4>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        ))
+
+              {isExpanded && module.lessons && module.lessons.length > 0 && (
+                <div>
+                  {module.lessons.map((lesson: { id: number; title: string }) => (
+                    <div
+                      key={lesson.id}
+                      className="group p-3 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"
+                      onClick={() => {
+                        // URL 파라미터에 레슨 ID 추가
+                        const newUrl = new URL(window.location.href)
+                        newUrl.searchParams.set('lesson', `${lesson.id}`)
+                        window.history.pushState({}, '', newUrl.toString())
+                        window.dispatchEvent(new PopStateEvent('popstate'))
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{lesson.title}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })
       )}
     </div>
   )

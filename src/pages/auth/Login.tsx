@@ -5,7 +5,7 @@ import Header from '../../layout/Header';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, quickLogin } = useAuth();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -79,15 +79,35 @@ export default function Login() {
     alert('Kakao OAuth는 아직 구현되지 않았습니다.');
   };
 
-  // 빠른 로그인 함수들 (Mock 데이터 사용 - 테스트용)
+  // 빠른 로그인 함수들
   const handleQuickLogin = async (role: 'student' | 'instructor' | 'admin' | 'subadmin') => {
+    let email = '';
+    let password = '';
+
+    switch (role) {
+      case 'student':
+        email = 'student@example.com';
+        password = 'pass1234';
+        break;
+      case 'instructor':
+        email = 'instructor@example.com';
+        password = 'pass1234';
+        break;
+      case 'admin':
+        email = 'admin@example.com';
+        password = 'admin1234';
+        break;
+      case 'subadmin':
+        email = 'subadmin@example.com';
+        password = 'sub123';
+        break;
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
-      // subadmin을 sub-admin으로 변환
-      const userRole = role === 'subadmin' ? 'sub-admin' : role;
-      const user = await quickLogin(userRole);
+      const user = await login(email, password);
 
       // 사용자 역할에 따라 올바른 경로로 리다이렉트
       if (user.role === 'instructor') {
@@ -100,7 +120,20 @@ export default function Login() {
         navigate('/student/dashboard');
       }
     } catch (error: any) {
-      setError('빠른 로그인에 실패했습니다.');
+      let errorMessage = '빠른 로그인에 실패했습니다.';
+
+      // 네트워크 에러 확인
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        errorMessage = '백엔드 서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.\n\n터미널에서 다음 명령어로 백엔드를 실행하세요:\ncd apps/api && npm run start:dev';
+      } else if (error.response?.status === 401) {
+        errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      } else if (error.response?.status === 404) {
+        errorMessage = '해당 계정이 존재하지 않습니다.';
+      } else {
+        errorMessage = error.response?.data?.message || error.message || errorMessage;
+      }
+
+      setError(errorMessage);
       setIsLoading(false);
     }
   };

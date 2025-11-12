@@ -1,215 +1,258 @@
-import { useState } from "react";
-import { Bell, Edit, Trash2, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell, Edit, Trash2, Calendar, ChevronRight, Plus, ChevronDown } from "lucide-react";
 import Card from "../ui/Card";
-import { useNotice } from "../../contexts/NoticeContext";
-
-interface Inquiry {
-  id: number;
-  title: string;
-  user: string;
-  email: string;
-  content: string;
-  createdDate: string;
-  status: 'pending' | 'completed';
-  response?: string;
-}
+import * as adminApi from "../../core/api/admin";
 
 interface NoticeManagementProps {
-  inquiries?: Inquiry[];
-  onRespondToInquiry?: (id: number, response: string) => void;
   showActions?: boolean;
 }
 
 export default function NoticeManagement({
-  inquiries = [],
-  onRespondToInquiry,
   showActions = true
 }: NoticeManagementProps) {
-  const { notices, addNotice, updateNotice, deleteNotice } = useNotice();
+  const navigate = useNavigate();
+  const [notices, setNotices] = useState<adminApi.Notice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
-  const [showInquiryModal, setShowInquiryModal] = useState(false);
-  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
-  const [noticeForm, setNoticeForm] = useState({ title: "", content: "" });
-  const [editingNotice, setEditingNotice] = useState<any>(null);
-  const [inquiryResponse, setInquiryResponse] = useState("");
+  const [editingNotice, setEditingNotice] = useState<adminApi.Notice | null>(null);
+  const [noticeForm, setNoticeForm] = useState({
+    title: "",
+    content: "",
+    priority: "medium" as "low" | "medium" | "high",
+    status: "active" as "active" | "inactive"
+  });
+
+  const loadNotices = async () => {
+    try {
+      setLoading(true);
+      const data = await adminApi.getNotices();
+      // 우선순위 순으로 정렬
+      const sortedNotices = data.sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return (priorityOrder[b.priority || 'medium'] || 2) - (priorityOrder[a.priority || 'medium'] || 2);
+      });
+      setNotices(sortedNotices);
+    } catch (error) {
+      console.error('공지사항 로드 실패:', error);
+      setNotices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotices();
+  }, []);
+
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-100 text-red-700';
+      case 'medium':
+        return 'bg-blue-100 text-blue-700';
+      case 'low':
+        return 'bg-gray-100 text-gray-700';
+      default:
+        return 'bg-blue-100 text-blue-700';
+    }
+  };
+
+  const getPriorityText = (priority?: string) => {
+    switch (priority) {
+      case 'high':
+        return '중요';
+      case 'medium':
+        return '일반';
+      case 'low':
+        return '낮음';
+      default:
+        return '일반';
+    }
+  };
 
   const handleNoticeCreate = () => {
     setEditingNotice(null);
-    setNoticeForm({ title: "", content: "" });
+    setNoticeForm({ title: "", content: "", priority: "medium", status: "active" });
     setShowNoticeModal(true);
   };
 
-  const handleNoticeEdit = (notice: any) => {
-    setEditingNotice(notice);
-    setNoticeForm({ title: notice.title, content: notice.content });
-    setShowNoticeModal(true);
+  const handleNoticeView = (notice: adminApi.Notice) => {
+    navigate(`/admin/notice/${notice.id}`);
   };
 
-  const handleNoticeDelete = (id: number) => {
+  const handleNoticeEdit = (notice: adminApi.Notice, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    navigate(`/admin/notice/${notice.id}`);
+  };
+
+  const handleNoticeDelete = async (id: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     if (window.confirm("이 공지사항을 삭제하시겠습니까?")) {
-      deleteNotice(id);
+      try {
+        await adminApi.deleteNotice(id);
+        await loadNotices();
+      } catch (error) {
+        console.error('공지사항 삭제 실패:', error);
+        alert('공지사항 삭제에 실패했습니다.');
+      }
     }
   };
 
-  const handleNoticeSubmit = () => {
+  const handleNoticeSubmit = async () => {
     if (noticeForm.title.trim() && noticeForm.content.trim()) {
-      if (editingNotice) {
-        updateNotice(editingNotice.id, {
-          title: noticeForm.title.trim(),
-          content: noticeForm.content.trim()
-        });
-      } else {
-        addNotice({
-          title: noticeForm.title.trim(),
-          content: noticeForm.content.trim(),
-          date: new Date().toISOString().split('T')[0],
-          author: "서브 관리자",
-          priority: "medium"
-        });
+      try {
+        if (editingNotice) {
+          await adminApi.updateNotice(editingNotice.id, {
+            title: noticeForm.title.trim(),
+            content: noticeForm.content.trim(),
+            priority: noticeForm.priority,
+            status: noticeForm.status
+          });
+        } else {
+          await adminApi.createNotice({
+            title: noticeForm.title.trim(),
+            content: noticeForm.content.trim(),
+            author: "관리자",
+            priority: noticeForm.priority
+          });
+        }
+        await loadNotices();
+        setShowNoticeModal(false);
+        setNoticeForm({ title: "", content: "", priority: "medium", status: "active" });
+        setEditingNotice(null);
+      } catch (error) {
+        console.error('공지사항 저장 실패:', error);
+        alert('공지사항 저장에 실패했습니다.');
       }
-      setShowNoticeModal(false);
-      setNoticeForm({ title: "", content: "" });
-      setEditingNotice(null);
     }
   };
 
-  const handleInquiryResponse = (inquiry: Inquiry) => {
-    setSelectedInquiry(inquiry);
-    setInquiryResponse("");
-    setShowInquiryModal(true);
-  };
 
-  const handleInquirySubmit = () => {
-    if (selectedInquiry && inquiryResponse.trim()) {
-      if (onRespondToInquiry) {
-        onRespondToInquiry(selectedInquiry.id, inquiryResponse.trim());
-      }
-      setShowInquiryModal(false);
-      setSelectedInquiry(null);
-      setInquiryResponse("");
-    } else {
-      alert('답변 내용을 입력해주세요.');
-    }
-  };
-
-  const handleViewInquiry = (inquiry: Inquiry) => {
-    setSelectedInquiry(inquiry);
-    setInquiryResponse(inquiry.response || "");
-    setShowInquiryModal(true);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+            <Bell className="h-5 w-5 text-orange-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">공지사항 관리</h2>
+            <p className="text-gray-600">시스템 공지사항을 관리하고 작성하세요</p>
+          </div>
+        </div>
         {showActions && (
           <button
             onClick={handleNoticeCreate}
-            className="btn-primary bg-orange-600 hover:bg-orange-700"
+            className="btn-primary bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
           >
-            <Bell className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             공지사항 작성
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 공지사항 관리 */}
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-900 break-words">공지사항 관리</h3>
-          {notices.map((notice) => (
-            <Card key={notice.id} className="hover:shadow-lg transition-shadow">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-900 break-words">{notice.title}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      notice.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {notice.status === 'active' ? '활성' : '비활성'}
-                    </span>
-                    {showActions && (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleNoticeEdit(notice)}
-                          className="p-1 text-gray-400 hover:text-blue-600"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleNoticeDelete(notice.id)}
-                          className="p-1 text-gray-400 hover:text-red-600"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-2 break-words">{notice.content}</p>
-                <span className="text-xs text-gray-500 break-words">작성일: {notice.createdDate}</span>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* 문의사항 관리 */}
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-900 break-words">문의사항 관리</h3>
-          {inquiries.length === 0 ? (
-            <p className="text-center text-gray-500 py-8 break-words">문의사항이 없습니다.</p>
-          ) : (
-            inquiries.map((inquiry) => (
-              <Card key={inquiry.id} className="hover:shadow-lg transition-shadow">
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900 break-words">{inquiry.title}</h4>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      inquiry.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                    }`}>
-                      {inquiry.status === 'pending' ? '대기' : '완료'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2 break-words line-clamp-2">{inquiry.content}</p>
-                  {inquiry.response && (
-                    <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded mb-2">
-                      <p className="text-xs font-medium text-blue-800 mb-1 break-words">답변:</p>
-                      <p className="text-sm text-gray-700 break-words">{inquiry.response}</p>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500 break-words">문의자: {inquiry.user}</span>
-                    <span className="text-xs text-gray-500 break-words">({inquiry.email})</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 break-words">문의일: {inquiry.createdDate}</span>
-                    {showActions && (
-                      <div className="flex gap-2">
-                        {inquiry.status === 'pending' ? (
-                          <button
-                            onClick={() => handleInquiryResponse(inquiry)}
-                            className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1"
-                          >
-                            <MessageSquare className="w-3 h-3" />
-                            답변하기
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleViewInquiry(inquiry)}
-                            className="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1"
-                          >
-                            <MessageSquare className="w-3 h-3" />
-                            답변 보기
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))
+      {/* 공지사항 목록 */}
+      {notices.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Bell className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">새로운 공지사항이 없습니다</h3>
+          <p className="text-gray-600 mb-6">중요한 업데이트나 공지사항이 있을 때 여기에 표시됩니다.</p>
+          {showActions && (
+            <button
+              onClick={handleNoticeCreate}
+              className="btn-primary bg-orange-600 hover:bg-orange-700 flex items-center gap-2 mx-auto"
+            >
+              <Plus className="w-4 h-4" />
+              첫 공지사항 작성하기
+            </button>
           )}
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          {notices.map((notice) => (
+            <div
+              key={notice.id}
+              onClick={() => handleNoticeView(notice)}
+              className="card-panel p-5 hover:shadow-md transition-all hover:bg-gray-50 group cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4 flex-1 min-w-0">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Bell className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
+                        {notice.title}
+                      </h3>
+                      {notice.status === 'inactive' && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                          비활성
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-3 text-sm text-gray-500">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{notice.createdDate}</span>
+                      </div>
+                      {notice.author && (
+                        <>
+                          <span className="text-gray-400">•</span>
+                          <span>작성자: {notice.author}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 flex-shrink-0">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(notice.priority)}`}>
+                    {getPriorityText(notice.priority)}
+                  </span>
+                  {showActions && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => handleNoticeEdit(notice, e)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="수정"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleNoticeDelete(notice.id, e)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-orange-600 transition-colors" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 공지사항 작성/수정 모달 */}
       {showNoticeModal && (
@@ -250,6 +293,71 @@ export default function NoticeManagement({
                     placeholder="공지사항 내용을 입력하세요"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">중요도</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="priority"
+                        value="low"
+                        checked={noticeForm.priority === 'low'}
+                        onChange={(e) => setNoticeForm(prev => ({ ...prev, priority: e.target.value as "low" | "medium" | "high" }))}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">낮음</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="priority"
+                        value="medium"
+                        checked={noticeForm.priority === 'medium'}
+                        onChange={(e) => setNoticeForm(prev => ({ ...prev, priority: e.target.value as "low" | "medium" | "high" }))}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">일반</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="priority"
+                        value="high"
+                        checked={noticeForm.priority === 'high'}
+                        onChange={(e) => setNoticeForm(prev => ({ ...prev, priority: e.target.value as "low" | "medium" | "high" }))}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">높음</span>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">상태</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="status"
+                        value="active"
+                        checked={noticeForm.status === 'active'}
+                        onChange={(e) => setNoticeForm(prev => ({ ...prev, status: e.target.value as "active" | "inactive" }))}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">활성</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="status"
+                        value="inactive"
+                        checked={noticeForm.status === 'inactive'}
+                        onChange={(e) => setNoticeForm(prev => ({ ...prev, status: e.target.value as "active" | "inactive" }))}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">비활성</span>
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
@@ -272,103 +380,6 @@ export default function NoticeManagement({
         </div>
       )}
 
-      {/* 문의사항 답변 모달 */}
-      {showInquiryModal && selectedInquiry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  selectedInquiry.status === 'completed' ? 'bg-blue-100' : 'bg-green-100'
-                }`}>
-                  <MessageSquare className={`w-5 h-5 ${
-                    selectedInquiry.status === 'completed' ? 'text-blue-600' : 'text-green-600'
-                  }`} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 break-words">
-                    {selectedInquiry.status === 'completed' ? '문의사항 및 답변 확인' : '문의사항 답변'}
-                  </h3>
-                  <p className="text-sm text-gray-600 break-words">
-                    {selectedInquiry.status === 'completed'
-                      ? '문의사항과 답변을 확인합니다'
-                      : '문의사항에 답변을 작성합니다'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {/* 문의사항 내용 */}
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900 break-words">{selectedInquiry.title}</h4>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      selectedInquiry.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                    }`}>
-                      {selectedInquiry.status === 'pending' ? '대기' : '완료'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-700 mt-2 break-words whitespace-pre-wrap">{selectedInquiry.content}</p>
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <div className="text-xs text-gray-500 break-words">
-                      <span className="font-medium">문의자:</span> {selectedInquiry.user} ({selectedInquiry.email})
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1 break-words">
-                      <span className="font-medium">문의일:</span> {selectedInquiry.createdDate}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 답변 영역 */}
-                {selectedInquiry.status === 'completed' && selectedInquiry.response && (
-                  <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-                    <h5 className="font-medium text-blue-900 mb-2 break-words">관리자 답변</h5>
-                    <p className="text-sm text-gray-700 break-words whitespace-pre-wrap">{selectedInquiry.response}</p>
-                  </div>
-                )}
-
-                {/* 답변 작성 영역 (대기 상태일 때만) */}
-                {selectedInquiry.status === 'pending' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 break-words">답변 내용</label>
-                    <textarea
-                      value={inquiryResponse}
-                      onChange={(e) => setInquiryResponse(e.target.value)}
-                      className="input w-full h-32 resize-none"
-                      placeholder="문의사항에 대한 답변을 입력하세요. 이 답변은 문의자에게 전달됩니다."
-                    />
-                    <p className="text-xs text-gray-500 mt-1 break-words">
-                      답변을 작성하면 문의자에게 전달되고 상태가 "완료"로 변경됩니다.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowInquiryModal(false);
-                    setSelectedInquiry(null);
-                    setInquiryResponse("");
-                  }}
-                  className="btn-outline"
-                >
-                  닫기
-                </button>
-                {selectedInquiry.status === 'pending' && (
-                  <button
-                    onClick={handleInquirySubmit}
-                    className="btn-primary bg-green-600 hover:bg-green-700"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    답변 전송
-                  </button>
-                )}
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

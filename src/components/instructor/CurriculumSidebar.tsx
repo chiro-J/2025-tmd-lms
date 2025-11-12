@@ -39,7 +39,6 @@ interface CurriculumSidebarProps {
 export default function CurriculumSidebar({
   curriculums,
   expandedCurriculums,
-  selectedLesson,
   isEditMode,
   editingCurriculumId,
   editingCurriculumTitle,
@@ -66,9 +65,7 @@ export default function CurriculumSidebar({
   onDragLeave,
   onDrop,
   onDragEnd,
-  onSetSelectedLesson,
   onSetIsEditMode,
-  courseId,
 }: CurriculumSidebarProps) {
   const renderLesson = (lesson: Lesson, curriculumId: string) => {
     const isEditing = editingLessonId === lesson.id
@@ -185,7 +182,7 @@ export default function CurriculumSidebar({
 
       <div className="flex-1 overflow-y-auto">
         <div className="overflow-y-auto">
-          {curriculums.map((curriculum, index) => {
+          {curriculums.map((curriculum) => {
             const isExpanded = expandedCurriculums.includes(curriculum.id)
             const isEditing = editingCurriculumId === curriculum.id
             const isDragged = draggedCurriculumId === curriculum.id
@@ -353,5 +350,7 @@ export default function CurriculumSidebar({
     </div>
   )
 }
+
+
 
 

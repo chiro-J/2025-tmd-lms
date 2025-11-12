@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, FileText, CheckCircle, Star, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut, Calendar } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -8,11 +8,76 @@ import { mockResources, mockQnA } from '../../mocks'
 import type { Resource, QnAItem } from '../../types'
 // curriculum API는 동적 import로 로드
 import { transformApiToDetailFormat } from '../../utils/curriculumTransform'
-import { getCourse } from '../../core/api/courses'
+import { getCourse, getCourseNotices, type CourseNotice } from '../../core/api/courses'
 import { getAssignments } from '../../core/api/assignments'
 import { safeHtml } from '../../utils/safeHtml'
 import type { Course } from '../../types'
 import type { Assignment } from '../../types/assignment'
+
+function CourseNotices({ courseId }: { courseId: number }) {
+  const [notices, setNotices] = useState<CourseNotice[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadNotices = async () => {
+      try {
+        setLoading(true)
+        const data = await getCourseNotices(courseId)
+        setNotices(data)
+      } catch (error) {
+        console.error('공지사항 로드 실패:', error)
+        setNotices([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadNotices()
+  }, [courseId])
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">공지사항</h3>
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      ) : notices.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">공지사항이 없습니다.</p>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-3">
+            {notices.map((notice) => (
+              <div
+                key={notice.id}
+                className="border border-gray-200 rounded-lg p-4 bg-white hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => window.open(`/student/course/${courseId}/notice/${notice.id}`, '_blank')}
+              >
+                <h4 className="font-medium text-gray-900 mb-2">{notice.title}</h4>
+                <div className="flex items-center text-sm text-gray-500">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  <span>{formatDate(notice.createdAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Card>
+  )
+}
 
 interface CurriculumItem {
   id: string
@@ -335,14 +400,6 @@ export default function CourseDetail() {
                   <LogOut className="h-4 w-4" />
                   <span>수강 취소</span>
                 </Button>
-                <div className="flex items-center space-x-1 text-yellow-400">
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <Star className="h-4 w-4 fill-current" />
-                  <span className="text-sm text-gray-600 ml-2">수강평 남기기</span>
-                </div>
               </div>
             </div>
           </div>
@@ -842,12 +899,7 @@ export default function CourseDetail() {
 
           {/* Right Sidebar - Notice */}
           <div className="lg:col-span-1">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">공지사항</h3>
-              <div className="text-center py-8">
-                <p className="text-gray-500">공지사항이 없습니다.</p>
-              </div>
-            </Card>
+            <CourseNotices courseId={courseId} />
           </div>
         </div>
       </main>

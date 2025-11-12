@@ -8,6 +8,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import Card from "../ui/Card";
+import type { CreateSubAdminData } from "../../core/api/admin";
 
 interface SubAdmin {
   id: number;
@@ -27,8 +28,8 @@ interface SubAdmin {
 
 interface SubAdminManagementProps {
   subAdmins: SubAdmin[];
-  onCreateSubAdmin?: (data: any) => void;
-  onEditSubAdmin?: (id: number, data: any) => void;
+  onCreateSubAdmin?: (data: CreateSubAdminData) => void;
+  onEditSubAdmin?: (id: number, data: Partial<CreateSubAdminData> & { password?: string }) => void;
   onDeleteSubAdmin?: (id: number) => void;
   onActivateSubAdmin?: (id: number) => void;
   showActions?: boolean;
@@ -42,11 +43,12 @@ export default function SubAdminManagement({
   onActivateSubAdmin,
   showActions = true
 }: SubAdminManagementProps) {
-  const [activeTab, setActiveTab] = useState<"list" | "create">("list");
+  const [activeTab, setActiveTab] = useState<"list" | "create" | "edit">("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<SubAdmin | null>(null);
+  const [editingAdmin, setEditingAdmin] = useState<SubAdmin | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -86,6 +88,66 @@ export default function SubAdminManagement({
       setFormData(prev => ({ ...prev, password, confirmPassword: password }));
       setIsGenerating(false);
     }, 1000);
+  };
+
+  const handleEditClick = (admin: SubAdmin) => {
+    setEditingAdmin(admin);
+    setFormData({
+      name: admin.name,
+      email: admin.email,
+      password: "",
+      confirmPassword: "",
+      role: admin.role,
+      permissions: {
+        userManagement: admin.permissions.userManagement,
+        contentManagement: admin.permissions.contentManagement,
+        systemSettings: admin.permissions.systemSettings,
+        instructorApproval: admin.permissions.instructorApproval
+      }
+    });
+    setActiveTab("edit");
+  };
+
+  const handleEditSubmit = () => {
+    if (!editingAdmin) return;
+
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    const updateData: Partial<CreateSubAdminData> & { password?: string } = {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+      permissions: {
+        userManagement: formData.permissions.userManagement,
+        contentManagement: formData.permissions.contentManagement,
+        systemSettings: formData.permissions.systemSettings,
+        instructorApproval: formData.permissions.instructorApproval
+      }
+    };
+
+    if (formData.password) {
+      updateData.password = formData.password;
+    }
+
+    onEditSubAdmin?.(editingAdmin.id, updateData);
+    setActiveTab("list");
+    setEditingAdmin(null);
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      role: "Content Manager",
+      permissions: {
+        userManagement: false,
+        contentManagement: true,
+        systemSettings: false,
+        instructorApproval: false
+      }
+    });
   };
 
   const handleSubmit = () => {
@@ -187,6 +249,18 @@ export default function SubAdminManagement({
               서브 관리자 생성
             </button>
           )}
+          {editingAdmin && (
+            <button
+              onClick={() => setActiveTab("edit")}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "edit"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              편집
+            </button>
+          )}
         </div>
 
         {/* 목록 탭 */}
@@ -268,7 +342,7 @@ export default function SubAdminManagement({
                         </button>
                       )}
                       <button
-                        onClick={() => onEditSubAdmin?.(admin.id, admin)}
+                        onClick={() => handleEditClick(admin)}
                         className="flex-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
                       >
                         <Edit className="w-4 h-4" />
@@ -434,6 +508,151 @@ export default function SubAdminManagement({
                 >
                   <UserPlus className="w-4 h-4" />
                   서브 관리자 생성
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* 편집 탭 */}
+        {activeTab === "edit" && editingAdmin && showActions && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 break-words">서브 관리자 편집</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 break-words">이름</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="이름을 입력하세요"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 break-words">이메일</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="이메일을 입력하세요"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 break-words">역할</label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {roles.map(role => (
+                        <option key={role.value} value={role.value}>{role.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 break-words">비밀번호 변경 (선택사항)</label>
+                    <input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="비밀번호를 변경하려면 입력하세요"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 break-words">비밀번호 확인</label>
+                    <input
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="비밀번호를 다시 입력하세요"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3 break-words">권한 설정</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.permissions.userManagement}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, userManagement: e.target.checked }
+                      }))}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700 break-words">사용자 관리</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.permissions.contentManagement}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, contentManagement: e.target.checked }
+                      }))}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700 break-words">콘텐츠 관리</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.permissions.systemSettings}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, systemSettings: e.target.checked }
+                      }))}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700 break-words">시스템 설정</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.permissions.instructorApproval}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        permissions: { ...prev.permissions, instructorApproval: e.target.checked }
+                      }))}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700 break-words">강사 승인</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setActiveTab("list");
+                    setEditingAdmin(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleEditSubmit}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  수정 완료
                 </button>
               </div>
             </Card>

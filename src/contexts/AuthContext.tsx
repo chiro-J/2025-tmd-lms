@@ -8,7 +8,6 @@ interface AuthContextType {
   isLoggedIn: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<User>
-  quickLogin: (role: 'student' | 'instructor' | 'admin' | 'sub-admin') => Promise<User>
   logout: () => Promise<void>
   switchRole: (role: 'student' | 'instructor' | 'admin' | 'sub-admin') => void
   refreshUserProfile: () => Promise<void>
@@ -79,32 +78,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const quickLogin = async (role: 'student' | 'instructor' | 'admin' | 'sub-admin'): Promise<User> => {
-    // Mock 데이터로 즉시 로그인 (테스트용)
-    const mockUser: User = {
-      id: Math.floor(Math.random() * 10000),
-      username: `mock_${role}`,
-      email: `${role}@example.com`,
-      role: role,
-      name: `테스트 ${role === 'student' ? '수강생' : role === 'instructor' ? '강사' : role === 'admin' ? '마스터 관리자' : '서브 관리자'}`,
-      avatar: undefined,
-      phone: '010-1234-5678'
-    }
-
-    const mockToken = 'mock-jwt-token-' + Date.now()
-
-    // Mock 토큰 저장
-    localStorage.setItem('accessToken', mockToken)
-    localStorage.setItem('refreshToken', mockToken)
-    localStorage.setItem('user', JSON.stringify(mockUser))
-    localStorage.setItem('isLoggedIn', 'true')
-
-    setUser(mockUser)
-    setIsLoggedIn(true)
-
-    return mockUser
-  }
-
   const logout = async () => {
     try {
       await logoutApi()
@@ -144,7 +117,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoggedIn,
     isLoading,
     login,
-    quickLogin,
     logout,
     switchRole,
     refreshUserProfile

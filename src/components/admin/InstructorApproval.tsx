@@ -4,7 +4,8 @@ import {
   XCircle,
   Eye,
   GraduationCap,
-  Trash2
+  Trash2,
+  Clock
 } from "lucide-react";
 import Card from "../ui/Card";
 import InstructorDetailModal from "./InstructorDetailModal";
@@ -30,6 +31,7 @@ interface InstructorApprovalProps {
   instructors: Instructor[];
   onApproveInstructor?: (id: number) => void;
   onRejectInstructor?: (id: number) => void;
+  onPendingInstructor?: (id: number) => void;
   onDeleteInstructor?: (id: number) => void;
   showActions?: boolean;
 }
@@ -38,6 +40,7 @@ export default function InstructorApproval({
   instructors,
   onApproveInstructor,
   onRejectInstructor,
+  onPendingInstructor,
   onDeleteInstructor,
   showActions = true
 }: InstructorApprovalProps) {
@@ -220,6 +223,33 @@ export default function InstructorApproval({
                           </button>
                         </>
                       )}
+                      {instructor.status === 'approved' && (
+                        <>
+                          <button
+                            onClick={() => onPendingInstructor?.(instructor.id)}
+                            className="p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                            title="대기 상태로 변경"
+                          >
+                            <Clock className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onRejectInstructor?.(instructor.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="거부"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {instructor.status === 'rejected' && (
+                        <button
+                          onClick={() => onApproveInstructor?.(instructor.id)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="재승인"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(instructor)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -256,6 +286,10 @@ export default function InstructorApproval({
           }}
           onReject={(id) => {
             onRejectInstructor?.(id);
+            setShowDetailModal(false);
+          }}
+          onPending={(id) => {
+            onPendingInstructor?.(id);
             setShowDetailModal(false);
           }}
           onDelete={(instructor) => {

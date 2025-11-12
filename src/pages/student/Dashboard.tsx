@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Key, X } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import UserInfoCard from '../../components/student/UserInfoCard'
 import StudentCalendar from '../../components/student/StudentCalendar'
-import ActivityHeatmap from '../../components/student/ActivityHeatmap'
+import WeeklyActivity from '../../components/student/WeeklyActivity'
+import RecentCourse from '../../components/student/RecentCourse'
 import EnrollCodeModal from '../../components/modals/EnrollCodeModal'
 import { getCourses } from '../../core/api/courses'
 import type { Course } from '../../types'
 
-export default function StudentDashboard() {
+function StudentDashboard() {
   const navigate = useNavigate()
   const { isLoggedIn, user } = useAuth()
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0) // 강좌 목록 새로고침용
+  const [lastLearnedCourse, setLastLearnedCourse] = useState<Course | undefined>(undefined)
 
   // 등록된 강좌 정보 로드 함수
   const loadEnrolledCourses = async () => {
@@ -49,6 +51,27 @@ export default function StudentDashboard() {
   useEffect(() => {
     loadEnrolledCourses()
   }, [isLoggedIn, user, refreshKey])
+
+  // 마지막 학습한 강좌 찾기
+  useEffect(() => {
+    if (courses.length > 0) {
+      const lastLearnedCourseId = localStorage.getItem('lastLearnedCourseId')
+      if (lastLearnedCourseId) {
+        const course = courses.find(c => Number(c.id) === Number(lastLearnedCourseId))
+        if (course) {
+          setLastLearnedCourse(course)
+        } else {
+          // 마지막 학습한 강좌가 등록된 강좌 목록에 없으면 첫 번째 강좌 표시
+          setLastLearnedCourse(courses[0])
+        }
+      } else {
+        // 마지막 학습 기록이 없으면 첫 번째 강좌 표시
+        setLastLearnedCourse(courses[0])
+      }
+    } else {
+      setLastLearnedCourse(undefined)
+    }
+  }, [courses])
 
   // 수강코드 등록 성공 시 강좌 목록 새로고침
   const handleEnrollSuccess = () => {
@@ -95,13 +118,22 @@ export default function StudentDashboard() {
         <div className="space-y-4 md:space-y-6">
           {/* Top Row: Profile (20%) + Right Content (80%) */}
           <div className="grid grid-cols-1 lg:grid-cols-[20%_1fr] gap-4 md:gap-6">
-            {/* Left: Profile Card */}
-            <div>
-              {user && <UserInfoCard user={user} />}
+            {/* Left: Profile Card + Tooltip Display Area */}
+            <div className="flex flex-col gap-4">
+              {/* Profile Card */}
+              <div className="h-[320px] flex-shrink-0">
+                {user && <UserInfoCard user={user} />}
+              </div>
+              {/* Tooltip Display Area - Row 1 높이(약 80px) + gap(16px) + Row 2 높이(536px) = 632px에서 프로필(320px) + gap(16px) = 336px를 뺀 값 */}
+              <div id="calendar-tooltip-area" className="card-panel p-4 flex flex-col items-center justify-center" style={{ height: '296px' }}>
+                <div className="text-sm text-neutral-500 text-center">
+                  날짜를 클릭하면 상세 정보가 여기에 표시됩니다
+                </div>
+              </div>
             </div>
 
             {/* Right: Top Content Grid */}
-            <div className="space-y-4">
+            <div className="flex flex-col gap-4">
               {/* Row 1: Enroll Code + Last Login */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Enroll Code Section */}
@@ -127,72 +159,24 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Row 2: Calendar + Activity Heatmap */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <StudentCalendar />
-                <ActivityHeatmap />
+              {/* Row 2: Calendar + (Weekly Activity + Recent Course stacked) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ height: '536px' }}>
+                <div className="h-full flex flex-col">
+                  <StudentCalendar />
+                </div>
+                <div className="flex flex-col gap-4 h-full">
+                  <WeeklyActivity />
+                  <RecentCourse
+                    recentCourse={lastLearnedCourse}
+                    loading={loading}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Bottom Row: Course Sections (Full Width) */}
           <div className="space-y-6">
-            {/* Recent Learning Section */}
-            <section className="card-panel p-6 border border-gray-300">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-base-content">최근 학습 강좌</h2>
-              </div>
-              <div className="space-y-4">
-                {loading ? (
-                  <div className="text-center py-8 text-gray-500">로딩 중...</div>
-                ) : courses.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">수강 중인 강의가 없습니다.</div>
-                ) : (
-                  courses.slice(0, 1).map((course) => (
-                  <div
-                    key={course.id}
-                    className="card-panel p-6 cursor-pointer hover:shadow-soft hover:-translate-y-0.5 transition-all duration-200 border border-gray-200 relative"
-                    onClick={() => navigate(`/student/course/${course.id}`)}
-                  >
-                    {/* 삭제 버튼 */}
-                    <button
-                      onClick={(e) => handleRemoveCourse(Number(course.id), e)}
-                      className="absolute top-4 right-4 z-10 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors shadow-md"
-                      aria-label="강좌 제거"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-
-                    <div className="flex items-center space-x-4">
-                      {/* Course Thumbnail */}
-                      <div
-                        className="w-40 h-24 rounded-lg relative overflow-hidden flex-shrink-0 bg-cover bg-center"
-                        style={{ backgroundImage: `url('${course.thumbnail || '/photo/bbb.jpg'}')` }}
-                      >
-                        <div className="absolute inset-0 bg-black/20"></div>
-                      </div>
-
-                      {/* Course Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-base-content mb-1">{course.title}</h3>
-                        <p className="text-sm text-base-content/70 mb-1">마지막 수강 강의: 타입스크립트</p>
-                        <p className="text-sm text-base-content/70 mb-3">마지막 학습 일자: 2025.10.13</p>
-                      </div>
-
-                      {/* Action Button */}
-                      <Link
-                        to={`/student/learning/${course.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="btn bg-sky-500 hover:bg-sky-600 text-white border-sky-500 hover:border-sky-600 px-8 py-3"
-                      >
-                        이어하기
-                      </Link>
-                    </div>
-                  </div>
-                  ))
-                )}
-              </div>
-            </section>
 
             {/* Learning Now Section - 작은 가로 카드들 */}
             <section className="card-panel p-6 border border-gray-300">
@@ -271,3 +255,5 @@ export default function StudentDashboard() {
     </div>
   )
 }
+
+export default StudentDashboard

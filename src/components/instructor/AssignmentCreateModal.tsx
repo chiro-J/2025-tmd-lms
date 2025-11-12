@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import ModalBase from '../modals/ModalBase'
 import Button from '../ui/Button'
+import type { ContentBlock } from '../../types/curriculum'
 
 interface AssignmentCreateModalProps {
   isOpen: boolean
@@ -13,7 +14,7 @@ interface AssignmentCreateModalProps {
     instructions?: string[]
     allowedFileTypes?: string[]
     maxFileSize?: number
-    contentBlocks?: any[]
+    contentBlocks?: ContentBlock[]
   }) => Promise<void>
   isCreating?: boolean
   initialData?: {
@@ -24,7 +25,7 @@ interface AssignmentCreateModalProps {
     instructions?: string[]
     allowedFileTypes?: string[]
     maxFileSize?: number
-    contentBlocks?: any[]
+    contentBlocks?: ContentBlock[]
   }
   isEditMode?: boolean
 }
@@ -163,10 +164,10 @@ export default function AssignmentCreateModal({
     }
 
     try {
-      // contentBlocks에 텍스트 블록으로 저장
-      const contentBlocks = content.trim() ? [{
+      // contentBlocks에 마크다운 블록으로 저장
+      const contentBlocks: ContentBlock[] = content.trim() ? [{
         id: `block-${Date.now()}`,
-        type: 'text',
+        type: 'markdown',
         content: content.trim()
       }] : []
 
