@@ -4,7 +4,7 @@ import { ClipboardList, Edit3, AlertCircle, Play, Key } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
-import { getCourse } from '../../core/api/courses'
+import { getCourse, getCourseNotices, type CourseNotice } from '../../core/api/courses'
 import ViewEnrollmentCodeModal from '../../components/modals/ViewEnrollmentCodeModal'
 
 export default function CourseHome() {
@@ -14,6 +14,8 @@ export default function CourseHome() {
   const [course, setCourse] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showEnrollmentCodeModal, setShowEnrollmentCodeModal] = useState(false)
+  const [notices, setNotices] = useState<CourseNotice[]>([])
+  const [noticesLoading, setNoticesLoading] = useState(true)
 
   // DB에서 강좌 정보 로드
   useEffect(() => {
@@ -29,6 +31,27 @@ export default function CourseHome() {
       }
     }
     loadCourse()
+  }, [courseId])
+
+  // DB에서 공지사항 로드 (최대 3개)
+  useEffect(() => {
+    const loadNotices = async () => {
+      try {
+        setNoticesLoading(true)
+        const noticesData = await getCourseNotices(courseId)
+        // 최신순으로 정렬하고 최대 3개만
+        const sorted = noticesData.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+        setNotices(sorted.slice(0, 3))
+      } catch (error) {
+        console.error('공지사항 로드 실패:', error)
+        setNotices([])
+      } finally {
+        setNoticesLoading(false)
+      }
+    }
+    loadNotices()
   }, [courseId])
 
   if (loading) {
@@ -137,17 +160,41 @@ export default function CourseHome() {
               바로가기
             </Button>
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <AlertCircle className="h-5 w-5 text-orange-500" />
-                <div>
-                  <h4 className="font-medium text-gray-900">중간고사 일정 안내</h4>
-                  <p className="text-sm text-gray-600">2024.09.15</p>
-                </div>
-              </div>
+          {noticesLoading ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500">로딩 중...</p>
             </div>
-          </div>
+          ) : notices.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500">등록된 공지사항이 없습니다.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notices.map((notice) => (
+                <div
+                  key={notice.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => {
+                    navigate(`/instructor/course/${courseId}/notice/${notice.id}`)
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <AlertCircle className="h-5 w-5 text-orange-500" />
+                    <div>
+                      <h4 className="font-medium text-gray-900">{notice.title}</h4>
+                      <p className="text-sm text-gray-600">
+                        {new Date(notice.createdAt).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Recent Exams */}

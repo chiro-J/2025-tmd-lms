@@ -32,8 +32,19 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // 토큰 만료 시 자동 갱신
+    // 토큰 만료 시 자동 갱신 (단, /auth/me와 /auth/login은 제외)
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // /auth/me 엔드포인트는 토큰이 없을 때 401이 정상이므로 갱신 시도하지 않고 조용히 처리
+      if (originalRequest.url?.includes('/auth/me')) {
+        // 401 에러를 조용히 reject (콘솔 에러 출력 방지)
+        return Promise.reject(error);
+      }
+
+      // /auth/login 엔드포인트는 로그인 실패이므로 갱신 시도하지 않음
+      if (originalRequest.url?.includes('/auth/login')) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       try {
@@ -55,12 +66,14 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // 갱신 실패 시 로그아웃 처리
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        localStorage.removeItem('isLoggedIn');
-        window.location.href = '/login';
+        // 갱신 실패 시 로그아웃 처리 (단, /auth/me와 /auth/login은 제외)
+        if (!originalRequest.url?.includes('/auth/me') && !originalRequest.url?.includes('/auth/login')) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          localStorage.removeItem('isLoggedIn');
+          // 로그인 페이지로 리다이렉트하지 않음 (초기 로드 시)
+        }
         return Promise.reject(refreshError);
       }
     }

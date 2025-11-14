@@ -37,6 +37,7 @@ export interface CreateSubAdminData {
 
 export interface Instructor {
   id: number;
+  userId?: number;
   name: string;
   email: string;
   phone: string;
@@ -225,6 +226,36 @@ export const deleteInstructor = async (id: number): Promise<void> => {
     await apiClient.delete(`/admin/instructors/${id}`);
   } catch (error) {
     console.error('강사 삭제 실패:', error);
+    throw error;
+  }
+};
+
+// 강의자 소개 관련
+export const getInstructorIntroduction = async (userId: number): Promise<string | null> => {
+  try {
+    const response = await apiClient.get<{ introduction: string | null }>(`/admin/instructors/user/${userId}/introduction`);
+    return response.data.introduction;
+  } catch (error) {
+    console.error('강의자 소개 조회 실패:', error);
+    throw error;
+  }
+};
+
+export const updateInstructorIntroduction = async (userId: number, introduction: string): Promise<void> => {
+  try {
+    await apiClient.put(`/admin/instructors/user/${userId}/introduction`, { introduction });
+  } catch (error) {
+    console.error('강의자 소개 저장 실패:', error);
+    throw error;
+  }
+};
+
+export const getInstructorIntroductionPublic = async (instructorId: number): Promise<string | null> => {
+  try {
+    const response = await apiClient.get<{ introduction: string | null }>(`/admin/instructors/${instructorId}/introduction`);
+    return response.data.introduction;
+  } catch (error) {
+    console.error('강의자 소개 조회 실패:', error);
     throw error;
   }
 };

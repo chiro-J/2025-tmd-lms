@@ -6,6 +6,7 @@ import MainLayout from "./layout/MainLayout";
 // Contexts
 import { CourseCreationProvider } from "./contexts/CourseCreationContext";
 import { NoticeProvider } from "./contexts/NoticeContext";
+import { ProfileProvider } from "./contexts/ProfileContext";
 
 // Auth pages
 import Login from "./pages/auth/Login";
@@ -18,6 +19,7 @@ import SignupPending from "./pages/auth/SignupPending";
 import WelcomePage from "./pages/student/WelcomePage";
 import StudentDashboard from "./pages/student/Dashboard";
 import CourseDetail from "./pages/student/CourseDetail";
+import StudentQnADetail from "./pages/student/QnADetail";
 import Learning from "./pages/student/Learning";
 import Notice from "./pages/student/Notice";
 import NoticeDetail from "./pages/student/NoticeDetail";
@@ -31,13 +33,15 @@ import Notifications from "./pages/student/Notifications";
 
 // Instructor pages
 import InstructorDashboard from "./pages/instructor/Dashboard";
-import CourseList from "./pages/instructor/CourseList";
 import CourseIntroduction from "./pages/instructor/CourseIntroduction";
 import CourseHome from "./pages/instructor/CourseHome";
 import EditCurriculum from "./pages/instructor/EditCurriculum";
 import ManageStudents from "./pages/instructor/ManageStudents";
 import ResourceManagement from "./pages/instructor/ResourceManagement";
 import QnAManagement from "./pages/instructor/QnAManagement";
+import AllQnAs from "./pages/instructor/AllQnAs";
+import UnansweredQnAs from "./pages/instructor/UnansweredQnAs";
+import InstructorQnADetail from "./pages/instructor/QnADetail";
 import CourseInfoEdit from "./pages/instructor/CourseInfoEdit";
 import CoInstructorSettings from "./pages/instructor/CoInstructorSettings";
 import ExamManagement from "./pages/instructor/ExamManagement";
@@ -48,6 +52,8 @@ import NoticeEditor from "./pages/instructor/NoticeEditor";
 import NoticeEdit from "./pages/instructor/NoticeEdit";
 import CourseNoticeDetail from "./pages/student/CourseNoticeDetail";
 import InstructorProfile from "./pages/instructor/InstructorProfile";
+import Introduction from "./pages/instructor/Introduction";
+import IntroductionPreview from "./pages/instructor/IntroductionPreview";
 import ResultsAnalysis from "./pages/instructor/ResultsAnalysis.tsx";
 import ExamDetail from "./pages/instructor/ExamDetail";
 import AssignmentManagement from "./pages/instructor/AssignmentManagement";
@@ -62,6 +68,9 @@ import SubDashboard from "./pages/admin/SubDashboard";
 import CreateSubAdmin from "./pages/admin/CreateSubAdmin";
 import SubAdminManagement from "./pages/admin/SubAdminManagement";
 import InstructorApproval from "./pages/admin/InstructorApproval";
+import AdminNoticeDetail from "./pages/admin/NoticeDetail";
+import AdminNoticeEdit from "./pages/admin/NoticeEdit";
+import AdminNoticeCreate from "./pages/admin/NoticeCreate";
 
 import NotFound from "./pages/NotFound";
 
@@ -80,15 +89,13 @@ export default function App() {
       <Route path="/instructor/course/:id/notices/new" element={<NoticeEditor />} />
       <Route path="/instructor/course/:id/notices/:noticeId/edit" element={<NoticeEdit />} />
 
-      {/* Course Notice Detail - No layout */}
-      <Route path="/student/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
-      <Route path="/instructor/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
-
       {/* Main app with layout */}
       <Route element={
         <CourseCreationProvider>
           <NoticeProvider>
-            <MainLayout />
+            <ProfileProvider>
+              <MainLayout />
+            </ProfileProvider>
           </NoticeProvider>
         </CourseCreationProvider>
       }>
@@ -96,6 +103,8 @@ export default function App() {
         <Route path="/welcome" element={<WelcomePage />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student/course/:id" element={<CourseDetail />} />
+        <Route path="/student/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
+        <Route path="/student/course/:id/qna/:qnaId" element={<StudentQnADetail />} />
         <Route path="/student/learning/:id" element={<Learning />} />
         <Route path="/student/notice" element={<Notice />} />
         <Route path="/student/notice/:id" element={<NoticeDetail />} />
@@ -108,14 +117,16 @@ export default function App() {
 
              {/* Instructor */}
              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
-             <Route path="/instructor/courses" element={<CourseList />} />
              <Route path="/instructor/create" element={<CourseIntroduction />} />
              <Route path="/instructor/course/:id/home" element={<CourseHome />} />
              <Route path="/instructor/course/:id/edit" element={<EditCurriculum />} />
              <Route path="/instructor/course/:id/info" element={<CourseInfoEdit />} />
              <Route path="/instructor/course/:id/resources" element={<ResourceManagement />} />
              <Route path="/instructor/course/:id/students" element={<ManageStudents />} />
+             <Route path="/instructor/qna/all" element={<AllQnAs />} />
+             <Route path="/instructor/qna/unanswered" element={<UnansweredQnAs />} />
              <Route path="/instructor/course/:id/qna" element={<QnAManagement />} />
+             <Route path="/instructor/course/:id/qna/:qnaId" element={<InstructorQnADetail />} />
              <Route path="/instructor/course/:id/invite-students" element={<InviteStudents />} />
              <Route path="/instructor/course/:id/invite-email" element={<InviteByEmail />} />
              <Route path="/instructor/course/:id/invite-code" element={<InviteByCode />} />
@@ -127,8 +138,11 @@ export default function App() {
              <Route path="/instructor/course/:id/create-exam" element={<CreateExam />} />
              <Route path="/instructor/course/:id/question-management" element={<QuestionManagement />} />
              <Route path="/instructor/course/:id/notices" element={<NoticeManagement />} />
+             <Route path="/instructor/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
              <Route path="/instructor/course/:id/results" element={<ResultsAnalysis />} />
             {/* Removed duplicated settings (overlaps with course info edit) */}
+             <Route path="/instructor/introduction/preview" element={<IntroductionPreview />} />
+             <Route path="/instructor/introduction" element={<Introduction />} />
              <Route path="/instructor/profile" element={<InstructorProfile />} />
              <Route path="/instructor/help" element={<InstructorHelp />} />
 
@@ -138,6 +152,9 @@ export default function App() {
         <Route path="/admin/create-sub-admin" element={<CreateSubAdmin />} />
         <Route path="/admin/sub-admin-management" element={<SubAdminManagement />} />
         <Route path="/admin/instructor-approval" element={<InstructorApproval />} />
+        <Route path="/admin/notice/new" element={<AdminNoticeCreate />} />
+        <Route path="/admin/notice/:id" element={<AdminNoticeDetail />} />
+        <Route path="/admin/notice/:id/edit" element={<AdminNoticeEdit />} />
 
         {/* Defaults */}
         <Route path="/" element={<Navigate to="/welcome" replace />} />

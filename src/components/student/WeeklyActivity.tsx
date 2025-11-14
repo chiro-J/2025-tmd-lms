@@ -244,3 +244,6 @@ export default function WeeklyActivity({ recentCourse, loading }: WeeklyActivity
   );
 }
 
+
+
+

@@ -1,21 +1,38 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { PlusCircle, Users, Home, BookOpen } from 'lucide-react'
-import { getCourses } from '../../core/api/courses'
+import { Link, useNavigate } from 'react-router-dom'
+import { BookOpen, TrendingUp, MessageSquare } from 'lucide-react'
+import { getCourses, getCourseQnAs } from '../../core/api/courses'
+import { useAuth } from '../../contexts/AuthContext'
+import InstructorSidebar from '../../components/instructor/InstructorSidebar'
 import type { Course } from '../../types'
 
-export default function InstructorDashboard() {
+function InstructorDashboard() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [myCourses, setMyCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    totalQnAs: 0,
+    unansweredQnAs: 0
+  })
+  const [statsLoading, setStatsLoading] = useState(true)
 
   // DB에서 강좌 목록 로드
   useEffect(() => {
     const loadCourses = async () => {
+      if (!user?.id) {
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         const courses = await getCourses()
-        // 현재는 모든 강좌를 "내가 개설한 강좌"로 표시 (나중에 instructorId 필터링)
-        setMyCourses(courses.map(course => {
+
+        // 일단 모든 강의 표시 (필터링 제거)
+        const filteredCourses = courses
+
+        setMyCourses(filteredCourses.map(course => {
           const courseWithDates = course as any
           return {
             id: String(course.id),
@@ -35,70 +52,118 @@ export default function InstructorDashboard() {
       }
     }
     loadCourses()
-  }, [])
+  }, [user])
+
+  // 통계 데이터 로드
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!user?.id) {
+        setStatsLoading(false)
+        return
+      }
+
+      try {
+        setStatsLoading(true)
+        const courses = await getCourses()
+
+        // 일단 모든 강의 표시 (필터링 제거)
+        const filteredCourses = courses
+
+        let totalQnAs = 0
+        let unansweredQnAs = 0
+
+        for (const course of filteredCourses) {
+          try {
+            // QnA 통계 집계
+            const qnas = await getCourseQnAs(Number(course.id))
+            totalQnAs += qnas.length
+            unansweredQnAs += qnas.filter(qna => !qna.answers || qna.answers.length === 0).length
+          } catch (error) {
+            console.error(`강좌 ${course.id} 통계 로드 실패:`, error)
+          }
+        }
+
+        setStats({ totalQnAs, unansweredQnAs })
+      } catch (error) {
+        console.error('통계 로드 실패:', error)
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+    loadStats()
+  }, [user])
+
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         {/* Left Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
-          <div className="p-6">
-            {/* Profile Section */}
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 bg-blue-800 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              <h2 className="text-lg text-gray-900 mb-1">김강사</h2>
-              <p className="text-xs text-gray-600 mb-4">강의자님, 안녕하세요!</p>
-
-
-              {/* Create Course Button */}
-              <Link
-                to="/instructor/create"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs flex items-center justify-center space-x-1 transition-colors shadow-lg"
-              >
-                <PlusCircle className="h-3 w-3" />
-                <span>강좌 만들기</span>
-              </Link>
-            </div>
-
-            {/* Navigation Menu */}
-            <nav className="space-y-2">
-              <Link
-                to="/instructor/dashboard"
-                className="flex items-center space-x-3 px-4 py-3 bg-gray-100 text-gray-900 rounded-lg text-sm"
-              >
-                <Home className="h-4 w-4" />
-                <span>강의자 홈</span>
-              </Link>
-              <Link
-                to="/instructor/courses?tab=my-courses"
-                className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg text-sm"
-              >
-                <BookOpen className="h-4 w-4" />
-                <span>내가 개설한 강좌</span>
-              </Link>
-            </nav>
-          </div>
-        </div>
+        <InstructorSidebar />
 
         {/* Main Content */}
         <div className="flex-1 p-6">
           <div className="max-w-4xl mx-auto">
-            {/* Introduction Section */}
+            {/* Header */}
             <div className="mb-6">
-              <h1 className="text-xl text-gray-900 mb-4">소개</h1>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                <p className="text-sm text-gray-500 mb-4">소개글이 없습니다.</p>
-                <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm transition-colors">
-                  소개 작성하기
-                </button>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-xl text-gray-900 mb-1">강의자 대시보드</h1>
+                  {user && (
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <p className="font-medium text-gray-900">강의자: {user.name || '강의자'}</p>
+                      {user.email && (
+                        <>
+                          <span className="text-gray-400">|</span>
+                          <p>{user.email}</p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
+            {/* Statistics Cards */}
+            {!statsLoading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <button
+                  onClick={() => {
+                    navigate('/instructor/qna/all')
+                  }}
+                  className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:border-blue-300 hover:shadow-md transition-all text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">전체 QnA</p>
+                      <p className="text-2xl font-bold text-gray-900">{stats.totalQnAs}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                      <MessageSquare className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/instructor/qna/unanswered')
+                  }}
+                  className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:border-orange-300 hover:shadow-md transition-all text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">미답변 QnA</p>
+                      <p className="text-2xl font-bold text-orange-600">{stats.unansweredQnAs}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-orange-600" />
+                    </div>
+                  </div>
+                </button>
+              </div>
+            )}
 
-            {/* Course Content */}
+            {/* My Courses Section */}
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <h1 className="text-xl text-gray-900 mb-4">나의 강의</h1>
               {loading ? (
                 <div className="text-center py-8 text-gray-500">로딩 중...</div>
               ) : (
@@ -147,3 +212,5 @@ export default function InstructorDashboard() {
     </div>
   )
 }
+
+export default InstructorDashboard

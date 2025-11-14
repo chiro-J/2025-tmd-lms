@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ModalBase from './ModalBase'
-import { getCourseByEnrollmentCode } from '../../core/api/courses'
+import { getCourseByEnrollmentCode, enrollInCourse } from '../../core/api/courses'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface EnrollCodeModalProps {
   open: boolean
@@ -14,6 +15,7 @@ export default function EnrollCodeModal({ open, onClose, onEnrollSuccess }: Enro
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,12 +32,20 @@ export default function EnrollCodeModal({ open, onClose, onEnrollSuccess }: Enro
         return
       }
 
-      // 로컬 스토리지에 등록된 강좌 ID 목록에 추가
+      if (!user?.id) {
+        setError('로그인이 필요합니다.')
+        setIsLoading(false)
+        return
+      }
+
+      // DB에 수강 등록
+      const courseId = Number(course.id)
+      await enrollInCourse(courseId, user.id)
+
+      // localStorage 동기화 (백업용)
       const enrolledCourseIds = JSON.parse(
         localStorage.getItem('enrolledCourseIds') || '[]'
       ) as number[]
-
-      const courseId = Number(course.id)
       if (!enrolledCourseIds.includes(courseId)) {
         enrolledCourseIds.push(courseId)
         localStorage.setItem('enrolledCourseIds', JSON.stringify(enrolledCourseIds))

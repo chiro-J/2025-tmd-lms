@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Edit, Trash2, Calendar, ChevronRight, Plus, ChevronDown } from "lucide-react";
+import { Bell, Edit, Trash2, Calendar, ChevronRight, Plus } from "lucide-react";
 import Card from "../ui/Card";
 import * as adminApi from "../../core/api/admin";
 
@@ -14,14 +14,6 @@ export default function NoticeManagement({
   const navigate = useNavigate();
   const [notices, setNotices] = useState<adminApi.Notice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showNoticeModal, setShowNoticeModal] = useState(false);
-  const [editingNotice, setEditingNotice] = useState<adminApi.Notice | null>(null);
-  const [noticeForm, setNoticeForm] = useState({
-    title: "",
-    content: "",
-    priority: "medium" as "low" | "medium" | "high",
-    status: "active" as "active" | "inactive"
-  });
 
   const loadNotices = async () => {
     try {
@@ -72,9 +64,7 @@ export default function NoticeManagement({
   };
 
   const handleNoticeCreate = () => {
-    setEditingNotice(null);
-    setNoticeForm({ title: "", content: "", priority: "medium", status: "active" });
-    setShowNoticeModal(true);
+    navigate('/admin/notice/new');
   };
 
   const handleNoticeView = (notice: adminApi.Notice) => {
@@ -85,7 +75,7 @@ export default function NoticeManagement({
     if (e) {
       e.stopPropagation();
     }
-    navigate(`/admin/notice/${notice.id}`);
+    navigate(`/admin/notice/${notice.id}/edit`);
   };
 
   const handleNoticeDelete = async (id: number, e?: React.MouseEvent) => {
@@ -99,35 +89,6 @@ export default function NoticeManagement({
       } catch (error) {
         console.error('공지사항 삭제 실패:', error);
         alert('공지사항 삭제에 실패했습니다.');
-      }
-    }
-  };
-
-  const handleNoticeSubmit = async () => {
-    if (noticeForm.title.trim() && noticeForm.content.trim()) {
-      try {
-        if (editingNotice) {
-          await adminApi.updateNotice(editingNotice.id, {
-            title: noticeForm.title.trim(),
-            content: noticeForm.content.trim(),
-            priority: noticeForm.priority,
-            status: noticeForm.status
-          });
-        } else {
-          await adminApi.createNotice({
-            title: noticeForm.title.trim(),
-            content: noticeForm.content.trim(),
-            author: "관리자",
-            priority: noticeForm.priority
-          });
-        }
-        await loadNotices();
-        setShowNoticeModal(false);
-        setNoticeForm({ title: "", content: "", priority: "medium", status: "active" });
-        setEditingNotice(null);
-      } catch (error) {
-        console.error('공지사항 저장 실패:', error);
-        alert('공지사항 저장에 실패했습니다.');
       }
     }
   };
@@ -251,132 +212,6 @@ export default function NoticeManagement({
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* 공지사항 작성/수정 모달 */}
-      {showNoticeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="max-w-2xl w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 break-words">
-                    {editingNotice ? "공지사항 수정" : "공지사항 작성"}
-                  </h3>
-                  <p className="text-sm text-gray-600 break-words">
-                    {editingNotice ? "공지사항을 수정합니다" : "새로운 공지사항을 작성합니다"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">제목</label>
-                  <input
-                    type="text"
-                    value={noticeForm.title}
-                    onChange={(e) => setNoticeForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="input w-full"
-                    placeholder="공지사항 제목을 입력하세요"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">내용</label>
-                  <textarea
-                    value={noticeForm.content}
-                    onChange={(e) => setNoticeForm(prev => ({ ...prev, content: e.target.value }))}
-                    className="input w-full h-32 resize-none"
-                    placeholder="공지사항 내용을 입력하세요"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">중요도</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="priority"
-                        value="low"
-                        checked={noticeForm.priority === 'low'}
-                        onChange={(e) => setNoticeForm(prev => ({ ...prev, priority: e.target.value as "low" | "medium" | "high" }))}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">낮음</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="priority"
-                        value="medium"
-                        checked={noticeForm.priority === 'medium'}
-                        onChange={(e) => setNoticeForm(prev => ({ ...prev, priority: e.target.value as "low" | "medium" | "high" }))}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">일반</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="priority"
-                        value="high"
-                        checked={noticeForm.priority === 'high'}
-                        onChange={(e) => setNoticeForm(prev => ({ ...prev, priority: e.target.value as "low" | "medium" | "high" }))}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">높음</span>
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">상태</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="status"
-                        value="active"
-                        checked={noticeForm.status === 'active'}
-                        onChange={(e) => setNoticeForm(prev => ({ ...prev, status: e.target.value as "active" | "inactive" }))}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">활성</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="status"
-                        value="inactive"
-                        checked={noticeForm.status === 'inactive'}
-                        onChange={(e) => setNoticeForm(prev => ({ ...prev, status: e.target.value as "active" | "inactive" }))}
-                        className="mr-2"
-                      />
-                      <span className="text-sm text-gray-700">비활성</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setShowNoticeModal(false)}
-                  className="btn-outline"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleNoticeSubmit}
-                  className="btn-primary bg-orange-600 hover:bg-orange-700"
-                >
-                  <Bell className="w-4 h-4" />
-                  {editingNotice ? "공지사항 수정" : "공지사항 작성"}
-                </button>
-              </div>
-            </div>
-          </Card>
         </div>
       )}
 

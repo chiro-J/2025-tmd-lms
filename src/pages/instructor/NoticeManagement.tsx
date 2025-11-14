@@ -128,7 +128,7 @@ export default function NoticeManagement() {
                 {currentNotices.map((notice) => (
                   <button
                     key={notice.id}
-                    onClick={() => window.open(`/instructor/course/${courseId}/notice/${notice.id}`, '_blank')}
+                    onClick={() => navigate(`/instructor/course/${courseId}/notice/${notice.id}`)}
                     className="w-full text-left card-panel p-5 hover:shadow-md transition-all hover:bg-gray-50 cursor-pointer group"
                   >
                     <div className="flex items-center justify-between">

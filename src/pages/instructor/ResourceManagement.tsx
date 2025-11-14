@@ -1,61 +1,47 @@
-import { useState } from 'react'
-import { Plus, Upload, FileText, Image, Download, Trash2, Eye } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { Plus, Upload, FileText, Download, Trash2, Eye } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
-
-interface Resource {
-  id: number
-  title: string
-  type: 'pdf' | 'slide' | 'code' | 'link'
-  fileUrl?: string
-  linkUrl?: string
-  code?: string
-  uploadedAt: string
-  size: string
-  downloadAllowed: boolean
-}
+import {
+  getCourseResources,
+  createCourseResource,
+  deleteCourseResource,
+  updateCourseResourceDownloadAllowed,
+  type CourseResource
+} from '../../core/api/courses'
 
 export default function ResourceManagement() {
-  const [resources, setResources] = useState<Resource[]>([
-    {
-      id: 1,
-      title: '강의 자료 예시.pdf',
-      type: 'pdf',
-      fileUrl: '/resources/example.pdf',
-      uploadedAt: '2025-01-15',
-      size: '2.3 MB',
-      downloadAllowed: true
-    }
-  ])
+  const { id } = useParams()
+  const courseId = Number(id) || 1
+  const [resources, setResources] = useState<CourseResource[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [newType, setNewType] = useState<Resource['type']>('pdf')
   const [newTitle, setNewTitle] = useState('')
-  const [newLinkUrl, setNewLinkUrl] = useState('')
-  const [newCode, setNewCode] = useState('')
+  const [uploading, setUploading] = useState(false)
+
+  useEffect(() => {
+    const loadResources = async () => {
+      try {
+        setLoading(true)
+        const data = await getCourseResources(courseId)
+        setResources(data)
+      } catch (error) {
+        console.error('강의 자료 로드 실패:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadResources()
+  }, [courseId])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       setSelectedFile(file)
-      // TODO: 실제 업로드 구현
-    }
-  }
-
-  const getFileIcon = (type: Resource['type']) => {
-    switch (type) {
-      case 'pdf':
-        return FileText
-      case 'slide':
-        return Image
-      case 'code':
-        return FileText
-      case 'link':
-        return FileText
-      default:
-        return FileText
     }
   }
 
@@ -84,29 +70,49 @@ export default function ResourceManagement() {
       </div>
 
       {/* Resources List */}
-      {resources.length > 0 ? (
+      {loading ? (
+        <Card>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-base-content/70">로딩 중...</div>
+          </div>
+        </Card>
+      ) : resources.length > 0 ? (
         <div className="grid grid-cols-1 gap-4">
-          {resources.map((resource) => {
-            const Icon = getFileIcon(resource.type)
-            return (
+          {resources.map((resource) => (
               <Card key={resource.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-primary" />
+                      <FileText className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <h3 className="font-medium text-base-content">{resource.title}</h3>
                       <p className="text-sm text-base-content/70">
-                        {resource.size} • {resource.uploadedAt}
+                        {resource.fileSize ? `${(resource.fileSize / 1024 / 1024).toFixed(2)} MB` : '-'} • {new Date(resource.createdAt).toLocaleDateString('ko-KR')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" className="text-base-content/70 rounded-xl">
-                      <Eye className="h-4 w-4 mr-1" />
-                      미리보기
-                    </Button>
+                    {resource.fileUrl && (
+                      <Button
+                        variant="outline"
+                        className="text-base-content/70 rounded-xl"
+                        onClick={() => window.open(resource.fileUrl, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        미리보기
+                      </Button>
+                    )}
+                    {resource.linkUrl && (
+                      <Button
+                        variant="outline"
+                        className="text-base-content/70 rounded-xl"
+                        onClick={() => window.open(resource.linkUrl, '_blank')}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        링크 열기
+                      </Button>
+                    )}
                     <label className="flex items-center cursor-pointer">
                       <input
                         type="checkbox"
@@ -129,30 +135,52 @@ export default function ResourceManagement() {
                             ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'
                             : 'text-base-content/70'
                         }`}
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.preventDefault()
-                          setResources(prev =>
-                            prev.map(r =>
-                              r.id === resource.id
-                                ? { ...r, downloadAllowed: !r.downloadAllowed }
-                                : r
+                          try {
+                            await updateCourseResourceDownloadAllowed(
+                              courseId,
+                              resource.id,
+                              !resource.downloadAllowed
                             )
-                          )
+                            setResources(prev =>
+                              prev.map(r =>
+                                r.id === resource.id
+                                  ? { ...r, downloadAllowed: !r.downloadAllowed }
+                                  : r
+                              )
+                            )
+                          } catch (error) {
+                            console.error('다운로드 허용/금지 수정 실패:', error)
+                            alert('수정에 실패했습니다.')
+                          }
                         }}
                       >
                         <Download className="h-4 w-4 mr-1" />
                         {resource.downloadAllowed ? '다운로드 허용' : '다운로드 금지'}
                       </Button>
                     </label>
-                    <Button variant="outline" className="text-error rounded-xl">
+                    <Button
+                      variant="outline"
+                      className="text-error rounded-xl"
+                      onClick={async () => {
+                        if (!confirm('정말 삭제하시겠습니까?')) return
+                        try {
+                          await deleteCourseResource(courseId, resource.id)
+                          setResources(prev => prev.filter(r => r.id !== resource.id))
+                        } catch (error) {
+                          console.error('강의 자료 삭제 실패:', error)
+                          alert('삭제에 실패했습니다.')
+                        }
+                      }}
+                    >
                       <Trash2 className="h-4 w-4 mr-1" />
                       삭제
                     </Button>
                   </div>
                 </div>
               </Card>
-            )
-          })}
+          ))}
         </div>
       ) : (
         <Card>
@@ -179,25 +207,8 @@ export default function ResourceManagement() {
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-full max-w-2xl p-6">
-            <h3 className="text-lg font-semibold text-base-content mb-4">강의 자료 업로드</h3>
-            <div className="space-y-4">
-              {/* Type */}
-              <div>
-                <label className="block text-sm font-medium text-base-content mb-2">자료 유형</label>
-                <div className="flex flex-wrap gap-2">
-                  {(['pdf','slide','code','link'] as Resource['type'][]).map(t => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setNewType(t)}
-                      className={`px-3 py-1 rounded-lg text-sm border ${newType === t ? 'bg-primary text-white border-primary' : 'border-base-300 text-base-content/80 hover:bg-base-200'}`}
-                    >
-                      {t.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+            <h3 className="text-lg font-semibold text-base-content mb-6">강의 자료 업로드</h3>
+            <div className="space-y-6">
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-base-content mb-2">제목</label>
@@ -205,100 +216,88 @@ export default function ResourceManagement() {
                   type="text"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full p-3 border border-base-300 rounded-lg"
+                  className="w-full p-3 border border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="자료 제목을 입력하세요"
                 />
               </div>
 
-              {/* By type inputs */}
-              {newType === 'pdf' && (
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-2">PDF 파일</label>
+              {/* File Upload */}
+              <div>
+                <label className="block text-sm font-medium text-base-content mb-2">파일 선택</label>
+                <div className="relative">
                   <input
                     type="file"
                     onChange={handleFileUpload}
-                    className="w-full p-3 border border-base-300 rounded-lg"
-                    accept=".pdf"
+                    className="hidden"
+                    id="file-upload"
                   />
+                  <label
+                    htmlFor="file-upload"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-base-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200"
+                  >
+                    <Upload className="h-8 w-8 text-base-content/50 mb-2" />
+                    <span className="text-sm font-medium text-base-content">
+                      {selectedFile ? selectedFile.name : '클릭하여 파일 선택'}
+                    </span>
+                    <span className="text-xs text-base-content/50 mt-1">
+                      모든 파일 형식 지원
+                    </span>
+                  </label>
                 </div>
-              )}
-              {newType === 'slide' && (
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-2">슬라이드 이미지</label>
-                  <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    className="w-full p-3 border border-base-300 rounded-lg"
-                    accept=".jpg,.jpeg,.png,.webp"
-                  />
-                </div>
-              )}
-              {newType === 'link' && (
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-2">링크 URL</label>
-                  <input
-                    type="url"
-                    value={newLinkUrl}
-                    onChange={(e) => setNewLinkUrl(e.target.value)}
-                    className="w-full p-3 border border-base-300 rounded-lg"
-                    placeholder="https://example.com/resource"
-                  />
-                </div>
-              )}
-              {newType === 'code' && (
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-2">코드 스니펫</label>
-                  <textarea
-                    value={newCode}
-                    onChange={(e) => setNewCode(e.target.value)}
-                    className="w-full p-3 border border-base-300 rounded-lg font-mono text-sm"
-                    rows={6}
-                    placeholder={`// 예시\nconst greet = (name) => console.log('Hello', name);`}
-                  />
-                </div>
-              )}
+                {selectedFile && (
+                  <div className="mt-2 p-3 bg-base-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-base-content">{selectedFile.name}</span>
+                      <button
+                        onClick={() => setSelectedFile(null)}
+                        className="text-xs text-error hover:text-error/80"
+                      >
+                        제거
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Actions */}
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-base-300">
                 <Button
                   variant="outline"
-                  onClick={() => setShowUploadModal(false)}
+                  onClick={() => {
+                    setShowUploadModal(false)
+                    setSelectedFile(null)
+                    setNewTitle('')
+                  }}
                   className="rounded-xl"
                 >
                   취소
                 </Button>
                 <Button
                   className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl"
-                  onClick={() => {
-                    const now = new Date()
-                    const item: Resource = {
-                      id: Math.max(0, ...resources.map(r => r.id)) + 1,
-                      title: newTitle || (selectedFile?.name || (newType === 'link' ? '링크 자료' : newType === 'code' ? '코드 자료' : '자료')),
-                      type: newType,
-                      fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : undefined,
-                      linkUrl: newType === 'link' ? newLinkUrl : undefined,
-                      code: newType === 'code' ? newCode : undefined,
-                      uploadedAt: now.toISOString().slice(0,10),
-                      size: selectedFile ? `${(selectedFile.size/1024/1024).toFixed(2)} MB` : '-',
-                      downloadAllowed: true
+                  onClick={async () => {
+                    try {
+                      setUploading(true)
+                      const newResource = await createCourseResource(courseId, {
+                        title: newTitle || selectedFile?.name || '자료',
+                        type: 'pdf', // 기본값으로 설정 (백엔드에서 처리)
+                        file: selectedFile || undefined,
+                      })
+                      setResources([newResource, ...resources])
+                      alert('강의 자료가 등록되었습니다.')
+                      // reset
+                      setShowUploadModal(false)
+                      setSelectedFile(null)
+                      setNewTitle('')
+                    } catch (error) {
+                      console.error('강의 자료 업로드 실패:', error)
+                      alert('업로드에 실패했습니다.')
+                    } finally {
+                      setUploading(false)
                     }
-                    setResources([item, ...resources])
-                    // reset
-                    setShowUploadModal(false)
-                    setSelectedFile(null)
-                    setNewTitle('')
-                    setNewLinkUrl('')
-                    setNewCode('')
-                    setNewType('pdf')
                   }}
-                  disabled={
-                    (newType === 'pdf' && !selectedFile) ||
-                    (newType === 'slide' && !selectedFile) ||
-                    (newType === 'link' && !newLinkUrl) ||
-                    (newType === 'code' && !newCode)
-                  }
+                  disabled={uploading || !selectedFile}
                 >
-                  추가
+                  {uploading ? '업로드 중...' : '업로드'}
                 </Button>
               </div>
             </div>

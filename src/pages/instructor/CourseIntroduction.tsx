@@ -5,9 +5,11 @@ import Button from '../../components/ui/Button'
 import StableLexicalEditor from '../../components/editor/StableLexicalEditor'
 import { useCourseCreation } from '../../contexts/CourseCreationContext'
 import { createCourse } from '../../core/api/courses'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function CourseIntroduction() {
   const { courseData, resetCourseData } = useCourseCreation()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
 
@@ -32,6 +34,11 @@ export default function CourseIntroduction() {
       return
     }
 
+    if (!user?.id) {
+      alert('로그인이 필요합니다.')
+      return
+    }
+
     setSaving(true)
     try {
       // CourseCreationData를 DB Course 타입으로 변환
@@ -40,7 +47,7 @@ export default function CourseIntroduction() {
         thumbnail: formData.thumbnail || undefined,
         videoUrl: formData.videoUrl || undefined,
         content: formData.content || undefined,
-        instructor: '김강사', // TODO: 실제 로그인한 강사 정보 사용
+        instructor: user.name || '강의자', // 현재 로그인한 강의자 이름
         status: '공개' as const, // TODO: isPublic 필드 사용
         progress: 0,
       }

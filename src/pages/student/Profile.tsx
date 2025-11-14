@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { User, FileText, Eye, Loader2, BarChart3 } from 'lucide-react'
+import { User, FileText, Eye, Loader2 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { ProfileProvider, useProfile } from '../../contexts/ProfileContext'
 import PersonalInfoTab from '../../components/student/PersonalInfoTab'

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { List, MessageCircle, HelpCircle, ClipboardList, Smile, Subtitles, X, ChevronDown, ChevronRight } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getCourse } from '../../core/api/courses'
@@ -91,6 +92,8 @@ interface CurriculumContentProps {
 }
 
 function CurriculumContent({ courseId }: CurriculumContentProps) {
+  const navigate = useNavigate()
+  const params = useParams()
   const [expandedSection, setExpandedSection] = useState<number | null>(null)
   const [modules, setModules] = useState<Array<{ id: number; title: string; lessons?: Array<{ id: number; title: string }> }>>([])
   const [course, setCourse] = useState<Course | null>(null)
@@ -173,11 +176,8 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
                       key={lesson.id}
                       className="group p-3 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"
                       onClick={() => {
-                        // URL 파라미터에 레슨 ID 추가
-                        const newUrl = new URL(window.location.href)
-                        newUrl.searchParams.set('lesson', `${lesson.id}`)
-                        window.history.pushState({}, '', newUrl.toString())
-                        window.dispatchEvent(new PopStateEvent('popstate'))
+                        // React Router의 navigate를 사용하여 URL 업데이트
+                        navigate(`/student/learning/${params.id}?lesson=${lesson.id}`, { replace: false })
                       }}
                     >
                       <div className="flex items-center justify-between">

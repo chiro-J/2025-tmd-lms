@@ -31,8 +31,6 @@ export interface Course {
   id: string | number
   title: string
   instructor: string
-  instructorId?: string
-  instructorEmail?: string
   thumbnail?: string
   image?: string
   videoUrl?: string // 소개 영상 URL

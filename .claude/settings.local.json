@@ -5,7 +5,8 @@
       "Read(//c/Users/Monstera/Desktop/src/hooks/**)",
       "Bash(curl:*)",
       "Bash(npm install:*)",
-      "WebFetch(domain:code.claude.com)"
+      "WebFetch(domain:code.claude.com)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

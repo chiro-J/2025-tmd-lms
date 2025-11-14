@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { marked } from 'marked'
 import { Document, Page } from 'react-pdf'
 import { pdfjs } from 'react-pdf'
@@ -12,7 +12,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 export default function Learning() {
   const params = useParams()
   const courseId = Number(params.id) || 1
-  const [searchParams, setSearchParams] = useState(() => new URLSearchParams(window.location.search))
+  const [searchParams] = useSearchParams()
   const [sideNavTab, setSideNavTab] = useState('curriculum')
   const [isSideNavExpanded, setIsSideNavExpanded] = useState(true)
   const [curriculumModules, setCurriculumModules] = useState<CurriculumModule[]>([])
@@ -26,13 +26,21 @@ export default function Learning() {
 
   const selectedLessonId = useMemo(() => searchParams.get('lesson') || '', [searchParams])
 
-  // 마지막 학습한 강좌 저장
+  // 마지막 학습한 강좌 및 레슨 저장
   useEffect(() => {
     if (courseId) {
       localStorage.setItem('lastLearnedCourseId', String(courseId))
       localStorage.setItem('lastLearnedCourseTimestamp', String(Date.now()))
     }
   }, [courseId])
+
+  // 마지막 방문한 레슨 저장
+  useEffect(() => {
+    if (courseId && selectedLessonId) {
+      localStorage.setItem(`lastLearnedLesson_${courseId}`, selectedLessonId)
+      localStorage.setItem(`lastLearnedLessonTimestamp_${courseId}`, String(Date.now()))
+    }
+  }, [courseId, selectedLessonId])
 
   // PDF 옵션 메모이제이션 (불필요한 리로드 방지)
   const pdfOptions = useMemo(
@@ -43,14 +51,6 @@ export default function Learning() {
     }),
     []
   )
-
-  // 마지막 학습한 강좌 저장
-  useEffect(() => {
-    if (courseId) {
-      localStorage.setItem('lastLearnedCourseId', String(courseId))
-      localStorage.setItem('lastLearnedCourseTimestamp', String(Date.now()))
-    }
-  }, [courseId])
 
   // 커리큘럼 데이터 로드
   useEffect(() => {
@@ -74,7 +74,14 @@ export default function Learning() {
     }
 
     setLoadingLesson(true)
-    const lessonId = Number(selectedLessonId)
+
+    // selectedLessonId가 "3-1" 형식인 경우 실제 lesson ID만 추출
+    let actualLessonId = selectedLessonId
+    if (selectedLessonId.includes('-')) {
+      const parts = selectedLessonId.split('-')
+      actualLessonId = parts[parts.length - 1]
+    }
+    const lessonId = Number(actualLessonId)
 
     // 모든 모듈의 레슨 중에서 선택된 레슨 찾기
     const loadLessonContent = async () => {
@@ -222,12 +229,20 @@ export default function Learning() {
     }
   }, [selectedLessonData, loadingLesson])
 
-  // URL 변경 감지 (뒤로가기 등)
+  // URL에서 lesson 파라미터가 없으면 마지막 수강 레슨으로 자동 이동
   useEffect(() => {
-    const onPop = () => setSearchParams(new URLSearchParams(window.location.search))
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
+    if (!selectedLessonId && curriculumModules.length > 0) {
+      const lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
+      if (lastLearnedLessonId) {
+        // 마지막 수강 레슨이 존재하면 해당 레슨으로 이동
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.set('lesson', lastLearnedLessonId)
+        window.history.replaceState({}, '', newUrl.toString())
+        // searchParams를 강제로 업데이트하기 위해 location 변경 이벤트 발생
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      }
+    }
+  }, [selectedLessonId, curriculumModules, courseId])
 
   return (
     <div className="fixed inset-0 bg-gray-50 overflow-hidden">
@@ -270,10 +285,18 @@ export default function Learning() {
             <div className="max-w-none w-full bg-gray-50 min-h-full">
               {/* 경로 표시 */}
               {(() => {
+                // selectedLessonId가 "3-1" 형식인 경우 실제 lesson ID만 추출
+                let actualLessonId = selectedLessonId
+                if (selectedLessonId.includes('-')) {
+                  const parts = selectedLessonId.split('-')
+                  actualLessonId = parts[parts.length - 1]
+                }
+                const lessonIdNum = Number(actualLessonId)
+
                 const currentModule = curriculumModules.find((m: CurriculumModule) =>
-                  m.lessons?.some((l: Lesson) => l.id === Number(selectedLessonId))
+                  m.lessons?.some((l: Lesson) => l.id === lessonIdNum)
                 )
-                const currentLesson = currentModule?.lessons?.find((l: Lesson) => l.id === Number(selectedLessonId))
+                const currentLesson = currentModule?.lessons?.find((l: Lesson) => l.id === lessonIdNum)
                 return currentModule && currentLesson ? (
                   <div className={`pt-8 pb-4 border-b border-gray-200 ${isSideNavExpanded ? 'pl-24' : 'pl-16'}`}>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">

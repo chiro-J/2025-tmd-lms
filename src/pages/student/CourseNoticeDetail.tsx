@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Bell } from 'lucide-react';
-import { getCourseNotices, type CourseNotice } from '../../core/api/courses';
+import { getCourse, getCourseNotices, type CourseNotice } from '../../core/api/courses';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function CourseNoticeDetail() {
@@ -10,25 +10,31 @@ export default function CourseNoticeDetail() {
   const { user } = useAuth();
   const [notices, setNotices] = useState<CourseNotice[]>([]);
   const [notice, setNotice] = useState<CourseNotice | null>(null);
+  const [course, setCourse] = useState<{ title: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 공지 목록 로드
+  // 강좌 정보 및 공지 목록 로드
   useEffect(() => {
-    const loadNotices = async () => {
+    const loadData = async () => {
       if (!courseId) {
         navigate(-1);
         return;
       }
 
       try {
+        // 강좌 정보 로드
+        const courseData = await getCourse(Number(courseId));
+        setCourse({ title: courseData.title });
+
+        // 공지 목록 로드
         const allNotices = await getCourseNotices(Number(courseId));
         setNotices(allNotices);
       } catch (error) {
-        console.error('공지사항 목록 로드 실패:', error);
+        console.error('데이터 로드 실패:', error);
       }
     };
 
-    loadNotices();
+    loadData();
   }, [courseId, navigate]);
 
   // 선택된 공지 로드
@@ -112,8 +118,9 @@ export default function CourseNoticeDetail() {
               <Bell className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">강좌 공지사항</h1>
-              <p className="text-gray-600">강좌별 공지사항을 확인하세요</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {course ? `${course.title} 공지사항` : '강좌 공지사항'}
+              </h1>
             </div>
           </div>
         </div>

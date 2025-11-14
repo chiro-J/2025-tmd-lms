@@ -60,11 +60,18 @@ export const getProfile = async (): Promise<User> => {
   try {
     const response = await apiClient.get<User>('/auth/me');
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
+    // 401 에러는 로그인하지 않은 상태로 정상적인 상황이므로 조용히 처리
+    if (error.response?.status === 401) {
+      // 토큰이 없거나 만료된 경우이므로 에러를 그대로 throw하되 로깅은 하지 않음
+      throw error;
+    }
+    // 다른 에러는 로깅
     console.error('프로필 조회 실패:', error);
     throw error;
   }
 };
+
 
 export const refreshToken = async (): Promise<{ accessToken: string; refreshToken: string }> => {
   try {

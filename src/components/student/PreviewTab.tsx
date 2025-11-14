@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileDown, Printer, Palette, Share2, BarChart3, ArrowUp, User } from 'lucide-react'
+import { FileDown, Printer, Palette, Share2, ArrowUp, User } from 'lucide-react'
 import Card from '../ui/Card'
 import Button from '../ui/Button'
 import { useProfile } from '../../contexts/ProfileContext'
@@ -47,8 +47,17 @@ export default function PreviewTab() {
       const element = document.getElementById('resume-preview')
       if (!element) return
 
-      // @ts-ignore
-      const html2pdf = (await import('html2pdf.js')).default
+      // 동적 import 시도
+      let html2pdf
+      try {
+        // @ts-ignore
+        html2pdf = (await import('html2pdf.js')).default
+      } catch (importError) {
+        // 라이브러리가 없으면 인쇄 기능 사용
+        alert('PDF 다운로드 기능을 사용하려면 html2pdf.js 라이브러리를 설치해주세요.\n\nnpm install html2pdf.js\n\n대신 인쇄 기능을 사용하시겠습니까?')
+        window.print()
+        return
+      }
 
       const opt = {
         margin: 10,
@@ -60,7 +69,8 @@ export default function PreviewTab() {
 
       html2pdf().set(opt).from(element).save()
     } catch (error) {
-      alert('PDF 다운로드 기능을 사용하려면 html2pdf.js 라이브러리를 설치해주세요.\n\nnpm install html2pdf.js')
+      console.error('PDF 다운로드 실패:', error)
+      alert('PDF 다운로드에 실패했습니다. 인쇄 기능을 사용해주세요.')
     }
   }
 
@@ -426,3 +436,4 @@ export default function PreviewTab() {
     </div>
   )
 }
+

@@ -5,7 +5,9 @@ import {
   BookOpen,
   Settings,
   Shield,
-  X
+  X,
+  Bell,
+  MessageSquare
 } from "lucide-react";
 import Section from "../../components/ui/Section";
 import Card from "../../components/ui/Card";
@@ -23,6 +25,7 @@ export default function SubDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<"overview" | "students" | "instructors" | "courses" | "platform" | "settings">("overview");
+  const [platformTab, setPlatformTab] = useState<'notices' | 'inquiries'>('notices');
 
   // 데이터 상태
   const [students, setStudents] = useState<Student[]>([]);
@@ -555,7 +558,7 @@ export default function SubDashboard() {
           {activeSection === "platform" && (
             <div className="mt-8">
               <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900">플랫폼 관리</h2>
                   <button
                     onClick={() => setActiveSection("overview")}
@@ -565,16 +568,48 @@ export default function SubDashboard() {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                {(loading.inquiries || loading.notices) ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-gray-500">로딩 중...</div>
-                  </div>
+
+                {/* 탭 버튼 */}
+                <div className="flex gap-3 mb-6 border-b border-gray-200">
+                  <button
+                    onClick={() => setPlatformTab('notices')}
+                    className={`px-6 py-3 font-semibold text-base transition-colors border-b-2 ${
+                      platformTab === 'notices'
+                        ? 'border-orange-600 text-orange-600 bg-orange-50'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Bell className="w-4 h-4 inline-block mr-2" />
+                    공지사항 관리
+                  </button>
+                  <button
+                    onClick={() => setPlatformTab('inquiries')}
+                    className={`px-6 py-3 font-semibold text-base transition-colors border-b-2 ${
+                      platformTab === 'inquiries'
+                        ? 'border-purple-600 text-purple-600 bg-purple-50'
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4 inline-block mr-2" />
+                    문의사항 관리
+                  </button>
+                </div>
+
+                {/* 탭 내용 */}
+                {platformTab === 'notices' ? (
+                  <NoticeManagement showActions={true} />
                 ) : (
-                  <InquiryManagement
-                    inquiries={inquiries}
-                    onRespondToInquiry={handleRespondToInquiry}
-                    showActions={true}
-                  />
+                  (loading.inquiries || loading.notices) ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-gray-500">로딩 중...</div>
+                    </div>
+                  ) : (
+                    <InquiryManagement
+                      inquiries={inquiries}
+                      onRespondToInquiry={handleRespondToInquiry}
+                      showActions={true}
+                    />
+                  )
                 )}
               </Card>
             </div>

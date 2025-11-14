@@ -1,22 +1,38 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { Search, Mail, Download, MoreVertical, UserPlus, Settings, ChevronDown } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
+import { getCourseEnrollments, type CourseEnrollment } from '../../core/api/courses'
 
 export default function ManageStudents() {
+  const { id } = useParams()
+  const courseId = Number(id) || 1
   const [activeTab, setActiveTab] = useState('enrolled')
   const [searchTerm, setSearchTerm] = useState('')
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock data
-  const students = [
-    { id: 1, name: '김학생', email: 'student1@example.com', group: '기본 그룹', avatar: '김' },
-    { id: 2, name: '이학생', email: 'student2@example.com', group: '기본 그룹', avatar: '이' },
-    { id: 3, name: '박학생', email: 'student3@example.com', group: '기본 그룹', avatar: '박' },
-    { id: 4, name: '최학생', email: 'student4@example.com', group: '기본 그룹', avatar: '최' },
-    { id: 5, name: '정학생', email: 'student5@example.com', group: '기본 그룹', avatar: '정' },
-  ]
+  useEffect(() => {
+    const loadEnrollments = async () => {
+      try {
+        setLoading(true)
+        const data = await getCourseEnrollments(courseId)
+        setEnrollments(data)
+      } catch (error) {
+        console.error('수강자 목록 로드 실패:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadEnrollments()
+  }, [courseId])
+
+  const filteredEnrollments = enrollments.filter(enrollment =>
+    enrollment.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    enrollment.user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
 
   const rightActions = (
@@ -52,7 +68,7 @@ export default function ManageStudents() {
                     : 'border-transparent text-base-content/70 hover:text-base-content hover:border-base-300'
                 }`}
               >
-                수강 중인 수강자 (22)
+                수강 중인 수강자 ({enrollments.length})
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
@@ -125,34 +141,51 @@ export default function ManageStudents() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {students.map((student, index) => (
-                  <tr key={student.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{index + 1}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-700">
-                            {student.avatar}
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                          <div className="text-sm text-gray-500">{student.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {student.group}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-red-600 hover:text-red-900">
-                        [→ 퇴장]
-                      </button>
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                      로딩 중...
                     </td>
                   </tr>
-                ))}
+                ) : filteredEnrollments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                      수강자가 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredEnrollments.map((enrollment, index) => (
+                    <tr key={enrollment.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{enrollment.user.id}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-700">
+                              {enrollment.user.name.charAt(0)}
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{enrollment.user.name}</div>
+                            <div className="text-sm text-gray-500">{enrollment.user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {enrollment.user.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        기본 그룹
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button className="text-red-600 hover:text-red-900">
+                          [→ 퇴장]
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

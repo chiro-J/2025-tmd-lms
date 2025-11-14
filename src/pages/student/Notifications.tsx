@@ -27,13 +27,13 @@ function NotificationSettingsCard({ userId, blockNotifications, setBlockNotifica
     <Card className="p-6 mb-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-2">시스템 공지사항 알림 설정</h3>
       <p className="text-sm text-gray-600 mb-4">
-        중요도가 "높음"인 공지사항은 무조건 알림을 받습니다.
-        토글을 활성화하면 그 외 공지사항의 알림을 받지 않습니다.
+        중요도가 "높음"인 공지사항은 항상 알림을 받습니다.
+        토글을 활성화(파란색)하면 모든 공지사항 알림을 받고, 비활성화(회색)하면 중요 공지사항만 받습니다.
       </p>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-900">
-            {blockNotifications ? '일반 공지사항 알림 수신 거부' : '모든 공지사항 알림 수신'}
+            {blockNotifications ? '일반 공지사항 알림 수신 거부 (중요 공지사항만 수신)' : '모든 공지사항 알림 수신 허용'}
           </p>
         </div>
         <button
@@ -99,14 +99,14 @@ export default function Notifications() {
           const systemNotices = await adminApi.getNotices()
 
           // 활성 상태인 공지사항만 필터링
-          // 토글이 켜져 있으면 "높음" 중요도만, 꺼져 있으면 모두 포함
+          // blockNotifications가 true(회색, 비활성화)면 "높음" 중요도만, false(파란색, 활성화)면 모두 포함
           const filteredNotices = systemNotices.filter(notice => {
             if (notice.status !== 'active') return false
             if (blockNotifications) {
-              // 토글이 켜져 있으면 높음 중요도만
+              // 알림 차단 활성화(회색) → 높음 중요도만
               return notice.priority === 'high'
             }
-            // 토글이 꺼져 있으면 모두 포함
+            // 알림 차단 비활성화(파란색) → 모두 포함
             return true
           })
 

@@ -385,14 +385,14 @@ export default function MasterDashboard() {
                 }`}
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div className={`p-3 rounded-lg flex-shrink-0 ${
+                  <div className={`p-3 rounded-lg flex-shrink-0 flex items-center justify-center ${
                     activeSection === 'subAdmins'
                       ? 'bg-orange-200'
                       : 'bg-orange-100 group-hover:bg-orange-200'
-                  }`}>
+                  }`} style={{ width: '48px', height: '48px' }}>
                     <UserPlus className="h-6 w-6 text-orange-600" />
                   </div>
-                  <div className="flex-1 min-h-[3.5rem] flex flex-col justify-center">
+                  <div className="flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold text-gray-900 break-words">서브 관리자 관리</h3>
                     <p className="text-sm text-gray-600 break-words leading-tight">서브 관리자 조회, 생성,<br />삭제</p>
                   </div>
@@ -415,14 +415,14 @@ export default function MasterDashboard() {
                 }`}
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div className={`p-3 rounded-lg flex-shrink-0 ${
+                  <div className={`p-3 rounded-lg flex-shrink-0 flex items-center justify-center ${
                     activeSection === 'instructors'
                       ? 'bg-green-200'
                       : 'bg-green-100 group-hover:bg-green-200'
-                  }`}>
+                  }`} style={{ width: '48px', height: '48px' }}>
                     <CheckCircle className="h-6 w-6 text-green-600" />
                   </div>
-                  <div className="flex-1 min-h-[3.5rem] flex flex-col justify-center">
+                  <div className="flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold text-gray-900 break-words">강사 승인 관리</h3>
                     <p className="text-sm text-gray-600 break-words leading-tight">강사 가입 승인 및 관리</p>
                   </div>
@@ -445,14 +445,14 @@ export default function MasterDashboard() {
                 }`}
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div className={`p-3 rounded-lg flex-shrink-0 ${
+                  <div className={`p-3 rounded-lg flex-shrink-0 flex items-center justify-center ${
                     activeSection === 'students'
                       ? 'bg-blue-200'
                       : 'bg-blue-100 group-hover:bg-blue-200'
-                  }`}>
+                  }`} style={{ width: '48px', height: '48px' }}>
                     <Users className="h-6 w-6 text-blue-600" />
                   </div>
-                  <div className="flex-1 min-h-[3.5rem] flex flex-col justify-center">
+                  <div className="flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold text-gray-900 break-words">사용자 관리</h3>
                     <p className="text-sm text-gray-600 break-words leading-tight">수강생 조회 및 관리</p>
                   </div>
@@ -475,14 +475,14 @@ export default function MasterDashboard() {
                 }`}
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div className={`p-3 rounded-lg flex-shrink-0 ${
+                  <div className={`p-3 rounded-lg flex-shrink-0 flex items-center justify-center ${
                     activeSection === 'courses'
                       ? 'bg-purple-200'
                       : 'bg-purple-100 group-hover:bg-purple-200'
-                  }`}>
+                  }`} style={{ width: '48px', height: '48px' }}>
                     <BookOpen className="h-6 w-6 text-purple-600" />
                   </div>
-                  <div className="flex-1 min-h-[3.5rem] flex flex-col justify-center">
+                  <div className="flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold text-gray-900 break-words">강좌 관리</h3>
                     <p className="text-sm text-gray-600 break-words leading-tight">강좌 승인 및 관리</p>
                   </div>

@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, FileText, CheckCircle, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut, Calendar, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { mockResources, mockQnA } from '../../mocks'
-import type { Resource, QnAItem } from '../../types'
+import { useAuth } from '../../contexts/AuthContext'
 // curriculum API는 동적 import로 로드
 import { transformApiToDetailFormat } from '../../utils/curriculumTransform'
-import { getCourse, getCourseNotices, type CourseNotice } from '../../core/api/courses'
+import { getCourse, getCourseNotices, getCourseQnAs, createCourseQnA, createCourseQnAAnswer, getCourseResources, unenrollFromCourse, type CourseNotice, type CourseQnA, type CourseResource } from '../../core/api/courses'
 import { getAssignments } from '../../core/api/assignments'
 import { safeHtml } from '../../utils/safeHtml'
 import type { Course } from '../../types'
 import type { Assignment } from '../../types/assignment'
 
 function CourseNotices({ courseId }: { courseId: number }) {
+  const navigate = useNavigate()
   const [notices, setNotices] = useState<CourseNotice[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -63,7 +63,7 @@ function CourseNotices({ courseId }: { courseId: number }) {
               <div
                 key={notice.id}
                 className="border border-gray-200 rounded-lg p-4 bg-white hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => window.open(`/student/course/${courseId}/notice/${notice.id}`, '_blank')}
+                onClick={() => navigate(`/student/course/${courseId}/notice/${notice.id}`)}
               >
                 <h4 className="font-medium text-gray-900 mb-2">{notice.title}</h4>
                 <div className="flex items-center text-sm text-gray-500">
@@ -97,16 +97,24 @@ interface CurriculumItem {
 export default function CourseDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'home' | 'info' | 'exam' | 'notice' | 'resources' | 'qna'>('home')
 
   // 강의 자료 관련 상태
+  const [resources, setResources] = useState<CourseResource[]>([])
+  const [resourcesLoading, setResourcesLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState<Resource['type'] | 'all'>('all')
 
   // QnA 관련 상태
   const [qnaSearchQuery, setQnaSearchQuery] = useState('')
   const [showAskInline, setShowAskInline] = useState(false)
+  const [askTitle, setAskTitle] = useState('')
   const [askText, setAskText] = useState('')
+  const [askIsPublic, setAskIsPublic] = useState(true)
+  const [qnaList, setQnaList] = useState<CourseQnA[]>([])
+  const [qnaLoading, setQnaLoading] = useState(true)
+  const [qnaCurrentPage, setQnaCurrentPage] = useState(1)
+  const qnaItemsPerPage = 10
 
   const courseId = Number(id) || 1
   const [curriculum, setCurriculum] = useState<CurriculumItem[]>([])
@@ -114,6 +122,8 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [lastLearnedLessonTitle, setLastLearnedLessonTitle] = useState<string | null>(null)
+  const [instructorInfo, setInstructorInfo] = useState<{ name: string; email: string; userId?: number } | null>(null)
 
   // YouTube URL에서 video ID 추출
   const getYouTubeVideoId = (url: string) => {
@@ -124,17 +134,18 @@ export default function CourseDetail() {
   }
 
   // 강좌 목록에서 제거
-  const handleRemoveCourse = () => {
+  const handleRemoveCourse = async () => {
+    if (!user?.id) return
+
     if (window.confirm('정말 이 강좌를 목록에서 제거하시겠습니까?')) {
-      const enrolledCourseIds = JSON.parse(
-        localStorage.getItem('enrolledCourseIds') || '[]'
-      ) as number[]
-
-      const updatedIds = enrolledCourseIds.filter(id => id !== courseId)
-      localStorage.setItem('enrolledCourseIds', JSON.stringify(updatedIds))
-
-      // 대시보드로 이동
-      navigate('/student/dashboard')
+      try {
+        await unenrollFromCourse(courseId, user.id)
+        // 대시보드로 이동
+        navigate('/student/dashboard')
+      } catch (error) {
+        console.error('수강 취소 실패:', error)
+        alert('수강 취소에 실패했습니다.')
+      }
     }
   }
 
@@ -144,6 +155,36 @@ export default function CourseDetail() {
       try {
         const courseData = await getCourse(courseId)
         setCourse(courseData as Course)
+
+        // 강의자 정보 가져오기
+        if (courseData.instructor) {
+          try {
+            // instructors 테이블에서 강의자 정보 찾기
+            const { getInstructors } = await import('../../core/api/admin')
+            const instructors = await getInstructors()
+            const instructor = instructors.find(inst => inst.name === courseData.instructor)
+
+            if (instructor) {
+              setInstructorInfo({
+                name: instructor.name,
+                email: instructor.email,
+                userId: instructor.userId
+              })
+            } else {
+              // 찾지 못한 경우 강의자 이름만 표시
+              setInstructorInfo({
+                name: courseData.instructor,
+                email: ''
+              })
+            }
+          } catch (error) {
+            // API 실패 시 강의자 이름만 표시
+            setInstructorInfo({
+              name: courseData.instructor,
+              email: ''
+            })
+          }
+        }
       } catch (error) {
         console.error('강좌 정보 로드 실패:', error)
       }
@@ -170,6 +211,45 @@ export default function CourseDetail() {
     loadAssignments()
   }, [courseId])
 
+  // DB에서 QnA 목록 로드
+  useEffect(() => {
+    const loadQnAs = async () => {
+      try {
+        setQnaLoading(true)
+        const qnaData = await getCourseQnAs(courseId)
+        setQnaList(qnaData)
+      } catch (error) {
+        console.error('QnA 목록 로드 실패:', error)
+        setQnaList([])
+      } finally {
+        setQnaLoading(false)
+      }
+    }
+
+    loadQnAs()
+  }, [courseId])
+
+  // DB에서 강의 자료 목록 로드
+  useEffect(() => {
+    const loadResources = async () => {
+      try {
+        setResourcesLoading(true)
+        const resourcesData = await getCourseResources(courseId)
+        setResources(resourcesData)
+      } catch (error) {
+        console.error('강의 자료 로드 실패:', error)
+        setResources([])
+      } finally {
+        setResourcesLoading(false)
+      }
+    }
+
+    loadResources()
+  }, [courseId])
+
+  // 원본 API 모듈 데이터 저장 (실제 lesson.id 접근용)
+  const [originalModules, setOriginalModules] = useState<any[]>([])
+
   // DB에서 커리큘럼 데이터 로드
   useEffect(() => {
     const loadCurriculum = async () => {
@@ -180,6 +260,9 @@ export default function CourseDetail() {
         const { getCurriculum } = await import('../../core/api/curriculum')
         const apiModules = await getCurriculum(courseId)
         const transformed = transformApiToDetailFormat(apiModules)
+
+        // 원본 API 데이터를 저장하여 실제 lesson.id에 접근할 수 있도록 함
+        setOriginalModules(apiModules)
 
         // 임시 완료 처리 (나중에 실제 사용자 진행 데이터로 교체)
         if (transformed.length > 0) {
@@ -209,6 +292,30 @@ export default function CourseDetail() {
         }
 
         setCurriculum(transformed)
+
+        // 마지막 수강한 레슨 찾기
+        const lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
+        if (lastLearnedLessonId && transformed.length > 0) {
+          for (const module of transformed) {
+            const lesson = module.lessons.find(l => {
+              if (l.id === lastLearnedLessonId || l.id === `lesson-${lastLearnedLessonId}`) {
+                return true
+              }
+              if (l.id.includes('-')) {
+                const parts = l.id.split('-')
+                const lessonIdPart = parts[parts.length - 1]
+                return lessonIdPart === lastLearnedLessonId || Number(lessonIdPart) === Number(lastLearnedLessonId)
+              }
+              const lessonIdNum = Number(l.id.replace('lesson-', '').replace(/^.*-/, ''))
+              const lastLearnedNum = Number(lastLearnedLessonId)
+              return !isNaN(lessonIdNum) && !isNaN(lastLearnedNum) && lessonIdNum === lastLearnedNum
+            })
+            if (lesson) {
+              setLastLearnedLessonTitle(lesson.title)
+              break
+            }
+          }
+        }
       } catch (error) {
         console.error('커리큘럼 로드 실패:', error)
         setCurriculum([])
@@ -223,22 +330,38 @@ export default function CourseDetail() {
   const [allExpanded, setAllExpanded] = useState(false)
 
   // 강의 자료 필터링
-  const filteredResources = mockResources.filter(resource => {
-    const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         resource.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesType = selectedType === 'all' || resource.type === selectedType
-    return matchesSearch && matchesType
-  })
-
-  // QnA 필터링 로직
-  const filteredQnA = mockQnA.filter(qna => {
-    const matchesSearch = qna.question.toLowerCase().includes(qnaSearchQuery.toLowerCase()) ||
-                          qna.author.toLowerCase().includes(qnaSearchQuery.toLowerCase())
+  const filteredResources = resources.filter(resource => {
+    const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesSearch
   })
 
+  // QnA 필터링 로직 (공개된 QnA와 자신의 QnA만 표시)
+  const filteredQnA = qnaList.filter(qna => {
+    // 공개된 QnA이거나 자신이 작성한 QnA인 경우만 표시
+    const isVisible = qna.isPublic || qna.userId === user?.id
+
+    if (!isVisible) return false
+
+    const userName = (qna.user.name || qna.user.username || '').toLowerCase()
+    const matchesSearch = (qna.title?.toLowerCase().includes(qnaSearchQuery.toLowerCase()) || false) ||
+                          qna.question.toLowerCase().includes(qnaSearchQuery.toLowerCase()) ||
+                          userName.includes(qnaSearchQuery.toLowerCase())
+    return matchesSearch
+  })
+
+  // QnA 페이지네이션 계산
+  const qnaTotalPages = Math.ceil(filteredQnA.length / qnaItemsPerPage)
+  const qnaStartIndex = (qnaCurrentPage - 1) * qnaItemsPerPage
+  const qnaEndIndex = qnaStartIndex + qnaItemsPerPage
+  const paginatedQnA = filteredQnA.slice(qnaStartIndex, qnaEndIndex)
+
+  // 검색어 변경 시 첫 페이지로 리셋
+  useEffect(() => {
+    setQnaCurrentPage(1)
+  }, [qnaSearchQuery])
+
   // 강의 자료 타입별 아이콘
-  const getTypeIcon = (type: Resource['type']) => {
+  const getTypeIcon = (type: CourseResource['type']) => {
     switch (type) {
       case 'pdf':
         return <FileText className="h-5 w-5 text-red-600" />
@@ -254,7 +377,7 @@ export default function CourseDetail() {
   }
 
   // 강의 자료 타입별 라벨
-  const getTypeLabel = (type: Resource['type']) => {
+  const getTypeLabel = (type: CourseResource['type']) => {
     switch (type) {
       case 'pdf':
         return 'PDF'
@@ -270,7 +393,7 @@ export default function CourseDetail() {
   }
 
   // 강의 자료 타입별 색상
-  const getTypeColor = (type: Resource['type']) => {
+  const getTypeColor = (type: CourseResource['type']) => {
     switch (type) {
       case 'pdf':
         return 'bg-red-100 text-red-800'
@@ -295,11 +418,27 @@ export default function CourseDetail() {
   }
 
   // 다운로드 핸들러
-  const handleDownload = (resource: Resource) => {
-    if (resource.type === 'link') {
-      window.open(resource.url, '_blank')
-    } else {
-      // TODO: 실제 다운로드 구현
+  const handleDownload = (resource: CourseResource) => {
+    if (resource.type === 'link' && resource.linkUrl) {
+      window.open(resource.linkUrl, '_blank')
+    } else if (resource.type === 'code' && resource.code) {
+      // 코드는 새 창에서 표시
+      const codeWindow = window.open('', '_blank')
+      if (codeWindow) {
+        codeWindow.document.write(`
+          <html>
+            <head><title>${resource.title}</title></head>
+            <body style="font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;">
+              <pre style="white-space: pre-wrap; word-wrap: break-word;">${resource.code}</pre>
+            </body>
+          </html>
+        `)
+      }
+    } else if (resource.fileUrl && resource.downloadAllowed) {
+      // 파일 다운로드
+      window.open(resource.fileUrl, '_blank')
+    } else if (!resource.downloadAllowed) {
+      alert('다운로드가 허용되지 않은 자료입니다.')
     }
   }
 
@@ -315,7 +454,27 @@ export default function CourseDetail() {
   }
 
   const handleLessonClick = (lessonId: string) => {
-    navigate(`/student/learning/${id}?lesson=${lessonId}`)
+    // lessonId가 "3-1" 형식인 경우 실제 lesson ID만 추출
+    let actualLessonId = lessonId
+    if (lessonId.includes('-')) {
+      const parts = lessonId.split('-')
+      // 마지막 부분이 실제 lesson ID
+      actualLessonId = parts[parts.length - 1]
+    }
+
+    // 원본 모듈 데이터에서 실제 lesson ID 확인
+    for (const module of originalModules) {
+      const lesson = module.lessons?.find((l: any) => {
+        const transformedId = `${module.id}-${l.id}`
+        return transformedId === lessonId || String(l.id) === actualLessonId
+      })
+      if (lesson) {
+        actualLessonId = String(lesson.id)
+        break
+      }
+    }
+
+    navigate(`/student/learning/${id}?lesson=${actualLessonId}`)
   }
 
   const tabs = [
@@ -362,45 +521,135 @@ export default function CourseDetail() {
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   {course?.title || '강좌 제목'}
                 </h1>
-                <p className="text-gray-600 mb-2">마지막 수강 강의 : 타입스크립트</p>
-                <p className="text-sm text-gray-600 mb-4">
-                  {curriculum.reduce((total, module) => total + module.total, 0)}강의 중{' '}
-                  {curriculum.reduce((total, module) => total + module.completed, 0)}개 강의 수강
-                </p>
+                {lastLearnedLessonTitle ? (
+                  <p className="text-gray-600 mb-4">마지막 수강: {lastLearnedLessonTitle}</p>
+                ) : (
+                  <p className="text-gray-600 mb-4">마지막 수강: 수강 기록이 없습니다</p>
+                )}
               </div>
 
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">진행률</span>
-                  <span className="text-sm text-gray-600">57.7%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: '57.7%' }}
-                    role="progressbar"
-                    aria-valuenow={57.7}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-3">
+              <div className="flex space-x-3 mb-4">
                 <Button
                   onClick={() => navigate(`/student/learning/${id}`)}
-                  className="btn-primary px-8 py-3"
+                  className="px-8 py-3 flex items-center justify-center"
                 >
                   이어하기
                 </Button>
                 <Button
                   onClick={handleRemoveCourse}
-                  className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center space-x-2"
+                  className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center justify-center space-x-2"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>수강 취소</span>
                 </Button>
               </div>
+
+              {/* 강의자 정보 섹션 */}
+              {instructorInfo && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 mb-1">
+                        강의자: {instructorInfo.name}
+                      </p>
+                      {instructorInfo.email && (
+                        <p className="text-xs text-gray-600">{instructorInfo.email}</p>
+                      )}
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        // DB에서 강의자 소개 불러오기
+                        const instructorName = instructorInfo.name
+                        let introduction: string | null = null
+
+                        try {
+                          // instructorId로 DB에서 불러오기
+                          if (instructorInfo.userId) {
+                            // 먼저 instructors 테이블에서 instructorId 찾기
+                            const { getInstructors } = await import('../../core/api/admin')
+                            const instructors = await getInstructors()
+                            const instructor = instructors.find(inst => inst.userId === instructorInfo.userId)
+
+                            if (instructor?.id) {
+                              const { getInstructorIntroductionPublic } = await import('../../core/api/admin')
+                              introduction = await getInstructorIntroductionPublic(instructor.id)
+                            }
+                          }
+                        } catch (error) {
+                          console.error('DB에서 강의자 소개 로드 실패:', error)
+                        }
+
+                        // DB에서 못 찾으면 localStorage에서 찾기 (하위 호환성)
+                        if (!introduction) {
+                          if (instructorInfo.userId) {
+                            const userId = typeof instructorInfo.userId === 'number'
+                              ? instructorInfo.userId
+                              : (typeof instructorInfo.userId === 'string' ? parseInt(instructorInfo.userId, 10) : null)
+
+                            if (userId) {
+                              introduction = localStorage.getItem(`instructor_bio_blocks_${userId}`)
+                              if (!introduction) {
+                                introduction = localStorage.getItem(`instructor_bio_${userId}`)
+                              }
+                            }
+                          }
+
+                          if (!introduction) {
+                            introduction = localStorage.getItem(`instructor_bio_blocks_${instructorName}`)
+                            if (!introduction) {
+                              introduction = localStorage.getItem(`instructor_bio_${instructorName}`)
+                            }
+                          }
+                        }
+
+                        if (introduction) {
+                          // 새 창에서 강의자 소개 표시
+                          const newWindow = window.open('', '_blank')
+                          if (newWindow) {
+                            try {
+                              let content: any[]
+                              try {
+                                const parsed = JSON.parse(introduction)
+                                content = Array.isArray(parsed) ? parsed : [{ type: 'markdown', content: introduction }]
+                              } catch {
+                                content = [{ type: 'markdown', content: introduction }]
+                              }
+
+                              newWindow.document.write(`
+                                <html>
+                                  <head><title>${instructorName} 강의자 소개</title></head>
+                                  <body style="font-family: sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+                                    <h1>${instructorName} 강의자 소개</h1>
+                                    <div style="margin-top: 20px;">
+                                      ${content.map((block: any) => {
+                                        if (block.type === 'markdown') {
+                                          return `<div>${block.content.replace(/\n/g, '<br>')}</div>`
+                                        } else if (block.type === 'lexical') {
+                                          return `<div>${block.content}</div>`
+                                        }
+                                        return ''
+                                      }).join('')}
+                                    </div>
+                                  </body>
+                                </html>
+                              `)
+                            } catch (error) {
+                              console.error('소개글 표시 실패:', error)
+                              alert('강의자 소개를 표시하는 중 오류가 발생했습니다.')
+                            }
+                          }
+                        } else {
+                          alert('강의자 소개가 아직 작성되지 않았습니다.')
+                        }
+                      }}
+                      variant="outline"
+                      className="px-4 py-2 text-sm"
+                    >
+                      강의자 소개
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -475,11 +724,6 @@ export default function CourseDetail() {
                             <h4 className="font-medium text-base-content text-sm">
                               {item.title}
                             </h4>
-                            {item.id === '4' && (
-                              <span className="bg-success/10 text-success text-xs px-2 py-1 rounded">
-                                NEW
-                              </span>
-                            )}
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className="text-xs text-base-content/70">
@@ -694,50 +938,26 @@ export default function CourseDetail() {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">강의 자료</h3>
 
-                  {/* 검색 및 필터 */}
+                  {/* 검색 */}
                   <div className="mb-6">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      {/* 검색 */}
-                      <div className="flex-1">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                          <Input
-                            type="text"
-                            placeholder="자료 검색..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-
-                      {/* 타입 필터 */}
-                      <div className="flex space-x-2">
-                        {[
-                          { value: 'all', label: '전체' },
-                          { value: 'pdf', label: 'PDF' },
-                          { value: 'slide', label: '슬라이드' },
-                          { value: 'code', label: '코드' },
-                          { value: 'link', label: '링크' }
-                        ].map(type => (
-                          <button
-                            key={type.value}
-                            onClick={() => setSelectedType(type.value as Resource['type'] | 'all')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              selectedType === type.value
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                          >
-                            {type.label}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="text"
+                        placeholder="자료 검색..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
                     </div>
                   </div>
 
                   {/* 강의 자료 목록 */}
-                  {filteredResources.length > 0 ? (
+                  {resourcesLoading ? (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500">로딩 중...</div>
+                    </div>
+                  ) : filteredResources.length > 0 ? (
                     <div className="space-y-4">
                       {filteredResources.map((resource) => (
                         <div
@@ -749,9 +969,6 @@ export default function CourseDetail() {
                               {getTypeIcon(resource.type)}
                               <div>
                                 <h4 className="font-medium text-gray-900">{resource.title}</h4>
-                                {resource.description && (
-                                  <p className="text-sm text-gray-600 mt-1">{resource.description}</p>
-                                )}
                                 <div className="flex items-center space-x-2 mt-2">
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(resource.type)}`}>
                                     {getTypeLabel(resource.type)}
@@ -762,17 +979,21 @@ export default function CourseDetail() {
                                     </span>
                                   )}
                                   <span className="text-xs text-gray-500">
-                                    {new Date(resource.uploadedAt).toLocaleDateString()}
+                                    {new Date(resource.createdAt).toLocaleDateString()}
                                   </span>
+                                  {!resource.downloadAllowed && (
+                                    <span className="text-xs text-red-500">다운로드 불가</span>
+                                  )}
                                 </div>
                               </div>
                             </div>
                             <Button
                               onClick={() => handleDownload(resource)}
                               className="btn-outline flex items-center space-x-2"
+                              disabled={resource.type !== 'link' && resource.type !== 'code' && !resource.downloadAllowed}
                             >
                               <Download className="h-4 w-4" />
-                              <span>{resource.type === 'link' ? '열기' : '다운로드'}</span>
+                              <span>{resource.type === 'link' ? '열기' : resource.type === 'code' ? '코드 보기' : '다운로드'}</span>
                             </Button>
                           </div>
                         </div>
@@ -781,8 +1002,8 @@ export default function CourseDetail() {
                   ) : (
                     <div className="text-center py-8">
                       <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-2">검색 결과가 없습니다</p>
-                      <p className="text-sm text-gray-500">다른 검색어나 필터를 시도해보세요</p>
+                      <p className="text-gray-600 mb-2">등록된 강의 자료가 없습니다</p>
+                      <p className="text-sm text-gray-500">강의자가 자료를 등록하면 여기에 표시됩니다</p>
                     </div>
                   )}
                 </Card>
@@ -808,45 +1029,106 @@ export default function CourseDetail() {
                     </div>
                   </div>
 
-                  {/* QnA 목록 */}
-                  {filteredQnA.length > 0 ? (
-                    <div className="space-y-4">
-                      {filteredQnA.map((qna) => (
-                        <div
-                          key={qna.id}
-                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 mb-2">{qna.question}</h4>
-                              <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                                <span>{qna.author}</span>
-                                <span>{new Date(qna.createdAt).toLocaleDateString()}</span>
-                                <span>{qna.answers.length}개 답변</span>
-                              </div>
-
-                              {/* 답변 미리보기 */}
-                              {qna.answers.length > 0 && (
-                                <div className="bg-gray-50 rounded-lg p-3">
-                                  <div className="flex items-center space-x-2 mb-2">
-                                    <MessageSquare className="h-4 w-4 text-blue-600" />
-                                    <span className="text-sm font-medium text-gray-700">답변</span>
-                                  </div>
-                                  <p className="text-sm text-gray-600 line-clamp-2">
-                                    {qna.answers[0].content}
-                                  </p>
-                                  <div className="mt-2">
-                                    <span className="text-xs text-gray-500">
-                                      {qna.answers[0].author} • {new Date(qna.answers[0].createdAt).toLocaleDateString()}
+                  {/* QnA 게시판 테이블 */}
+                  {qnaLoading ? (
+                    <div className="text-center py-8">
+                      <div className="text-gray-500">로딩 중...</div>
+                    </div>
+                  ) : filteredQnA.length > 0 ? (
+                    <Card className="overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-16">번호</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">제목</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">작성자</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">작성일</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {paginatedQnA.map((qna, index) => (
+                              <tr
+                                key={qna.id}
+                                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                onClick={() => {
+                                  navigate(`/student/course/${courseId}/qna/${qna.id}`)
+                                }}
+                              >
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                  {filteredQnA.length - (qnaStartIndex + index)}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  <div className="flex items-center space-x-2">
+                                    {!qna.isPublic && (
+                                      <Lock className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                    )}
+                                    <span className="text-gray-900 font-medium truncate">
+                                      {qna.title || '제목 없음'}
                                     </span>
                                   </div>
-                                </div>
-                              )}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                  {qna.user.name || qna.user.username || '알 수 없음'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                  {new Date(qna.createdAt).toLocaleDateString('ko-KR')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* 페이지네이션 */}
+                      {qnaTotalPages > 1 && (
+                        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+                          <div className="text-sm text-gray-700">
+                            {qnaStartIndex + 1} - {Math.min(qnaEndIndex, filteredQnA.length)} / {filteredQnA.length}개
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => setQnaCurrentPage(prev => Math.max(1, prev - 1))}
+                              disabled={qnaCurrentPage === 1}
+                              className="rounded-xl"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <div className="flex items-center space-x-1">
+                              {Array.from({ length: qnaTotalPages }, (_, i) => i + 1).map((page) => {
+                                if (
+                                  page === 1 ||
+                                  page === qnaTotalPages ||
+                                  (page >= qnaCurrentPage - 2 && page <= qnaCurrentPage + 2)
+                                ) {
+                                  return (
+                                    <Button
+                                      key={page}
+                                      variant={qnaCurrentPage === page ? 'default' : 'outline'}
+                                      onClick={() => setQnaCurrentPage(page)}
+                                      className={`rounded-xl ${qnaCurrentPage === page ? 'bg-blue-600 text-white' : ''}`}
+                                    >
+                                      {page}
+                                    </Button>
+                                  )
+                                } else if (page === qnaCurrentPage - 3 || page === qnaCurrentPage + 3) {
+                                  return <span key={page} className="px-2">...</span>
+                                }
+                                return null
+                              })}
                             </div>
+                            <Button
+                              variant="outline"
+                              onClick={() => setQnaCurrentPage(prev => Math.min(qnaTotalPages, prev + 1))}
+                              disabled={qnaCurrentPage === qnaTotalPages}
+                              className="rounded-xl"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </Card>
                   ) : (
                     <div className="text-center py-8">
                       <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -864,27 +1146,87 @@ export default function CourseDetail() {
                   </div>
                   {showAskInline && (
                     <div className="mt-4 p-4 border border-base-300 rounded-lg bg-base-100">
+                      <label className="block text-sm font-medium text-base-content mb-2">질문 제목 *</label>
+                      <input
+                        type="text"
+                        value={askTitle}
+                        onChange={(e) => setAskTitle(e.target.value)}
+                        placeholder="질문 제목을 입력해주세요."
+                        className="w-full px-3 py-2 border border-base-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary mb-4"
+                        maxLength={255}
+                      />
                       <label className="block text-sm font-medium text-base-content mb-2">질문 내용 *</label>
                       <textarea
                         value={askText}
                         onChange={(e) => setAskText(e.target.value)}
-                        placeholder="질문을 자세히 작성해주세요. (최소 10자 이상)"
+                        placeholder="질문 내용을 작성해주세요."
                         className="w-full px-3 py-2 border border-base-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none"
                         rows={5}
                         maxLength={1000}
                       />
                       <div className="flex items-center justify-between text-xs text-base-content/70 mt-1">
-                        <span>최소 10자 이상 작성해주세요</span>
+                        <span>질문을 작성해주세요</span>
                         <span>{askText.length}/1000</span>
                       </div>
+                      {/* 공개/비공개 설정 */}
+                      <div className="mt-4 flex items-center space-x-4">
+                        <label className={`flex items-center space-x-2 cursor-pointer px-3 py-2 rounded-lg border-2 transition-all ${
+                          askIsPublic
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-300 bg-white hover:border-gray-400'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="qnaVisibility"
+                            checked={askIsPublic}
+                            onChange={() => setAskIsPublic(true)}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className={`text-sm font-medium ${
+                            askIsPublic ? 'text-blue-700' : 'text-gray-700'
+                          }`}>공개 (다른 수강생도 볼 수 있음)</span>
+                        </label>
+                        <label className={`flex items-center space-x-2 cursor-pointer px-3 py-2 rounded-lg border-2 transition-all ${
+                          !askIsPublic
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-300 bg-white hover:border-gray-400'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="qnaVisibility"
+                            checked={!askIsPublic}
+                            onChange={() => setAskIsPublic(false)}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className={`text-sm font-medium ${
+                            !askIsPublic ? 'text-blue-700' : 'text-gray-700'
+                          }`}>비공개 (강의자만 볼 수 있음)</span>
+                        </label>
+                      </div>
                       <div className="flex justify-end space-x-2 mt-3">
-                        <Button variant="outline" className="rounded-xl" onClick={() => { setAskText(''); setShowAskInline(false) }}>취소</Button>
+                        <Button variant="outline" className="rounded-xl" onClick={() => { setAskTitle(''); setAskText(''); setAskIsPublic(true); setShowAskInline(false) }}>취소</Button>
                         <Button
                           className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl"
-                          disabled={askText.length < 10}
-                          onClick={() => {
-                            setAskText('')
-                            setShowAskInline(false)
+                          disabled={!askTitle.trim() || !askText.trim()}
+                          onClick={async () => {
+                            try {
+                              if (!user?.id) {
+                                alert('로그인이 필요합니다.')
+                                return
+                              }
+                              await createCourseQnA(courseId, user.id, askTitle.trim(), askText.trim(), askIsPublic)
+                              // QnA 목록 새로고침
+                              const qnaData = await getCourseQnAs(courseId)
+                              setQnaList(qnaData)
+                              setAskTitle('')
+                              setAskText('')
+                              setAskIsPublic(true)
+                              setShowAskInline(false)
+                              alert('질문이 등록되었습니다.')
+                            } catch (error) {
+                              console.error('질문 등록 실패:', error)
+                              alert('질문 등록에 실패했습니다.')
+                            }
                           }}
                         >
                           질문 등록
@@ -895,6 +1237,7 @@ export default function CourseDetail() {
                 </Card>
               </div>
             )}
+
           </div>
 
           {/* Right Sidebar - Notice */}

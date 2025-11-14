@@ -20,24 +20,30 @@ export default function Header() {
     navigate('/login')
   }
 
-  const handleRoleSwitch = (role: 'student' | 'instructor' | 'admin' | 'sub-admin') => {
-    switchRole(role)
+  const handleRoleSwitch = async (role: 'student' | 'instructor' | 'admin' | 'sub-admin') => {
     setShowRoleMenu(false)
 
-    // 권한에 맞는 페이지로 리다이렉트
-    switch (role) {
-      case 'student':
-        navigate('/student/dashboard')
-        break
-      case 'instructor':
-        navigate('/instructor/dashboard')
-        break
-      case 'admin':
-        navigate('/admin/master-dashboard')
-        break
-      case 'sub-admin':
-        navigate('/admin/sub-dashboard')
-        break
+    try {
+      // 권한 전환 (재로그인)
+      await switchRole(role)
+
+      // 권한에 맞는 페이지로 리다이렉트
+      switch (role) {
+        case 'student':
+          navigate('/student/dashboard')
+          break
+        case 'instructor':
+          navigate('/instructor/dashboard')
+          break
+        case 'admin':
+          navigate('/admin/master-dashboard')
+          break
+        case 'sub-admin':
+          navigate('/admin/sub-dashboard')
+          break
+      }
+    } catch (error) {
+      console.error('권한 전환 실패:', error)
     }
   }
 
