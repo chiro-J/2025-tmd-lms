@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, ChevronDown } from 'lucide-react'
 import Button from '../ui/Button'
 import type { QuestionData, QuestionType } from '../../types/question'
 import { getQuestionTypeLabel, getStatusColor, getStatusLabel } from '../../utils/questionUtils'
@@ -7,7 +7,7 @@ interface QuestionEditorProps {
   formData: QuestionData
   selectedQuestionId: string | null
   lastSaved: string
-  mockExams: Record<string, { id: string; title: string; type: string }>
+  examsInfo: Record<string, { id: string; title: string; type: string }>
   onInputChange: (field: string | number | symbol, value: any) => void
   onTypeChange: (type: QuestionType) => void
   onOptionChange: (index: number, value: string) => void
@@ -19,7 +19,7 @@ export default function QuestionEditor({
   formData,
   selectedQuestionId,
   lastSaved,
-  mockExams,
+  examsInfo,
   onInputChange,
   onTypeChange,
   onOptionChange,
@@ -38,15 +38,18 @@ export default function QuestionEditor({
           <label className="block text-sm font-semibold text-base-content mb-3">
             문제 유형
           </label>
-          <select
-            value={formData.type}
-            onChange={(e) => onTypeChange(e.target.value as 'multiple-choice' | 'true-false' | 'short-answer')}
-            className="w-full px-4 py-3 text-sm border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-base-100"
-          >
-            <option value="multiple-choice">객관식</option>
-            <option value="true-false">참/거짓</option>
-            <option value="short-answer">주관식</option>
-          </select>
+          <div className="relative">
+            <select
+              value={formData.type}
+              onChange={(e) => onTypeChange(e.target.value as 'multiple-choice' | 'true-false' | 'short-answer')}
+              className="w-full px-4 py-3 pr-10 text-sm border-2 border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-base-100 appearance-none"
+            >
+              <option value="multiple-choice">객관식</option>
+              <option value="true-false">참/거짓</option>
+              <option value="short-answer">주관식</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-base-content/40 pointer-events-none" />
+          </div>
         </div>
 
         {/* Question Text */}
@@ -96,51 +99,64 @@ export default function QuestionEditor({
             </div>
             <div className="space-y-3">
               {formData.options.map((option, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="correctAnswer"
-                    checked={formData.correctAnswer === index}
-                    onChange={() => onInputChange('correctAnswer', index)}
-                    className="h-4 w-4 text-success focus:ring-success border-base-300 flex-shrink-0"
-                    title="정답으로 설정"
-                  />
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => onOptionChange(index, e.target.value)}
-                    placeholder={`선택지 ${index + 1}`}
-                    className={`flex-1 px-4 py-2 text-sm border-2 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-base-100 ${
-                      formData.correctAnswer === index
-                        ? 'border-success bg-success/5'
-                        : 'border-base-300'
-                    }`}
-                  />
-                  <button
-                    onClick={() => onInputChange('correctAnswer', index)}
-                    className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors flex-shrink-0 ${
-                      formData.correctAnswer === index
-                        ? 'bg-success text-white hover:bg-success/90'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                    title="정답으로 설정"
-                  >
-                    {formData.correctAnswer === index ? '정답' : '정답 지정'}
-                  </button>
-                  {formData.options.length > 2 && (
-                    <button
-                      onClick={() => onRemoveOption(index)}
-                      className="text-error hover:text-error/80 flex-shrink-0"
-                      title="선택지 삭제"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                <div
+                  key={index}
+                  className={`border-2 rounded-lg p-4 transition-all ${
+                    formData.correctAnswer === index
+                      ? 'border-success bg-success/10 shadow-md'
+                      : 'border-base-300 bg-base-100 hover:border-base-400'
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => onOptionChange(index, e.target.value)}
+                        placeholder={`선택지 ${index + 1}`}
+                        className={`w-full px-4 py-3 text-sm border-2 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white ${
+                          formData.correctAnswer === index
+                            ? 'border-success/50'
+                            : 'border-base-300'
+                        }`}
+                      />
+                    </div>
+                    <div className="flex flex-col space-y-2">
+                      <Button
+                        onClick={() => onInputChange('correctAnswer', index)}
+                        className={`min-w-[100px] px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                          formData.correctAnswer === index
+                            ? 'bg-success text-white hover:bg-success/90 shadow-md'
+                            : 'bg-base-200 text-base-content hover:bg-base-300 border-2 border-base-300'
+                        }`}
+                        title="정답으로 설정"
+                      >
+                        {formData.correctAnswer === index ? '✓ 정답' : '정답 지정'}
+                      </Button>
+                      {formData.options.length > 2 && (
+                        <button
+                          onClick={() => onRemoveOption(index)}
+                          className="px-3 py-2 text-xs text-error hover:bg-error/10 rounded-lg transition-colors border border-error/30 hover:border-error/50"
+                          title="선택지 삭제"
+                        >
+                          <Trash2 className="h-4 w-4 mx-auto" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {formData.correctAnswer === index && (
+                    <div className="mt-3 pt-3 border-t-2 border-success/30">
+                      <span className="text-xs font-semibold text-success flex items-center">
+                        <span className="w-2 h-2 bg-success rounded-full mr-2"></span>
+                        이 선택지가 정답으로 설정되었습니다
+                      </span>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
-            <p className="text-xs text-base-content/60 mt-2">
-              "정답 지정" 버튼을 클릭하여 정답을 선택하세요
+            <p className="text-xs text-base-content/60 mt-3 p-3 bg-info/10 border border-info/30 rounded-lg">
+              💡 각 선택지의 <strong>"정답 지정"</strong> 버튼을 클릭하여 정답을 선택하세요
             </p>
           </div>
         )}
@@ -151,27 +167,27 @@ export default function QuestionEditor({
             <label className="block text-sm font-semibold text-base-content mb-3">
               정답
             </label>
-            <div className="flex space-x-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="tfAnswer"
-                  checked={formData.correctAnswer === true}
-                  onChange={() => onInputChange('correctAnswer', true)}
-                  className="h-4 w-4 text-success focus:ring-success border-base-300"
-                />
-                <span className="ml-2 text-sm text-base-content">참</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="tfAnswer"
-                  checked={formData.correctAnswer === false}
-                  onChange={() => onInputChange('correctAnswer', false)}
-                  className="h-4 w-4 text-success focus:ring-success border-base-300"
-                />
-                <span className="ml-2 text-base-content">거짓</span>
-              </label>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={() => onInputChange('correctAnswer', true)}
+                className={`py-4 text-base font-medium rounded-lg transition-all border-2 ${
+                  formData.correctAnswer === true
+                    ? 'bg-success text-white border-success shadow-md'
+                    : 'bg-base-100 text-base-content border-base-300 hover:border-base-400'
+                }`}
+              >
+                {formData.correctAnswer === true && '✓ '}참
+              </Button>
+              <Button
+                onClick={() => onInputChange('correctAnswer', false)}
+                className={`py-4 text-base font-medium rounded-lg transition-all border-2 ${
+                  formData.correctAnswer === false
+                    ? 'bg-success text-white border-success shadow-md'
+                    : 'bg-base-100 text-base-content border-base-300 hover:border-base-400'
+                }`}
+              >
+                {formData.correctAnswer === false && '✓ '}거짓
+              </Button>
             </div>
           </div>
         )}
@@ -236,7 +252,7 @@ export default function QuestionEditor({
             </label>
             <div className="space-y-2">
               {formData.usedInExams.map(examId => {
-                const exam = mockExams[examId]
+                const exam = examsInfo[examId]
                 return (
                   <div key={examId} className="flex items-center justify-between p-2 bg-white rounded">
                     <div className="flex items-center space-x-2">

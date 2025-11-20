@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MessageSquare, Search, Lock } from 'lucide-react'
 import Card from '../../components/ui/Card'
+import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 import { getCourseQnAs, type CourseQnA } from '../../core/api/courses'
@@ -180,7 +181,7 @@ export default function QnAManagement() {
                       return (
                         <Button
                           key={page}
-                          variant={currentPage === page ? 'default' : 'outline'}
+                          variant={currentPage === page ? 'primary' : 'outline'}
                           onClick={() => setCurrentPage(page)}
                           className={`rounded-xl ${currentPage === page ? 'bg-primary text-primary-content' : ''}`}
                         >

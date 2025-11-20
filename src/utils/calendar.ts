@@ -1,5 +1,29 @@
 import type { CalendarDay, WeekRange } from "../types/calendar";
 
+/**
+ * Date 객체를 KST 기준 YYYY-MM-DD 문자열로 변환
+ */
+export const toKstDateString = (date: Date | string): string => {
+  if (typeof date === 'string') {
+    // 이미 문자열인 경우 그대로 반환 (YYYY-MM-DD 형식 가정)
+    return date
+  }
+
+  // KST 기준으로 날짜 계산
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * KST 기준으로 오늘 날짜 문자열 반환
+ */
+export const getTodayKst = (): string => {
+  return toKstDateString(new Date())
+}
+
 export const getMonthName = (date: Date) => {
   return date.toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
 };

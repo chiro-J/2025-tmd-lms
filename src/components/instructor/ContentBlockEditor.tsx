@@ -53,7 +53,7 @@ export default function ContentBlockEditor({
       try {
         const { uploadFile } = await import('../../core/api/upload')
         console.log('동영상 업로드 시작:', file.name, file.size)
-        const result = await uploadFile(file, 'video')
+        const result = await uploadFile(file, 'video', 'lesson')
         console.log('동영상 업로드 성공:', result.url)
         onUpdateContent(block.id, result.url)
       } catch (error) {

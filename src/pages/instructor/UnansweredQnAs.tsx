@@ -217,7 +217,7 @@ function UnansweredQnAs() {
                           return (
                             <Button
                               key={page}
-                              variant={currentPage === page ? 'default' : 'outline'}
+                              variant={currentPage === page ? 'primary' : 'outline'}
                               onClick={() => setCurrentPage(page)}
                               className={`rounded-xl ${currentPage === page ? 'bg-primary text-primary-content' : ''}`}
                             >

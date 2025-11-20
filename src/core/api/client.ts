@@ -17,6 +17,14 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // FormData를 사용할 때는 Content-Type을 브라우저가 자동으로 설정하도록 함
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    // learning API는 404를 조용히 처리하기 위해 validateStatus 설정
+    if (config.url?.includes('/learning/')) {
+      config.validateStatus = (status) => status < 500;
+    }
     return config;
   },
   (error) => {
@@ -32,16 +40,48 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // 404 오류 조용히 처리 (아직 구현되지 않은 API)
+    if (error.response?.status === 404) {
+      const url = originalRequest.url || '';
+      // 학습 관련 API는 아직 구현되지 않았으므로 조용히 처리
+      if (url.includes('/learning/') || (url.includes('/users/') && url.includes('/learning/'))) {
+        // 에러 객체에 silent 플래그 추가하여 콘솔 출력 방지
+        error.silent = true;
+        error.config = error.config || {};
+        error.config.silent = true;
+        // 에러 메시지를 빈 문자열로 설정하여 콘솔 출력 최소화
+        error.message = '';
+        // 네트워크 에러를 조용히 reject (콘솔에 표시되지 않음)
+        return Promise.reject(error);
+      }
+      // 로그아웃 API는 refresh token이 없을 수 있으므로 조용히 처리
+      if (url.includes('/auth/logout')) {
+        error.silent = true;
+        error.config = error.config || {};
+        error.config.silent = true;
+        error.message = '';
+        return Promise.reject(error);
+      }
+    }
+
     // 토큰 만료 시 자동 갱신 (단, /auth/me와 /auth/login은 제외)
     if (error.response?.status === 401 && !originalRequest._retry) {
       // /auth/me 엔드포인트는 토큰이 없을 때 401이 정상이므로 갱신 시도하지 않고 조용히 처리
       if (originalRequest.url?.includes('/auth/me')) {
         // 401 에러를 조용히 reject (콘솔 에러 출력 방지)
+        // 에러 객체에 조용히 처리 플래그 추가
+        error.silent = true;
         return Promise.reject(error);
       }
 
       // /auth/login 엔드포인트는 로그인 실패이므로 갱신 시도하지 않음
       if (originalRequest.url?.includes('/auth/login')) {
+        return Promise.reject(error);
+      }
+
+      // /auth/logout은 refresh token이 없을 수 있으므로 조용히 처리
+      if (originalRequest.url?.includes('/auth/logout')) {
+        error.silent = true;
         return Promise.reject(error);
       }
 

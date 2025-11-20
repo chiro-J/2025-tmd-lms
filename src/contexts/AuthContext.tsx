@@ -90,7 +90,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await logoutApi()
     } catch (error) {
-      console.error('Logout API call failed:', error)
+      // 로그아웃 API 실패는 조용히 처리 (refresh token이 없을 수 있음)
+      // console.error('Logout API call failed:', error)
     } finally {
       // 로컬 상태 정리
       setUser(null)
@@ -144,8 +145,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         await logout()
       } catch (logoutError) {
-        // 로그아웃 실패해도 계속 진행
-        console.warn('로그아웃 실패 (무시):', logoutError)
+        // 로그아웃 실패해도 계속 진행 (조용히 처리)
+        // console.warn('로그아웃 실패 (무시):', logoutError)
       }
 
       // 로컬 스토리지 정리

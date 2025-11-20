@@ -4,8 +4,8 @@ import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import SubmissionDetailModal from '../../components/instructor/SubmissionDetailModal'
-import { Search, Filter, Download, FileText, CheckCircle, Clock, XCircle, Edit2 } from 'lucide-react'
-import { getAllSubmissionsByCourse, getAssignments, updateSubmissionScore } from '../../core/api/assignments'
+import { Search, Filter, Download, FileText, CheckCircle, Clock, XCircle, Edit2, Trash2, ChevronDown } from 'lucide-react'
+import { getAllSubmissionsByCourse, getAssignments, updateSubmissionScore, deleteSubmission } from '../../core/api/assignments'
 import type { AssignmentSubmission, Assignment } from '../../types/assignment'
 
 export default function AssignmentSubmissions() {
@@ -46,7 +46,7 @@ export default function AssignmentSubmissions() {
 
   const filteredSubmissions = useMemo(() => {
     return allSubmissions.filter(sub => {
-      const matchesSearch = sub.studentName.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSearch = !searchQuery || (sub.studentName || '').toLowerCase().includes(searchQuery.toLowerCase())
       const matchesAssignment = selectedAssignmentId === 'all' || sub.assignmentId === selectedAssignmentId
       const matchesStatus = selectedStatus === 'all' || sub.status === selectedStatus
       return matchesSearch && matchesAssignment && matchesStatus
@@ -99,6 +99,23 @@ export default function AssignmentSubmissions() {
     } catch (error) {
       console.error('점수 저장 실패:', error)
       alert('점수 저장에 실패했습니다.')
+    }
+  }
+
+  const handleDeleteSubmission = async (submissionId: number, studentName: string) => {
+    if (!confirm(`정말 "${studentName}" 학생의 제출물을 삭제하시겠습니까?\n삭제된 제출물은 복구할 수 없습니다.`)) {
+      return
+    }
+
+    try {
+      await deleteSubmission(courseId, submissionId)
+      // 목록 새로고침
+      const submissionsData = await getAllSubmissionsByCourse(courseId)
+      setAllSubmissions(submissionsData)
+      alert('제출물이 삭제되었습니다.')
+    } catch (error) {
+      console.error('제출물 삭제 실패:', error)
+      alert('제출물 삭제에 실패했습니다.')
     }
   }
 
@@ -286,18 +303,21 @@ export default function AssignmentSubmissions() {
 
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
-                <select
-                  value={selectedAssignmentId}
-                  onChange={(e) => setSelectedAssignmentId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className="border rounded-lg px-2 py-2 text-sm min-w-[200px]"
-                >
-                  <option value="all">전체 과제</option>
-                  {assignments.map(assignment => (
-                    <option key={assignment.id} value={assignment.id}>
-                      {assignment.title}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedAssignmentId}
+                    onChange={(e) => setSelectedAssignmentId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                    className="border rounded-lg px-2 py-2 pr-8 text-sm min-w-[200px] appearance-none"
+                  >
+                    <option value="all">전체 과제</option>
+                    {assignments.map(assignment => (
+                      <option key={assignment.id} value={assignment.id}>
+                        {assignment.title}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
                 {selectedAssignmentId !== 'all' && (
                   <Button
                     variant="outline"
@@ -310,16 +330,19 @@ export default function AssignmentSubmissions() {
                 )}
               </div>
 
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as any)}
-                className="border rounded-lg px-2 py-2 text-sm"
-              >
-                <option value="all">전체 상태</option>
-                <option value="제출">제출</option>
-                <option value="지연">지연</option>
-                <option value="미제출">미제출</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value as any)}
+                  className="border rounded-lg px-2 py-2 pr-8 text-sm appearance-none"
+                >
+                  <option value="all">전체 상태</option>
+                  <option value="제출">제출</option>
+                  <option value="지연">지연</option>
+                  <option value="미제출">미제출</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
 
             <Button variant="outline" className="flex items-center gap-2">
@@ -393,7 +416,7 @@ export default function AssignmentSubmissions() {
                     <tr key={submission.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {submission.studentName}
+                          {submission.studentName || '이름 없음'}
                         </div>
                       </td>
                       {selectedAssignmentId === 'all' && (
@@ -441,7 +464,7 @@ export default function AssignmentSubmissions() {
                         ) : (
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-900">
-                              {submission.score !== undefined ? `${submission.score}점` : '-'}
+                              {submission.score !== null && submission.score !== undefined ? `${submission.score}점` : '-'}
                             </span>
                             <button
                               onClick={() => handleEditScore(submission.id, submission.score)}
@@ -453,15 +476,26 @@ export default function AssignmentSubmissions() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1"
-                          onClick={() => handleViewDetail(submission)}
-                        >
-                          <FileText className="h-3 w-3" />
-                          상세보기
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                            onClick={() => handleViewDetail(submission)}
+                          >
+                            <FileText className="h-3 w-3" />
+                            상세보기
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDeleteSubmission(submission.id, submission.studentName || '이름 없음')}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            삭제
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))

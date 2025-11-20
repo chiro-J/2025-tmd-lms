@@ -364,8 +364,6 @@ export const getInquiry = async (id: number): Promise<Inquiry> => {
 export const createInquiry = async (data: {
   title: string;
   content: string;
-  userName: string;
-  email: string;
   courseName?: string;
   courseNumber?: string;
 }): Promise<Inquiry> => {
@@ -378,9 +376,9 @@ export const createInquiry = async (data: {
   }
 };
 
-export const getMyInquiries = async (email: string): Promise<Inquiry[]> => {
+export const getMyInquiries = async (): Promise<Inquiry[]> => {
   try {
-    const response = await apiClient.get<Inquiry[]>(`/admin/inquiries/my/${encodeURIComponent(email)}`);
+    const response = await apiClient.get<Inquiry[]>('/admin/inquiries/my');
     return response.data;
   } catch (error) {
     console.error('내 문의사항 조회 실패:', error);

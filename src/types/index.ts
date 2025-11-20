@@ -15,6 +15,12 @@ export interface User {
   name: string
   phone?: string
   avatar?: string | null
+  bio?: string
+  address?: string
+  githubUrl?: string
+  notionUrl?: string
+  job?: string
+  language?: string
 }
 
 export interface UserStats {

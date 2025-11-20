@@ -1,5 +1,6 @@
 import { WEEK_DAYS } from "../../data/calendarConstants";
 import type { CalendarDay, Memo } from "../../types/calendar";
+import { toKstDateString, getTodayKst } from "../../utils/calendar";
 
 interface MonthViewProps {
   days: CalendarDay[];
@@ -74,17 +75,17 @@ export default function MonthView({
       {/* Calendar days */}
       <div className="grid flex-1 grid-cols-7 gap-1 auto-rows-fr">
         {days.map((day, index) => {
-          const dateStr = day.date.toISOString().split("T")[0];
+          const dateStr = toKstDateString(day.date);
           const dayMemos = getMemosForDate(dateStr);
-          const isToday =
-            day.date.toDateString() === new Date().toDateString();
+          const todayKst = getTodayKst();
+          const isToday = dateStr === todayKst;
           const isSelected = selectedDate === dateStr;
 
           return (
             <div
               key={index}
               onClick={() => handleDayClick(day, dateStr)}
-              className={`h-full p-1 border border-gray-200 transition-all ${
+              className={`h-full p-1 border border-gray-200 transition-all flex flex-col ${
                 day.isCurrentMonth ? "bg-white hover:bg-blue-50 cursor-pointer" : "bg-gray-50 hover:bg-gray-100 cursor-pointer"
               } ${isToday ? "ring-2 ring-blue-500" : ""} ${
                 isSelected ? "ring-2 ring-purple-500" : ""
@@ -100,24 +101,24 @@ export default function MonthView({
                 <span className="text-xs font-medium">
                   {day.date.getDate()}
                 </span>
-                {dayMemos.length > 0 && (
+                {dayMemos && dayMemos.length > 0 && (
                   <span className="text-[9px] font-semibold text-gray-500">
                     ({dayMemos.length})
                   </span>
                 )}
               </div>
-              <div className="grid grid-cols-5 gap-0.5">
-                {dayMemos.slice(0, 10).map((memo) => (
+              <div className="flex flex-col gap-0.5 mt-auto">
+                {dayMemos && dayMemos.slice(0, 5).map((memo) => (
                   <div
                     key={memo.id}
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: memo.color }}
-                    title={memo.title}
+                    className="w-full h-1 rounded"
+                    style={{ backgroundColor: memo.color || '#3b82f6' }}
+                    title={memo.title || '메모'}
                   />
                 ))}
-                {dayMemos.length > 10 && (
-                  <div className="col-span-5 text-[8px] text-gray-500 text-right mt-0.5">
-                    +{dayMemos.length - 10}
+                {dayMemos && dayMemos.length > 5 && (
+                  <div className="text-[8px] text-gray-500 text-right mt-0.5">
+                    +{dayMemos.length - 5}
                   </div>
                 )}
               </div>

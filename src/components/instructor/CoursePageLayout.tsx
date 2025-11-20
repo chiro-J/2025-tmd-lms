@@ -26,10 +26,12 @@ export default function CoursePageLayout({ currentPageTitle, rightActions, child
         setLoading(true)
         const course = await getCourse(courseId)
         if (course) {
+          // status를 실제 DB 값으로 표시
+          const status = course.status === '공개' ? '공개' : '비공개'
           setCurrentCourse({
             id: String(course.id),
             title: course.title,
-            status: (course.status as string) === 'published' ? '공개' : '비공개'
+            status
           })
         }
       } catch (error) {

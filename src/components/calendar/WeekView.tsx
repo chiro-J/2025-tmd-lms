@@ -1,6 +1,7 @@
 import { Edit2 } from "lucide-react";
 import { WEEK_DAYS } from "../../data/calendarConstants";
 import type { CalendarDay, Memo } from "../../types/calendar";
+import { toKstDateString, getTodayKst } from "../../utils/calendar";
 
 interface WeekViewProps {
   days: CalendarDay[];
@@ -41,10 +42,10 @@ export default function WeekView({
         {/* Table Rows */}
         <div>
           {days.map((day, index) => {
-            const dateStr = day.date.toISOString().split("T")[0];
+            const dateStr = toKstDateString(day.date);
             const dayMemos = getMemosForDate(dateStr);
-            const isToday =
-              day.date.toDateString() === new Date().toDateString();
+            const todayKst = getTodayKst();
+            const isToday = dateStr === todayKst;
             const isSelected = selectedDate === dateStr;
             const isExpanded = expandedWeekDate === dateStr;
 

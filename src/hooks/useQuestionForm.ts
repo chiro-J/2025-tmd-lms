@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import type { QuestionData, QuestionType } from '../types/question'
+import { createQuestion, updateQuestion } from '../core/api/questions'
 
 export function useQuestionForm(
   selectedQuestion: QuestionData | undefined,
   savedQuestions: QuestionData[],
-  setSavedQuestions: React.Dispatch<React.SetStateAction<QuestionData[]>>
+  setSavedQuestions: React.Dispatch<React.SetStateAction<QuestionData[]>>,
+  courseId?: number,
+  onSaveSuccess?: () => void,
+  examId?: number | null
 ) {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [lastSaved, setLastSaved] = useState<string>('')
@@ -112,30 +116,77 @@ export function useQuestionForm(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData])
 
-  const handleTempSave = () => {
+  const handleTempSave = async () => {
     if (!formData.question.trim()) {
       alert('문제 내용을 입력해주세요.')
       return
     }
 
-    const now = new Date().toISOString().split('T')[0]
-    const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    try {
+      const now = new Date().toISOString().split('T')[0]
+      const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 
-    if (formData.id) {
-      setSavedQuestions(prev =>
-        prev.map(q =>
-          q.id === formData.id
-            ? { ...formData, status: 'review', updatedAt: now }
-            : q
+      // 백엔드에 저장할 데이터 변환
+      const questionData: any = {
+        type: formData.type,
+        question: formData.question,
+        options: formData.type === 'multiple-choice' ? formData.options : undefined,
+        correctAnswer: formData.correctAnswer,
+        points: formData.points,
+        explanation: formData.explanation || undefined,
+        status: 'review',
+      }
+
+      // examId가 제공된 경우 포함
+      if (examId) {
+        questionData.examId = examId
+      }
+
+      // 임시 ID인지 확인 (temp-로 시작하면 새 문제)
+      const isNewQuestion = formData.id.startsWith('temp-')
+
+      if (!isNewQuestion && formData.id && !isNaN(Number(formData.id))) {
+        // 기존 문제 수정
+        const updated = await updateQuestion(Number(formData.id), questionData)
+        const updatedQuestion: QuestionData = {
+          ...formData,
+          id: updated.id.toString(),
+          status: 'review',
+          updatedAt: now,
+        }
+        setSavedQuestions(prev =>
+          prev.map(q => (q.id === formData.id ? updatedQuestion : q))
         )
-      )
-      setFormData(prev => ({ ...prev, status: 'review' }))
-      setLastSaved(time)
-      alert('검토 필요 상태로 저장되었습니다.')
+        setFormData(prev => ({ ...prev, status: 'review' }))
+        setLastSaved(time)
+        alert('검토 필요 상태로 저장되었습니다.')
+        onSaveSuccess?.()
+      } else {
+        // 새 문제 생성
+        const created = await createQuestion(questionData)
+        const newQuestion: QuestionData = {
+          ...formData,
+          id: created.id.toString(),
+          status: 'review',
+          createdAt: now,
+          updatedAt: now,
+        }
+        // 임시 문제를 실제 문제로 교체
+        setSavedQuestions(prev =>
+          prev.map(q => (q.id === formData.id ? newQuestion : q))
+        )
+        setFormData(newQuestion)
+        setLastSaved(time)
+        alert('검토 필요 상태로 저장되었습니다.')
+        onSaveSuccess?.()
+      }
+    } catch (error) {
+      console.error('문제 저장 실패:', error)
+      alert('문제 저장에 실패했습니다. 다시 시도해주세요.')
     }
   }
 
-  const handleSaveQuestion = () => {
+  const handleSaveQuestion = async () => {
     // Validation
     if (!formData.question.trim()) {
       alert('문제 내용을 입력해주세요.')
@@ -148,6 +199,10 @@ export function useQuestionForm(
         alert('모든 선택지를 입력해주세요.')
         return
       }
+      if (formData.correctAnswer === undefined || formData.correctAnswer === null) {
+        alert('정답을 선택해주세요.')
+        return
+      }
     }
 
     if (formData.type === 'short-answer' && !formData.correctAnswer) {
@@ -155,27 +210,76 @@ export function useQuestionForm(
       return
     }
 
-    const now = new Date().toISOString().split('T')[0]
-    const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    try {
+      const now = new Date().toISOString().split('T')[0]
+      const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 
-    if (formData.id) {
-      setSavedQuestions(prev =>
-        prev.map(q =>
-          q.id === formData.id
-            ? { ...formData, status: 'completed', updatedAt: now }
-            : q
+      // 백엔드에 저장할 데이터 변환
+      const questionData: any = {
+        type: formData.type,
+        question: formData.question,
+        options: formData.type === 'multiple-choice' ? formData.options : undefined,
+        correctAnswer: formData.correctAnswer,
+        points: formData.points,
+        explanation: formData.explanation || undefined,
+        status: 'completed',
+      }
+
+      // examId가 제공된 경우 포함
+      if (examId) {
+        questionData.examId = examId
+      }
+
+      // 임시 ID인지 확인 (temp-로 시작하면 새 문제)
+      const isNewQuestion = formData.id.startsWith('temp-')
+
+      if (!isNewQuestion && formData.id && !isNaN(Number(formData.id))) {
+        // 기존 문제 수정
+        const updated = await updateQuestion(Number(formData.id), questionData)
+        const updatedQuestion: QuestionData = {
+          ...formData,
+          id: updated.id.toString(),
+          status: 'completed',
+          updatedAt: now,
+        }
+        setSavedQuestions(prev =>
+          prev.map(q => (q.id === formData.id ? updatedQuestion : q))
         )
-      )
-      setFormData(prev => ({ ...prev, status: 'completed' }))
-      setLastSaved(time)
-      alert('문제가 완료 상태로 저장되었습니다.')
+        setFormData(prev => ({ ...prev, status: 'completed' }))
+        setLastSaved(time)
+        alert('문제가 완료 상태로 저장되었습니다.')
+        onSaveSuccess?.()
+      } else {
+        // 새 문제 생성
+        const created = await createQuestion(questionData)
+        const newQuestion: QuestionData = {
+          ...formData,
+          id: created.id.toString(),
+          status: 'completed',
+          createdAt: now,
+          updatedAt: now,
+        }
+        // 임시 문제를 실제 문제로 교체
+        setSavedQuestions(prev =>
+          prev.map(q => (q.id === formData.id ? newQuestion : q))
+        )
+        setFormData(newQuestion)
+        setLastSaved(time)
+        alert('문제가 완료 상태로 저장되었습니다.')
+        onSaveSuccess?.()
+      }
+    } catch (error) {
+      console.error('문제 저장 실패:', error)
+      alert('문제 저장에 실패했습니다. 다시 시도해주세요.')
     }
   }
 
   const handleNewQuestion = () => {
     const now = new Date().toISOString().split('T')[0]
+    // 새 문제는 임시 ID를 사용 (DB에 저장되기 전까지)
+    const tempId = `temp-${Date.now()}`
     const newQuestion: QuestionData = {
-      id: Date.now().toString(),
+      id: tempId,
       type: 'multiple-choice',
       question: '',
       options: ['', '', '', ''],

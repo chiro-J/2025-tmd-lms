@@ -124,7 +124,8 @@ export default function Introduction() {
     }
     try {
       const { uploadFile } = await import('../../core/api/upload')
-      const result = await uploadFile(file, 'pdf')
+      const result = await uploadFile(file, 'pdf', 'resource')
+      // 백엔드에서 절대 URL을 반환하므로 그대로 DB에 저장
       updateBlockContent(blockId, result.url)
     } catch (error) {
       console.error('PDF 업로드 실패:', error)
@@ -146,7 +147,8 @@ export default function Introduction() {
     }
     try {
       const { uploadFile } = await import('../../core/api/upload')
-      const result = await uploadFile(file, 'image')
+      const result = await uploadFile(file, 'image', 'resource')
+      // 백엔드에서 절대 URL을 반환하므로 그대로 DB에 저장
       updateBlockContent(blockId, result.url)
     } catch (error) {
       console.error('이미지 업로드 실패:', error)

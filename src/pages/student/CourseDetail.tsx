@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, FileText, CheckCircle, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut, Calendar, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut, Calendar, Lock, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -8,8 +8,10 @@ import { useAuth } from '../../contexts/AuthContext'
 // curriculum API는 동적 import로 로드
 import { transformApiToDetailFormat } from '../../utils/curriculumTransform'
 import { getCourse, getCourseNotices, getCourseQnAs, createCourseQnA, createCourseQnAAnswer, getCourseResources, unenrollFromCourse, type CourseNotice, type CourseQnA, type CourseResource } from '../../core/api/courses'
-import { getAssignments } from '../../core/api/assignments'
+import { normalizeThumbnailUrl } from '../../utils/thumbnail'
+import { getAssignments, getMySubmission } from '../../core/api/assignments'
 import { safeHtml } from '../../utils/safeHtml'
+import { getYouTubeVideoId } from '../../utils/youtube'
 import type { Course } from '../../types'
 import type { Assignment } from '../../types/assignment'
 
@@ -122,16 +124,9 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [submissionStatuses, setSubmissionStatuses] = useState<Record<number, boolean>>({})
   const [lastLearnedLessonTitle, setLastLearnedLessonTitle] = useState<string | null>(null)
   const [instructorInfo, setInstructorInfo] = useState<{ name: string; email: string; userId?: number } | null>(null)
-
-  // YouTube URL에서 video ID 추출
-  const getYouTubeVideoId = (url: string) => {
-    if (!url) return null
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-    const match = url.match(regExp)
-    return (match && match[2].length === 11) ? match[2] : null
-  }
 
   // 강좌 목록에서 제거
   const handleRemoveCourse = async () => {
@@ -139,7 +134,7 @@ export default function CourseDetail() {
 
     if (window.confirm('정말 이 강좌를 목록에서 제거하시겠습니까?')) {
       try {
-        await unenrollFromCourse(courseId, user.id)
+        await unenrollFromCourse(courseId, typeof user.id === 'number' ? user.id : Number(user.id))
         // 대시보드로 이동
         navigate('/student/dashboard')
       } catch (error) {
@@ -200,6 +195,19 @@ export default function CourseDetail() {
         setAssignmentsLoading(true)
         const assignmentsData = await getAssignments(courseId)
         setAssignments(assignmentsData)
+
+        // 각 과제에 대한 제출 상태 확인
+        const statuses: Record<number, boolean> = {}
+        for (const assignment of assignmentsData) {
+          try {
+            const submission = await getMySubmission(courseId, assignment.id)
+            statuses[assignment.id] = submission !== null
+          } catch (error) {
+            // 제출물 조회 실패 시 제출하지 않은 것으로 처리
+            statuses[assignment.id] = false
+          }
+        }
+        setSubmissionStatuses(statuses)
       } catch (error) {
         console.error('과제 목록 로드 실패:', error)
         setAssignments([])
@@ -268,26 +276,22 @@ export default function CourseDetail() {
         if (transformed.length > 0) {
           transformed[0].completed = 1
           transformed[0].lessons[0].completed = true
-          transformed[0].lessons[0].date = '25. 10. 13.'
         }
         if (transformed.length > 1 && transformed[1].lessons.length > 0) {
           transformed[1].completed = transformed[1].lessons.length
-          transformed[1].lessons.forEach((lesson, idx) => {
+          transformed[1].lessons.forEach((lesson) => {
             lesson.completed = true
-            lesson.date = `25. 10. ${14 + idx}.`
           })
         }
         if (transformed.length > 2 && transformed[2].lessons.length > 0) {
           transformed[2].completed = transformed[2].lessons.length
-          transformed[2].lessons.forEach((lesson, idx) => {
+          transformed[2].lessons.forEach((lesson) => {
             lesson.completed = true
-            lesson.date = `25. 10. ${21 + idx}.`
           })
         }
         if (transformed.length > 3 && transformed[3].lessons.length > 0) {
           transformed[3].completed = 1
           transformed[3].lessons[0].completed = true
-          transformed[3].lessons[0].date = '25. 10. 13.'
           transformed[3].lessons[0].isLastViewed = true
         }
 
@@ -417,8 +421,40 @@ export default function CourseDetail() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  // 미리보기 핸들러
+  const handlePreview = (resource: CourseResource) => {
+    if (resource.type === 'image' && resource.fileUrl) {
+      // 이미지는 새 창에서 표시
+      const imageUrl = resource.fileUrl.startsWith('http')
+        ? resource.fileUrl
+        : `http://localhost:3000${resource.fileUrl}`
+      window.open(imageUrl, '_blank')
+    } else if (resource.type === 'pdf' && resource.fileUrl) {
+      // PDF는 새 창에서 표시
+      const pdfUrl = resource.fileUrl.startsWith('http')
+        ? resource.fileUrl
+        : `http://localhost:3000${resource.fileUrl}`
+      window.open(pdfUrl, '_blank')
+    } else if (resource.type === 'link' && resource.linkUrl) {
+      window.open(resource.linkUrl, '_blank')
+    } else if (resource.type === 'code' && resource.code) {
+      // 코드는 새 창에서 표시
+      const codeWindow = window.open('', '_blank')
+      if (codeWindow) {
+        codeWindow.document.write(`
+          <html>
+            <head><title>${resource.title}</title></head>
+            <body style="font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;">
+              <pre style="white-space: pre-wrap; word-wrap: break-word;">${resource.code}</pre>
+            </body>
+          </html>
+        `)
+      }
+    }
+  }
+
   // 다운로드 핸들러
-  const handleDownload = (resource: CourseResource) => {
+  const handleDownload = async (resource: CourseResource) => {
     if (resource.type === 'link' && resource.linkUrl) {
       window.open(resource.linkUrl, '_blank')
     } else if (resource.type === 'code' && resource.code) {
@@ -435,8 +471,54 @@ export default function CourseDetail() {
         `)
       }
     } else if (resource.fileUrl && resource.downloadAllowed) {
-      // 파일 다운로드
-      window.open(resource.fileUrl, '_blank')
+      try {
+        // 파일 다운로드
+        const fileUrl = resource.fileUrl.startsWith('http')
+          ? resource.fileUrl
+          : `http://localhost:3000${resource.fileUrl}`
+
+        // fetch로 파일 가져와서 Blob으로 변환 후 다운로드
+        const response = await fetch(fileUrl, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'include',
+        })
+        if (!response.ok) {
+          throw new Error('파일 다운로드 실패')
+        }
+
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+
+        // 파일 확장자 추출
+        const fileExtension = resource.fileUrl.split('.').pop() || ''
+        const fileName = `${resource.title}.${fileExtension}`
+
+        // 다운로드를 위해 a 태그 생성
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        // URL 해제
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('다운로드 실패:', error)
+        // CORS 에러 시 대체 방법: 직접 링크로 다운로드 시도
+        const fileUrl = resource.fileUrl.startsWith('http')
+          ? resource.fileUrl
+          : `http://localhost:3000${resource.fileUrl}`
+        const link = document.createElement('a')
+        link.href = fileUrl
+        link.target = '_blank'
+        link.rel = 'noopener noreferrer'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        alert('파일을 새 창에서 열었습니다. 브라우저에서 다운로드하세요.')
+      }
     } else if (!resource.downloadAllowed) {
       alert('다운로드가 허용되지 않은 자료입니다.')
     }
@@ -506,7 +588,7 @@ export default function CourseDetail() {
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="w-full lg:w-80 h-48 rounded-xl overflow-hidden flex-shrink-0 relative">
               <img
-                src={course?.thumbnail || '/photo/bbb.jpg'}
+                src={normalizeThumbnailUrl(course?.thumbnail, '/thumbnails/bbb.jpg')}
                 alt={course?.title || '강좌 썸네일'}
                 className="w-full h-full object-cover"
               />
@@ -558,12 +640,8 @@ export default function CourseDetail() {
                     </div>
                     <Button
                       onClick={async () => {
-                        // DB에서 강의자 소개 불러오기
-                        const instructorName = instructorInfo.name
-                        let introduction: string | null = null
-
                         try {
-                          // instructorId로 DB에서 불러오기
+                          // instructorId로 DB에서 찾기
                           if (instructorInfo.userId) {
                             // 먼저 instructors 테이블에서 instructorId 찾기
                             const { getInstructors } = await import('../../core/api/admin')
@@ -571,75 +649,17 @@ export default function CourseDetail() {
                             const instructor = instructors.find(inst => inst.userId === instructorInfo.userId)
 
                             if (instructor?.id) {
-                              const { getInstructorIntroductionPublic } = await import('../../core/api/admin')
-                              introduction = await getInstructorIntroductionPublic(instructor.id)
+                              // 수강생 레이아웃 내에서 강의자 소개 페이지로 이동
+                              navigate(`/student/instructor/${instructor.id}/introduction`)
+                              return
                             }
                           }
+
+                          // instructorId를 찾을 수 없으면 알림
+                          alert('강의자 정보를 찾을 수 없습니다.')
                         } catch (error) {
-                          console.error('DB에서 강의자 소개 로드 실패:', error)
-                        }
-
-                        // DB에서 못 찾으면 localStorage에서 찾기 (하위 호환성)
-                        if (!introduction) {
-                          if (instructorInfo.userId) {
-                            const userId = typeof instructorInfo.userId === 'number'
-                              ? instructorInfo.userId
-                              : (typeof instructorInfo.userId === 'string' ? parseInt(instructorInfo.userId, 10) : null)
-
-                            if (userId) {
-                              introduction = localStorage.getItem(`instructor_bio_blocks_${userId}`)
-                              if (!introduction) {
-                                introduction = localStorage.getItem(`instructor_bio_${userId}`)
-                              }
-                            }
-                          }
-
-                          if (!introduction) {
-                            introduction = localStorage.getItem(`instructor_bio_blocks_${instructorName}`)
-                            if (!introduction) {
-                              introduction = localStorage.getItem(`instructor_bio_${instructorName}`)
-                            }
-                          }
-                        }
-
-                        if (introduction) {
-                          // 새 창에서 강의자 소개 표시
-                          const newWindow = window.open('', '_blank')
-                          if (newWindow) {
-                            try {
-                              let content: any[]
-                              try {
-                                const parsed = JSON.parse(introduction)
-                                content = Array.isArray(parsed) ? parsed : [{ type: 'markdown', content: introduction }]
-                              } catch {
-                                content = [{ type: 'markdown', content: introduction }]
-                              }
-
-                              newWindow.document.write(`
-                                <html>
-                                  <head><title>${instructorName} 강의자 소개</title></head>
-                                  <body style="font-family: sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
-                                    <h1>${instructorName} 강의자 소개</h1>
-                                    <div style="margin-top: 20px;">
-                                      ${content.map((block: any) => {
-                                        if (block.type === 'markdown') {
-                                          return `<div>${block.content.replace(/\n/g, '<br>')}</div>`
-                                        } else if (block.type === 'lexical') {
-                                          return `<div>${block.content}</div>`
-                                        }
-                                        return ''
-                                      }).join('')}
-                                    </div>
-                                  </body>
-                                </html>
-                              `)
-                            } catch (error) {
-                              console.error('소개글 표시 실패:', error)
-                              alert('강의자 소개를 표시하는 중 오류가 발생했습니다.')
-                            }
-                          }
-                        } else {
-                          alert('강의자 소개가 아직 작성되지 않았습니다.')
+                          console.error('강의자 소개 페이지 이동 실패:', error)
+                          alert('강의자 소개를 불러오는 중 오류가 발생했습니다.')
                         }
                       }}
                       variant="outline"
@@ -727,7 +747,7 @@ export default function CourseDetail() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className="text-xs text-base-content/70">
-                              {item.completed}/{item.total}
+                              {item.lessons?.length || 0}개
                             </span>
                             {item.expanded ? (
                               <ChevronUp className="h-4 w-4 text-base-content/60" />
@@ -757,9 +777,6 @@ export default function CourseDetail() {
                                   <span className="text-sm text-base-content/80">{lesson.title}</span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  {lesson.date && (
-                                    <span className="text-xs text-base-content/70">수강일: {lesson.date}</span>
-                                  )}
                                   {lesson.completed && (
                                     <CheckCircle className="h-4 w-4 text-primary" />
                                   )}
@@ -778,7 +795,20 @@ export default function CourseDetail() {
             {activeTab === 'info' && (
               <div id="tabpanel-info" role="tabpanel" aria-labelledby="tab-info">
                 <div className="space-y-6">
-                  {/* Course Video */}
+                  {/* Course Content - 강좌 소개를 위로 이동 */}
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">강좌 소개</h3>
+                    {course?.content ? (
+                      <div
+                        className="text-gray-700 prose max-w-none"
+                        dangerouslySetInnerHTML={{ __html: safeHtml(course.content) }}
+                      />
+                    ) : (
+                      <div className="text-gray-500">강좌 소개 내용이 없습니다.</div>
+                    )}
+                  </Card>
+
+                  {/* Course Video - 소개 영상을 아래로 이동 */}
                   <Card className="p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">소개 영상</h3>
                     {course?.videoUrl ? (
@@ -797,19 +827,6 @@ export default function CourseDetail() {
                       <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                         <p className="text-gray-500">소개 영상이 없습니다.</p>
                       </div>
-                    )}
-                  </Card>
-
-                  {/* Course Content */}
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">강좌 소개</h3>
-                    {course?.content ? (
-                      <div
-                        className="text-gray-700 prose max-w-none"
-                        dangerouslySetInnerHTML={{ __html: safeHtml(course.content) }}
-                      />
-                    ) : (
-                      <div className="text-gray-500">강좌 소개 내용이 없습니다.</div>
                     )}
                   </Card>
                 </div>
@@ -882,47 +899,30 @@ export default function CourseDetail() {
                               </div>
                             )}
 
-                            {assignment.allowedFileTypes && assignment.allowedFileTypes.length > 0 && (
-                              <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                <p className="text-xs font-medium text-blue-900 mb-2">📎 제출 가능한 파일 형식</p>
-                                <div className="flex flex-wrap gap-1 mb-2">
-                                  {assignment.allowedFileTypes.map((fileType, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="px-2 py-0.5 bg-white text-blue-700 text-xs rounded border border-blue-200 font-medium"
-                                    >
-                                      {fileType.replace('.', '').toUpperCase()}
-                                    </span>
-                                  ))}
-                                </div>
-                                {assignment.maxFileSize && (
-                                  <div className="text-xs text-blue-700 space-y-1">
-                                    <p className="font-medium">📦 최대 파일 크기: {assignment.maxFileSize}MB</p>
-                                    <p className="text-blue-600">
-                                      • 여러 파일을 제출할 경우 각 파일의 크기가 {assignment.maxFileSize}MB 이하여야 합니다
-                                    </p>
-                                    <p className="text-blue-600">
-                                      • 파일은 ZIP 압축하여 제출할 수 있습니다
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
 
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm text-gray-600">
-                                제출: {assignment.submissions}명 / 총 {assignment.total}명
-                              </div>
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  navigate(`/student/assignment/${assignment.id}`)
-                                }}
-                                className="btn-primary"
-                                disabled={isPastDue}
-                              >
-                                {isPastDue ? '마감됨' : '과제 제출하기'}
-                              </Button>
+                            <div className="flex items-center justify-end">
+                              {submissionStatuses[assignment.id] ? (
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    navigate(`/student/assignment/${assignment.id}`)
+                                  }}
+                                  className="btn-primary"
+                                >
+                                  제출 조회하기
+                                </Button>
+                              ) : (
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    navigate(`/student/assignment/${assignment.id}`)
+                                  }}
+                                  className="btn-primary"
+                                  disabled={isPastDue}
+                                >
+                                  {isPastDue ? '마감됨' : '과제 제출하기'}
+                                </Button>
+                              )}
                             </div>
                           </div>
                         )
@@ -987,14 +987,27 @@ export default function CourseDetail() {
                                 </div>
                               </div>
                             </div>
-                            <Button
-                              onClick={() => handleDownload(resource)}
-                              className="btn-outline flex items-center space-x-2"
-                              disabled={resource.type !== 'link' && resource.type !== 'code' && !resource.downloadAllowed}
-                            >
-                              <Download className="h-4 w-4" />
-                              <span>{resource.type === 'link' ? '열기' : resource.type === 'code' ? '코드 보기' : '다운로드'}</span>
-                            </Button>
+                            <div className="flex items-center space-x-2">
+                              {/* 미리보기 버튼 */}
+                              {(resource.fileUrl || resource.linkUrl || resource.code) && (
+                                <Button
+                                  onClick={() => handlePreview(resource)}
+                                  className="btn-outline flex items-center space-x-2"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  <span>미리보기</span>
+                                </Button>
+                              )}
+                              {/* 다운로드 버튼 */}
+                              <Button
+                                onClick={() => handleDownload(resource)}
+                                className="btn-outline flex items-center space-x-2"
+                                disabled={resource.type !== 'link' && resource.type !== 'code' && !resource.downloadAllowed}
+                              >
+                                <Download className="h-4 w-4" />
+                                <span>{resource.type === 'link' ? '열기' : resource.type === 'code' ? '코드 보기' : '다운로드'}</span>
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1104,7 +1117,7 @@ export default function CourseDetail() {
                                   return (
                                     <Button
                                       key={page}
-                                      variant={qnaCurrentPage === page ? 'default' : 'outline'}
+                                      variant={qnaCurrentPage === page ? 'primary' : 'outline'}
                                       onClick={() => setQnaCurrentPage(page)}
                                       className={`rounded-xl ${qnaCurrentPage === page ? 'bg-blue-600 text-white' : ''}`}
                                     >
@@ -1170,38 +1183,28 @@ export default function CourseDetail() {
                       </div>
                       {/* 공개/비공개 설정 */}
                       <div className="mt-4 flex items-center space-x-4">
-                        <label className={`flex items-center space-x-2 cursor-pointer px-3 py-2 rounded-lg border-2 transition-all ${
-                          askIsPublic
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-300 bg-white hover:border-gray-400'
-                        }`}>
-                          <input
-                            type="radio"
-                            name="qnaVisibility"
-                            checked={askIsPublic}
-                            onChange={() => setAskIsPublic(true)}
-                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className={`text-sm font-medium ${
-                            askIsPublic ? 'text-blue-700' : 'text-gray-700'
-                          }`}>공개 (다른 수강생도 볼 수 있음)</span>
-                        </label>
-                        <label className={`flex items-center space-x-2 cursor-pointer px-3 py-2 rounded-lg border-2 transition-all ${
-                          !askIsPublic
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-300 bg-white hover:border-gray-400'
-                        }`}>
-                          <input
-                            type="radio"
-                            name="qnaVisibility"
-                            checked={!askIsPublic}
-                            onChange={() => setAskIsPublic(false)}
-                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className={`text-sm font-medium ${
-                            !askIsPublic ? 'text-blue-700' : 'text-gray-700'
-                          }`}>비공개 (강의자만 볼 수 있음)</span>
-                        </label>
+                        <Button
+                          type="button"
+                          onClick={() => setAskIsPublic(true)}
+                          className={`px-3 py-2 rounded-lg border-2 transition-all ${
+                            askIsPublic
+                              ? 'border-blue-500 bg-blue-500 text-white shadow-md'
+                              : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                          }`}
+                        >
+                          {askIsPublic && '✓ '}공개 (다른 수강생도 볼 수 있음)
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => setAskIsPublic(false)}
+                          className={`px-3 py-2 rounded-lg border-2 transition-all ${
+                            !askIsPublic
+                              ? 'border-blue-500 bg-blue-500 text-white shadow-md'
+                              : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                          }`}
+                        >
+                          {!askIsPublic && '✓ '}비공개 (강의자만 볼 수 있음)
+                        </Button>
                       </div>
                       <div className="flex justify-end space-x-2 mt-3">
                         <Button variant="outline" className="rounded-xl" onClick={() => { setAskTitle(''); setAskText(''); setAskIsPublic(true); setShowAskInline(false) }}>취소</Button>
@@ -1214,7 +1217,7 @@ export default function CourseDetail() {
                                 alert('로그인이 필요합니다.')
                                 return
                               }
-                              await createCourseQnA(courseId, user.id, askTitle.trim(), askText.trim(), askIsPublic)
+                              await createCourseQnA(courseId, typeof user.id === 'number' ? user.id : Number(user.id), askTitle.trim(), askText.trim(), askIsPublic)
                               // QnA 목록 새로고침
                               const qnaData = await getCourseQnAs(courseId)
                               setQnaList(qnaData)

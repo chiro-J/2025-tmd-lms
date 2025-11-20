@@ -1,14 +1,39 @@
+import { useState } from 'react'
 import { Eye, Edit, Trash2 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import type { Exam } from '../../types/exam'
 import { getStatusColor } from '../../utils/examUtils'
+import { deleteExam } from '../../core/api/exams'
 
 interface ExamRowProps {
   exam: Exam
   courseId: string
+  onDelete?: () => void
 }
 
-export default function ExamRow({ exam, courseId }: ExamRowProps) {
+export default function ExamRow({ exam, courseId, onDelete }: ExamRowProps) {
+  const navigate = useNavigate()
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!confirm(`"${exam.title}" 시험을 삭제하시겠습니까?`)) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      await deleteExam(Number(courseId), exam.id)
+      if (onDelete) {
+        onDelete()
+      }
+    } catch (error) {
+      console.error('시험 삭제 실패:', error)
+      alert('시험 삭제에 실패했습니다.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <tr className="hover:bg-base-200">
       <td className="px-3 py-2 whitespace-nowrap text-sm text-base-content">
@@ -55,7 +80,12 @@ export default function ExamRow({ exam, courseId }: ExamRowProps) {
           >
             <Edit className="h-4 w-4" />
           </Link>
-          <button className="text-error hover:text-error/80" title="삭제">
+          <button
+            className="text-error hover:text-error/80 disabled:opacity-50"
+            title="삭제"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
@@ -63,8 +93,3 @@ export default function ExamRow({ exam, courseId }: ExamRowProps) {
     </tr>
   )
 }
-
-
-
-
-

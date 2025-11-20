@@ -53,15 +53,6 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
     return () => clearInterval(interval)
   }, [loginTime])
 
-  const getInitials = (name: string): string => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
   const handleApplyBackground = (imageData: string) => {
     setBackgroundImage(imageData)
     // localStorage에 저장
@@ -113,83 +104,73 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
         </button>
 
         {/* 컨텐츠 */}
-        <div className="p-6 h-full flex flex-col items-center justify-center text-center space-y-4 relative z-10">
-          {/* Avatar - hover 시 보임 */}
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 ring-4 ring-white/50 opacity-0 group-hover/card:opacity-100 transition-all">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={`${user.name} profile`}
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              <span aria-hidden="true">{getInitials(user.name)}</span>
+        <div className="px-5 pt-12 pb-5 h-full flex flex-col items-center justify-center relative z-10">
+          {/* 컨텐츠 그룹 */}
+          <div className="flex flex-col items-center justify-center space-y-6 w-full">
+            {/* User Info - hover 시 보임 */}
+            <div className="space-y-2 text-center opacity-0 group-hover/card:opacity-100 transition-all">
+              <h2 className={`text-lg font-semibold ${backgroundImage ? 'text-white drop-shadow-lg' : 'text-base-content'}`}>
+                {user.name}
+              </h2>
+              <p className={`text-sm break-all ${backgroundImage ? 'text-white/90 drop-shadow' : 'text-base-content/70'}`}>
+                {user.email}
+              </p>
+            </div>
+
+            {/* Profile Edit Button - hover 시 보임, 파란색 glow */}
+            <Link
+              to="/student/profile"
+              className={`w-full inline-flex items-center justify-center space-x-2 font-medium text-sm transition-all focus-visible:ring-2 focus-visible:outline-none rounded-lg px-4 py-2.5 border-2 opacity-0 group-hover/card:opacity-100 shadow-lg backdrop-blur-sm ${
+                backgroundImage
+                  ? 'border-white/80 text-white hover:text-white hover:shadow-[0_0_15px_rgba(59,130,246,0.6)] focus-visible:ring-white'
+                  : 'border-gray-700 text-gray-700 hover:text-gray-700 hover:shadow-[0_0_15px_rgba(59,130,246,0.6)] focus-visible:ring-gray-700'
+              }`}
+              aria-label="프로필 수정 페이지로 이동"
+            >
+              <User className="h-4 w-4" aria-hidden="true" />
+              <span>프로필 수정</span>
+            </Link>
+
+            {/* Social Links - hover 시 보임 */}
+            {(githubUrl || notionUrl) && (
+              <div className="flex items-center justify-center space-x-3 opacity-0 group-hover/card:opacity-100 transition-all">
+                {githubUrl && (
+                  <a
+                    href={githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`p-2.5 rounded-lg border-2 transition-all hover:scale-110 shadow-lg backdrop-blur-sm ${
+                      backgroundImage
+                        ? 'border-white/80 text-white hover:text-white hover:shadow-[0_0_15px_rgba(34,197,94,0.6)]'
+                        : 'border-gray-700 text-gray-700 hover:text-gray-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.6)]'
+                    }`}
+                    title="GitHub"
+                    aria-label="GitHub 프로필로 이동"
+                  >
+                    <Github className="h-4 w-4" />
+                  </a>
+                )}
+                {notionUrl && (
+                  <a
+                    href={notionUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`p-2.5 rounded-lg border-2 transition-all hover:scale-110 shadow-lg backdrop-blur-sm ${
+                      backgroundImage
+                        ? 'border-white/80 text-white hover:text-white hover:shadow-[0_0_15px_rgba(236,72,153,0.6)]'
+                        : 'border-gray-700 text-gray-700 hover:text-gray-700 hover:shadow-[0_0_15px_rgba(236,72,153,0.6)]'
+                    }`}
+                    title="Notion"
+                    aria-label="Notion 페이지로 이동"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
             )}
           </div>
-
-          {/* User Info - hover 시 보임 */}
-          <div className="space-y-2 text-center opacity-0 group-hover/card:opacity-100 transition-all">
-            <h2 className={`text-lg font-semibold ${backgroundImage ? 'text-white drop-shadow-lg' : 'text-base-content'}`}>
-              {user.name}
-            </h2>
-            <p className={`text-sm break-all ${backgroundImage ? 'text-white/90 drop-shadow' : 'text-base-content/70'}`}>
-              {user.email}
-            </p>
-          </div>
-
-          {/* Profile Edit Button - hover 시 보임, 파란색 glow */}
-          <Link
-            to="/student/profile"
-            className={`w-full inline-flex items-center justify-center space-x-2 font-medium text-sm transition-all focus-visible:ring-2 focus-visible:outline-none rounded-lg px-3 py-2 border-2 opacity-0 group-hover/card:opacity-100 shadow-lg backdrop-blur-sm ${
-              backgroundImage
-                ? 'border-white/80 text-white hover:text-white hover:shadow-[0_0_15px_rgba(59,130,246,0.6)] focus-visible:ring-white'
-                : 'border-gray-700 text-gray-700 hover:text-gray-700 hover:shadow-[0_0_15px_rgba(59,130,246,0.6)] focus-visible:ring-gray-700'
-            }`}
-            aria-label="프로필 수정 페이지로 이동"
-          >
-            <User className="h-4 w-4" aria-hidden="true" />
-            <span>프로필 수정</span>
-          </Link>
-
-          {/* Social Links - hover 시 보임 */}
-          {(githubUrl || notionUrl) && (
-            <div className="flex items-center justify-center space-x-3 opacity-0 group-hover/card:opacity-100 transition-all">
-              {githubUrl && (
-                <a
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`p-2 rounded-lg border-2 transition-all hover:scale-110 shadow-lg backdrop-blur-sm ${
-                    backgroundImage
-                      ? 'border-white/80 text-white hover:text-white hover:shadow-[0_0_15px_rgba(34,197,94,0.6)]'
-                      : 'border-gray-700 text-gray-700 hover:text-gray-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.6)]'
-                  }`}
-                  title="GitHub"
-                  aria-label="GitHub 프로필로 이동"
-                >
-                  <Github className="h-4 w-4" />
-                </a>
-              )}
-              {notionUrl && (
-                <a
-                  href={notionUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`p-2 rounded-lg border-2 transition-all hover:scale-110 shadow-lg backdrop-blur-sm ${
-                    backgroundImage
-                      ? 'border-white/80 text-white hover:text-white hover:shadow-[0_0_15px_rgba(236,72,153,0.6)]'
-                      : 'border-gray-700 text-gray-700 hover:text-gray-700 hover:shadow-[0_0_15px_rgba(236,72,153,0.6)]'
-                  }`}
-                  title="Notion"
-                  aria-label="Notion 페이지로 이동"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
-                  </svg>
-                </a>
-              )}
-            </div>
-          )}
         </div>
       </Card>
 

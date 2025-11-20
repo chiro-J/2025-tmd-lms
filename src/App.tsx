@@ -19,6 +19,7 @@ import SignupPending from "./pages/auth/SignupPending";
 import WelcomePage from "./pages/student/WelcomePage";
 import StudentDashboard from "./pages/student/Dashboard";
 import CourseDetail from "./pages/student/CourseDetail";
+import EnrollCourse from "./pages/student/EnrollCourse";
 import StudentQnADetail from "./pages/student/QnADetail";
 import Learning from "./pages/student/Learning";
 import Notice from "./pages/student/Notice";
@@ -30,6 +31,8 @@ import Help from "./pages/student/Help";
 import InstructorHelp from "./pages/instructor/Help";
 import Calendar from "./pages/student/Calendar";
 import Notifications from "./pages/student/Notifications";
+import InstructorIntroduction from "./pages/student/InstructorIntroduction";
+import PdfViewer from "./pages/student/PdfViewer";
 
 // Instructor pages
 import InstructorDashboard from "./pages/instructor/Dashboard";
@@ -89,6 +92,9 @@ export default function App() {
       <Route path="/instructor/course/:id/notices/new" element={<NoticeEditor />} />
       <Route path="/instructor/course/:id/notices/:noticeId/edit" element={<NoticeEdit />} />
 
+      {/* PDF Viewer - No layout */}
+      <Route path="/student/pdf-viewer" element={<PdfViewer />} />
+
       {/* Main app with layout */}
       <Route element={
         <CourseCreationProvider>
@@ -102,6 +108,7 @@ export default function App() {
         {/* Student */}
         <Route path="/welcome" element={<WelcomePage />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/enroll" element={<EnrollCourse />} />
         <Route path="/student/course/:id" element={<CourseDetail />} />
         <Route path="/student/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
         <Route path="/student/course/:id/qna/:qnaId" element={<StudentQnADetail />} />
@@ -112,6 +119,7 @@ export default function App() {
         <Route path="/student/profile" element={<Profile />} />
         <Route path="/student/assignment/:id" element={<AssignmentSubmit />} />
         <Route path="/student/quiz/:id" element={<QuizPlayer />} />
+        <Route path="/student/instructor/:instructorId/introduction" element={<InstructorIntroduction />} />
         <Route path="/student/help" element={<Help />} />
         <Route path="/student/notifications" element={<Notifications />} />
 
@@ -119,6 +127,7 @@ export default function App() {
              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
              <Route path="/instructor/create" element={<CourseIntroduction />} />
              <Route path="/instructor/course/:id/home" element={<CourseHome />} />
+             <Route path="/instructor/course/:id/learning" element={<Learning />} />
              <Route path="/instructor/course/:id/edit" element={<EditCurriculum />} />
              <Route path="/instructor/course/:id/info" element={<CourseInfoEdit />} />
              <Route path="/instructor/course/:id/resources" element={<ResourceManagement />} />

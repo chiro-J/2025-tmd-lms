@@ -3,47 +3,17 @@ import { ChevronDown, Mail, MessageSquare, HelpCircle, Search, Send, CheckCircle
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { mockFAQ } from '../../mocks'
 import type { FAQItem } from '../../types'
 import * as adminApi from '../../core/api/admin'
 import { useAuth } from '../../contexts/AuthContext'
-
-// 강의자용 FAQ (실제로는 별도로 관리해야 할 수도 있음)
-const instructorFAQ: FAQItem[] = [
-  ...mockFAQ,
-  {
-    id: 'instructor-1',
-    question: '강의를 어떻게 생성하나요?',
-    answer: '대시보드에서 "강의 생성" 버튼을 클릭하거나, 강의 목록 페이지에서 "새 강의 만들기"를 선택하세요. 강의 정보, 커리큘럼, 강의 자료를 순서대로 입력하면 됩니다.',
-    category: '강의 관리'
-  },
-  {
-    id: 'instructor-2',
-    question: '수강생을 어떻게 초대하나요?',
-    answer: '강의 상세 페이지의 "학생 관리" 섹션에서 수강 코드 생성, 이메일 초대, 직접 초대 등의 방법으로 수강생을 추가할 수 있습니다.',
-    category: '학생 관리'
-  },
-  {
-    id: 'instructor-3',
-    question: '과제와 시험을 어떻게 등록하나요?',
-    answer: '강의 상세 페이지에서 "과제 관리" 또는 "시험 관리" 메뉴로 이동하여 새 과제/시험을 생성할 수 있습니다. 제출 기한, 배점, 문제 등을 설정할 수 있습니다.',
-    category: '평가 관리'
-  },
-  {
-    id: 'instructor-4',
-    question: '학생들의 학습 진도를 확인할 수 있나요?',
-    answer: '네, "학습 분석" 또는 "성적 관리" 메뉴에서 각 학생의 학습 진도, 과제 제출 현황, 시험 점수 등을 확인할 수 있습니다.',
-    category: '학습 분석'
-  }
-]
 
 export default function InstructorHelp() {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [faqItems, setFaqItems] = useState<FAQItem[]>([])
+  const [loadingFAQ, setLoadingFAQ] = useState(false)
   const [contactForm, setContactForm] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
     subject: '',
     message: '',
     courseName: '',
@@ -58,7 +28,24 @@ export default function InstructorHelp() {
   const [enrolledCourses, setEnrolledCourses] = useState<Array<{ courseId: number; courseName: string; courseNumber: string }>>([])
   const [selectedCourse, setSelectedCourse] = useState<{ courseName: string; courseNumber: string } | null>(null)
 
-  const filteredFAQ = instructorFAQ.filter(item =>
+  useEffect(() => {
+    const loadFAQ = async () => {
+      setLoadingFAQ(true)
+      try {
+        const { getFAQ } = await import('../../core/api/faq')
+        const faq = await getFAQ('instructor')
+        setFaqItems(faq)
+      } catch (error) {
+        console.error('FAQ 로드 실패:', error)
+        setFaqItems([])
+      } finally {
+        setLoadingFAQ(false)
+      }
+    }
+    loadFAQ()
+  }, [])
+
+  const filteredFAQ = faqItems.filter(item =>
     item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -74,7 +61,7 @@ export default function InstructorHelp() {
     setExpandedItems(newExpanded)
   }
 
-  const categories = [...new Set(instructorFAQ.map(item => item.category))]
+  const categories = [...new Set(faqItems.map(item => item.category))]
 
   // 카테고리별로 FAQ 그룹화
   const faqByCategory = categories.reduce((acc, category) => {
@@ -109,7 +96,7 @@ export default function InstructorHelp() {
       if (!user?.email) return
       setLoadingInquiries(true)
       try {
-        const data = await adminApi.getMyInquiries(user.email)
+        const data = await adminApi.getMyInquiries()
         setMyInquiries(data)
       } catch (error) {
         console.error('내 문의사항 로드 실패:', error)
@@ -131,16 +118,12 @@ export default function InstructorHelp() {
       await adminApi.createInquiry({
         title: contactForm.subject,
         content: contactForm.message,
-        userName: contactForm.name,
-        email: contactForm.email,
         courseName: contactForm.courseName || undefined,
         courseNumber: contactForm.courseNumber || undefined
       })
 
       setSubmitSuccess(true)
       setContactForm({
-        name: user?.name || '',
-        email: user?.email || '',
         subject: '',
         message: '',
         courseName: selectedCourse?.courseName || '',
@@ -149,7 +132,7 @@ export default function InstructorHelp() {
 
       // 문의사항 목록 새로고침
       if (user?.email) {
-        const data = await adminApi.getMyInquiries(user.email)
+        const data = await adminApi.getMyInquiries()
         setMyInquiries(data)
       }
 
@@ -371,32 +354,6 @@ export default function InstructorHelp() {
                 )}
 
                 <form onSubmit={handleContactSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                      이름 *
-                    </label>
-                    <Input
-                      type="text"
-                      value={contactForm.name}
-                      onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
-                      required
-                      className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-base py-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                      이메일 *
-                    </label>
-                    <Input
-                      type="email"
-                      value={contactForm.email}
-                      onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
-                      required
-                      className="border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-base py-2"
-                    />
-                  </div>
-
                   {enrolledCourses.length > 0 && (
                     <div>
                       <label className="block text-base font-semibold text-gray-700 mb-2">

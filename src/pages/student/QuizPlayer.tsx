@@ -1,31 +1,109 @@
 import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Clock, CheckCircle, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
-import { mockQuiz } from '../../mocks'
 import type { Quiz, QuizQuestion } from '../../types'
 import QuizReviewModal from '../../components/modals/QuizReviewModal'
 
 export default function QuizPlayer() {
-  const [quiz] = useState<Quiz>(mockQuiz)
+  const { id: courseId, quizId } = useParams()
+  const navigate = useNavigate()
+  const [quiz, setQuiz] = useState<Quiz | null>(null)
+  const [loading, setLoading] = useState(true)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
-  const [timeLeft, setTimeLeft] = useState(quiz.timeLimit * 60) // Convert to seconds
+  const [timeLeft, setTimeLeft] = useState(0)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+
+  useEffect(() => {
+    const loadQuiz = async () => {
+      if (!quizId || !courseId) {
+        setLoading(false)
+        return
+      }
+      try {
+        setLoading(true)
+        const { getExam } = await import('../../core/api/exams')
+        const { getCourse } = await import('../../core/api/courses')
+
+        const [examData, courseData] = await Promise.all([
+          getExam(Number(courseId), Number(quizId)),
+          getCourse(Number(courseId)),
+        ])
+
+        // Exam과 Question을 Quiz 형태로 변환
+        const exam = examData as any
+        const quizData: Quiz = {
+          id: exam.id.toString(),
+          title: exam.title,
+          courseId: exam.courseId?.toString() || courseId.toString(),
+          courseTitle: courseData.title,
+          questions: (exam.questions || []).map((q: any) => ({
+            id: q.id.toString(),
+            question: q.question,
+            type: q.type as QuizQuestion['type'],
+            options: q.options || [],
+            correctAnswer: q.correctAnswer,
+            points: q.points,
+            explanation: q.explanation,
+          })),
+          timeLimit: exam.timeLimit || 30,
+          totalPoints: (exam.questions || []).reduce((sum: number, q: any) => sum + q.points, 0),
+          dueDate: exam.endDate,
+        }
+
+        setQuiz(quizData)
+        setTimeLeft(quizData.timeLimit * 60)
+      } catch (error) {
+        console.error('퀴즈 로드 실패:', error)
+        navigate(`/student/course/${courseId}`)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadQuiz()
+  }, [quizId, courseId, navigate])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">퀴즈를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!quiz) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="p-6">
+          <p className="text-gray-500">퀴즈를 찾을 수 없습니다.</p>
+          <Button onClick={() => navigate(`/student/course/${courseId}`)} className="mt-4">
+            강의로 돌아가기
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
   const currentQuestion = quiz.questions[currentQuestionIndex]
 
   // Timer effect
   useEffect(() => {
+    if (!quiz || timeLeft <= 0 || isSubmitted) return
+
     if (timeLeft > 0 && !isSubmitted) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
       return () => clearTimeout(timer)
     } else if (timeLeft === 0 && !isSubmitted) {
       handleSubmit()
     }
-  }, [timeLeft, isSubmitted])
+  }, [timeLeft, isSubmitted, quiz])
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
@@ -161,48 +239,49 @@ export default function QuizPlayer() {
                   {/* Answer Options */}
                   <div className="space-y-3">
                     {currentQuestion.type === 'multiple-choice' && currentQuestion.options && (
-                      currentQuestion.options.map((option, index) => (
-                        <label
-                          key={index}
-                          className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                        >
-                          <input
-                            type="radio"
-                            name={`question-${currentQuestion.id}`}
-                            value={index}
-                            checked={answers[currentQuestion.id] === index}
-                            onChange={() => handleAnswerChange(currentQuestion.id, index)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="ml-3 text-gray-900">{option}</span>
-                        </label>
-                      ))
+                      <div className="space-y-3">
+                        {currentQuestion.options.map((option, index) => (
+                          <Button
+                            key={index}
+                            type="button"
+                            onClick={() => handleAnswerChange(currentQuestion.id, index)}
+                            className={`w-full text-left p-4 border-2 rounded-lg transition-all ${
+                              answers[currentQuestion.id] === index
+                                ? 'border-blue-500 bg-blue-500 text-white shadow-md'
+                                : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
+                            }`}
+                          >
+                            {answers[currentQuestion.id] === index && '✓ '}
+                            {option}
+                          </Button>
+                        ))}
+                      </div>
                     )}
 
                     {currentQuestion.type === 'true-false' && (
-                      <div className="space-y-3">
-                        <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                          <input
-                            type="radio"
-                            name={`question-${currentQuestion.id}`}
-                            value="true"
-                            checked={answers[currentQuestion.id] === true}
-                            onChange={() => handleAnswerChange(currentQuestion.id, true)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="ml-3 text-gray-900">참</span>
-                        </label>
-                        <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                          <input
-                            type="radio"
-                            name={`question-${currentQuestion.id}`}
-                            value="false"
-                            checked={answers[currentQuestion.id] === false}
-                            onChange={() => handleAnswerChange(currentQuestion.id, false)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="ml-3 text-gray-900">거짓</span>
-                        </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          type="button"
+                          onClick={() => handleAnswerChange(currentQuestion.id, true)}
+                          className={`py-4 text-base font-medium rounded-lg transition-all border-2 ${
+                            answers[currentQuestion.id] === true
+                              ? 'border-blue-500 bg-blue-500 text-white shadow-md'
+                              : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
+                          }`}
+                        >
+                          {answers[currentQuestion.id] === true && '✓ '}참
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => handleAnswerChange(currentQuestion.id, false)}
+                          className={`py-4 text-base font-medium rounded-lg transition-all border-2 ${
+                            answers[currentQuestion.id] === false
+                              ? 'border-blue-500 bg-blue-500 text-white shadow-md'
+                              : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
+                          }`}
+                        >
+                          {answers[currentQuestion.id] === false && '✓ '}거짓
+                        </Button>
                       </div>
                     )}
 

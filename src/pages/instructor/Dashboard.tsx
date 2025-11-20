@@ -5,6 +5,7 @@ import { getCourses, getCourseQnAs } from '../../core/api/courses'
 import { useAuth } from '../../contexts/AuthContext'
 import InstructorSidebar from '../../components/instructor/InstructorSidebar'
 import type { Course } from '../../types'
+import { normalizeThumbnailUrl } from '../../utils/thumbnail'
 
 function InstructorDashboard() {
   const { user } = useAuth()
@@ -42,7 +43,7 @@ function InstructorDashboard() {
             rating: 0, // 나중에 실제 평점으로 교체
             lastEdited: courseWithDates.updatedAt ? new Date(courseWithDates.updatedAt).toLocaleDateString('ko-KR') : '방금 전',
             instructor: course.instructor || '김강사',
-            image: course.thumbnail || '/photo/bbb.jpg',
+            image: normalizeThumbnailUrl(course.thumbnail, '/thumbnails/bbb.jpg'),
           }
         }))
       } catch (error) {
@@ -189,7 +190,7 @@ function InstructorDashboard() {
                         <div className="flex items-center space-x-4">
                           <div className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                             <img
-                              src={c.image || '/photo/bbb.jpg'}
+                              src={normalizeThumbnailUrl(c.image, '/thumbnails/bbb.jpg')}
                               alt={c.title}
                               className="w-full h-full object-cover rounded-lg"
                             />

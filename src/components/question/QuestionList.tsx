@@ -1,4 +1,4 @@
-import { Search, FileText } from 'lucide-react'
+import { Search, FileText, ChevronDown } from 'lucide-react'
 import type { QuestionData, QuestionStatus } from '../../types/question'
 import { getQuestionTypeLabel, getStatusColor, getStatusLabel } from '../../utils/questionUtils'
 
@@ -10,7 +10,7 @@ interface QuestionListProps {
   onQuestionSelect: (questionId: string) => void
   onFilterStatusChange: (status: 'all' | QuestionStatus) => void
   onSearchQueryChange: (query: string) => void
-  mockExams: Record<string, { id: string; title: string; type: string }>
+  examsInfo: Record<string, { id: string; title: string; type: string }>
 }
 
 export default function QuestionList({
@@ -21,7 +21,7 @@ export default function QuestionList({
   onQuestionSelect,
   onFilterStatusChange,
   onSearchQueryChange,
-  mockExams
+  examsInfo
 }: QuestionListProps) {
   const filteredQuestions = questions.filter(q => {
     if (filterStatus !== 'all' && q.status !== filterStatus) return false
@@ -47,16 +47,19 @@ export default function QuestionList({
         </div>
 
         {/* Status Filter */}
-        <select
-          value={filterStatus}
-          onChange={(e) => onFilterStatusChange(e.target.value as typeof filterStatus)}
-          className="w-full px-3 py-2 text-sm border border-base-300 rounded-lg bg-base-100 focus:ring-2 focus:ring-primary focus:border-transparent"
-        >
-          <option value="all">전체 ({questions.length})</option>
-          <option value="draft">작성중 ({questions.filter(q => q.status === 'draft').length})</option>
-          <option value="review">검토 필요 ({questions.filter(q => q.status === 'review').length})</option>
-          <option value="completed">완료 ({questions.filter(q => q.status === 'completed').length})</option>
-        </select>
+        <div className="relative">
+          <select
+            value={filterStatus}
+            onChange={(e) => onFilterStatusChange(e.target.value as typeof filterStatus)}
+            className="w-full px-3 py-2 pr-10 text-sm border border-base-300 rounded-lg bg-base-100 focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
+          >
+            <option value="all">전체 ({questions.length})</option>
+            <option value="draft">작성중 ({questions.filter(q => q.status === 'draft').length})</option>
+            <option value="review">검토 필요 ({questions.filter(q => q.status === 'review').length})</option>
+            <option value="completed">완료 ({questions.filter(q => q.status === 'completed').length})</option>
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-base-content/40 pointer-events-none" />
+        </div>
       </div>
 
       {/* Question List */}
@@ -96,7 +99,7 @@ export default function QuestionList({
                   <div className="flex flex-wrap gap-1">
                     {question.usedInExams.map(examId => (
                       <span key={examId} className="px-1.5 py-0.5 text-xs bg-info/10 text-info rounded">
-                        {mockExams[examId]?.title || examId}
+                        {examsInfo[examId]?.title || examId}
                       </span>
                     ))}
                   </div>

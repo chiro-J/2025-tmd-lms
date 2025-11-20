@@ -1,15 +1,35 @@
+import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Calendar, Clock } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
-import { mockExams } from '../../data/mockExams'
+import type { Exam } from '../../types/exam'
 
 export default function ExamDetail() {
   const navigate = useNavigate()
   const { id: courseId, examId } = useParams()
+  const [exam, setExam] = useState<Exam | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const exam = mockExams.find(e => e.id === Number(examId))
+  useEffect(() => {
+    const loadExam = async () => {
+      if (!examId || !courseId) {
+        setLoading(false)
+        return
+      }
+      try {
+        const { getExam } = await import('../../core/api/exams')
+        const response = await getExam(Number(courseId), Number(examId))
+        setExam(response)
+      } catch (error) {
+        console.error('시험 정보 로드 실패:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadExam()
+  }, [examId, courseId])
 
   const rightActions = (
     <>
@@ -31,7 +51,11 @@ export default function ExamDetail() {
         </Link>
       </div>
 
-      {!exam ? (
+      {loading ? (
+        <Card className="p-6">
+          <p className="text-base-content/70">로딩 중...</p>
+        </Card>
+      ) : !exam ? (
         <Card className="p-6">
           <p className="text-base-content/70">존재하지 않는 시험입니다.</p>
         </Card>

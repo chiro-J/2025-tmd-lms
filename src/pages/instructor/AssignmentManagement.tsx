@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import CoursePageLayout from "../../components/instructor/CoursePageLayout";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
-import { FileText, PlusCircle, Search, Filter, Eye, Trash2, Edit } from "lucide-react";
+import { FileText, PlusCircle, Search, Filter, Eye, Trash2, Edit, ChevronDown } from "lucide-react";
 import ModalBase from "../../components/modals/ModalBase";
 import AssignmentCreateModal from "../../components/instructor/AssignmentCreateModal";
 import { getAssignments, createAssignment, getSubmissionsByAssignment, deleteAssignment, updateAssignment, getAssignment } from "../../core/api/assignments";
@@ -26,6 +26,8 @@ export default function AssignmentManagement() {
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [previewAssignment, setPreviewAssignment] = useState<Assignment | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // 과제 목록 로드
   useEffect(() => {
@@ -90,14 +92,27 @@ export default function AssignmentManagement() {
     setEditingAssignment(null);
   };
 
+  const openPreview = async (assignmentId: number) => {
+    try {
+      const assignment = await getAssignment(courseId, assignmentId);
+      setPreviewAssignment(assignment);
+      setIsPreviewOpen(true);
+    } catch (error) {
+      alert('과제 정보를 불러오는데 실패했습니다.');
+    }
+  };
+
+  const closePreview = () => {
+    setIsPreviewOpen(false);
+    setPreviewAssignment(null);
+  };
+
   const handleCreate = async (data: {
     title: string;
     description?: string;
     dueDate: string;
     maxScore?: number;
     instructions?: string[];
-    allowedFileTypes?: string[];
-    maxFileSize?: number;
     contentBlocks?: any[];
   }) => {
     try {
@@ -108,8 +123,7 @@ export default function AssignmentManagement() {
         dueDate: data.dueDate,
         maxScore: data.maxScore,
         instructions: data.instructions,
-        allowedFileTypes: data.allowedFileTypes,
-        maxFileSize: data.maxFileSize,
+        contentBlocks: data.contentBlocks,
       });
 
       // 목록 새로고침
@@ -130,8 +144,6 @@ export default function AssignmentManagement() {
     dueDate: string;
     maxScore?: number;
     instructions?: string[];
-    allowedFileTypes?: string[];
-    maxFileSize?: number;
     contentBlocks?: any[];
   }) => {
     if (!editingAssignment) return;
@@ -144,8 +156,6 @@ export default function AssignmentManagement() {
         dueDate: data.dueDate,
         maxScore: data.maxScore,
         instructions: data.instructions,
-        allowedFileTypes: data.allowedFileTypes,
-        maxFileSize: data.maxFileSize,
         contentBlocks: data.contentBlocks,
       });
 
@@ -218,16 +228,19 @@ export default function AssignmentManagement() {
               </div>
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" aria-hidden />
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
-                  className="border rounded-lg px-2 py-2 text-sm"
-                  aria-label="상태 필터"
-                >
-                  <option value="ALL">전체</option>
-                  <option value="진행 중">진행 중</option>
-                  <option value="마감">마감</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as any)}
+                    className="border rounded-lg px-2 py-2 pr-8 text-sm appearance-none"
+                    aria-label="상태 필터"
+                  >
+                    <option value="ALL">전체</option>
+                    <option value="진행 중">진행 중</option>
+                    <option value="마감">마감</option>
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
               </div>
             </div>
             <Button variant="primary" className="flex items-center gap-2" onClick={openCreate}>
@@ -257,6 +270,15 @@ export default function AssignmentManagement() {
                 <div className="col-span-2 text-gray-700">{a.dueDate}</div>
                 <div className="col-span-2 text-gray-700">{a.submissions} / {a.total}</div>
                 <div className="col-span-3 flex justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                    onClick={() => openPreview(a.id)}
+                  >
+                    <Eye className="h-4 w-4" aria-hidden />
+                    미리보기
+                  </Button>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -365,12 +387,65 @@ export default function AssignmentManagement() {
                 : editingAssignment.dueDate,
               maxScore: editingAssignment.maxScore,
               instructions: editingAssignment.instructions,
-              allowedFileTypes: editingAssignment.allowedFileTypes,
-              maxFileSize: editingAssignment.maxFileSize,
               contentBlocks: editingAssignment.contentBlocks,
             }}
           />
         )}
+
+        {/* 과제 미리보기 모달 */}
+        <ModalBase open={isPreviewOpen} onClose={closePreview} title="과제 미리보기">
+          {previewAssignment ? (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{previewAssignment.title}</h3>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>마감일: {new Date(previewAssignment.dueDate).toLocaleDateString('ko-KR')}</p>
+                  <p>만점: {previewAssignment.maxScore ?? 100}점</p>
+                </div>
+              </div>
+
+              {previewAssignment.description && (
+                <div>
+                  <h4 className="text-base font-semibold text-gray-900 mb-2">과제 설명</h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{previewAssignment.description}</p>
+                </div>
+              )}
+
+              {previewAssignment.instructions && previewAssignment.instructions.length > 0 && (
+                <div>
+                  <h4 className="text-base font-semibold text-gray-900 mb-2">제출 안내</h4>
+                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                    {previewAssignment.instructions.map((instruction, idx) => (
+                      <li key={idx}>{instruction}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+
+              {previewAssignment.contentBlocks && Array.isArray(previewAssignment.contentBlocks) && previewAssignment.contentBlocks.length > 0 && (
+                <div>
+                  <h4 className="text-base font-semibold text-gray-900 mb-2">과제 내용</h4>
+                  <div className="space-y-2">
+                    {previewAssignment.contentBlocks.map((block: any, idx: number) => (
+                      <div key={idx} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div className="text-sm whitespace-pre-wrap text-gray-700 leading-relaxed">
+                          {block.content}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={closePreview}>닫기</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">과제 정보를 불러오는 중...</div>
+          )}
+        </ModalBase>
       </div>
     </CoursePageLayout>
   );

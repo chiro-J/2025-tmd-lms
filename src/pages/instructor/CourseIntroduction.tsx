@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Sparkles, Upload, X, Video, HelpCircle, Check } from 'lucide-react'
+import { Sparkles, Upload, X, Video, HelpCircle, Check, ChevronDown } from 'lucide-react'
+import { normalizeThumbnailUrl } from '../../utils/thumbnail'
 import Button from '../../components/ui/Button'
 import StableLexicalEditor from '../../components/editor/StableLexicalEditor'
 import { useCourseCreation } from '../../contexts/CourseCreationContext'
 import { createCourse } from '../../core/api/courses'
 import { useAuth } from '../../contexts/AuthContext'
+import type { Course } from '../../types'
 
 export default function CourseIntroduction() {
   const { courseData, resetCourseData } = useCourseCreation()
@@ -24,6 +26,7 @@ export default function CourseIntroduction() {
     applicationEndDate: courseData.applicationEndDate || "",
     videoUrl: courseData.videoUrl || "",
     content: courseData.content || "<p>강좌 소개를 작성하세요.</p>",
+    isPublic: courseData.isPublic !== undefined ? courseData.isPublic : true,
   })
 
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
@@ -42,13 +45,13 @@ export default function CourseIntroduction() {
     setSaving(true)
     try {
       // CourseCreationData를 DB Course 타입으로 변환
-      const courseDataToSave = {
+      const courseDataToSave: Partial<Course> = {
         title: formData.title,
         thumbnail: formData.thumbnail || undefined,
         videoUrl: formData.videoUrl || undefined,
         content: formData.content || undefined,
         instructor: user.name || '강의자', // 현재 로그인한 강의자 이름
-        status: '공개' as const, // TODO: isPublic 필드 사용
+        status: (formData.isPublic ? '공개' : '비공개') as '공개' | '비공개',
         progress: 0,
       }
 
@@ -71,17 +74,22 @@ export default function CourseIntroduction() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) { alert('이미지 파일만 업로드 가능합니다.'); return }
     if (file.size > 2 * 1024 * 1024) { alert('파일 크기는 2MB를 초과할 수 없습니다.'); return }
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setFormData(prev => ({ ...prev, thumbnail: reader.result as string }))
+
+    try {
+      const { uploadFile } = await import('../../core/api/upload')
+      const result = await uploadFile(file, 'image', 'thumbnail')
+      // 백엔드에서 절대 URL을 반환하므로 그대로 DB에 저장
+      setFormData(prev => ({ ...prev, thumbnail: result.url }))
       setThumbnailFile(file)
+    } catch (error) {
+      console.error('썸네일 업로드 실패:', error)
+      alert('썸네일 업로드에 실패했습니다. 다시 시도해주세요.')
     }
-    reader.readAsDataURL(file)
   }
 
   const handleRemoveThumbnail = () => {
@@ -133,7 +141,7 @@ export default function CourseIntroduction() {
             <label className="block text-sm font-semibold text-gray-900 mb-3">강좌 썸네일</label>
             {formData.thumbnail ? (
               <div className="relative group">
-                <img src={formData.thumbnail} alt="Thumbnail preview" className="w-full aspect-video object-cover rounded-xl border border-gray-200" />
+                <img src={normalizeThumbnailUrl(formData.thumbnail)} alt="Thumbnail preview" className="w-full aspect-video object-cover rounded-xl border border-gray-200" />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                   <button onClick={handleRemoveThumbnail} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg flex items-center space-x-2 transition-colors">
                     <X className="h-4 w-4" /> <span>삭제</span>
@@ -163,28 +171,34 @@ export default function CourseIntroduction() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <label className="block text-sm font-semibold text-gray-900 mb-4">강좌 카테고리</label>
             <div className="grid grid-cols-2 gap-4">
-              <select
-                value={formData.category1}
-                onChange={(e) => handleInputChange('category1', e.target.value)}
-                className="px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-              >
-                <option value="">카테고리 선택</option>
-                <option value="비즈니스">비즈니스</option>
-                <option value="기술">기술</option>
-                <option value="디자인">디자인</option>
-                <option value="마케팅">마케팅</option>
-              </select>
-              <select
-                value={formData.category2}
-                onChange={(e) => handleInputChange('category2', e.target.value)}
-                className="px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
-              >
-                <option value="">세부 카테고리</option>
-                <option value="웹개발">웹개발</option>
-                <option value="모바일">모바일</option>
-                <option value="데이터">데이터</option>
-                <option value="기타">기타</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={formData.category1}
+                  onChange={(e) => handleInputChange('category1', e.target.value)}
+                  className="w-full px-4 py-3 pr-10 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none"
+                >
+                  <option value="">카테고리 선택</option>
+                  <option value="비즈니스">비즈니스</option>
+                  <option value="기술">기술</option>
+                  <option value="디자인">디자인</option>
+                  <option value="마케팅">마케팅</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              </div>
+              <div className="relative">
+                <select
+                  value={formData.category2}
+                  onChange={(e) => handleInputChange('category2', e.target.value)}
+                  className="w-full px-4 py-3 pr-10 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none"
+                >
+                  <option value="">세부 카테고리</option>
+                  <option value="웹개발">웹개발</option>
+                  <option value="모바일">모바일</option>
+                  <option value="데이터">데이터</option>
+                  <option value="기타">기타</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              </div>
             </div>
           </div>
 
@@ -242,6 +256,37 @@ export default function CourseIntroduction() {
               </div>
             </div>
             <StableLexicalEditor value={formData.content} onChange={(html) => handleInputChange('content', html)} placeholder="강좌의 목표, 커리큘럼, 대상 수강생 등을 자세히 작성해주세요..." />
+          </div>
+
+          {/* 8) 공개/비공개 설정 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <label className="block text-sm font-semibold text-gray-900 mb-4">공개 설정</label>
+            <div className="flex items-center space-x-6">
+              <Button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, isPublic: true }))}
+                className={`px-4 py-3 rounded-xl border-2 transition-all ${
+                  formData.isPublic
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {formData.isPublic && '✓ '}공개
+                <span className="text-xs ml-2 opacity-80">(수강 코드 입력 시 수강 신청 가능)</span>
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, isPublic: false }))}
+                className={`px-4 py-3 rounded-xl border-2 transition-all ${
+                  !formData.isPublic
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {!formData.isPublic && '✓ '}비공개
+                <span className="text-xs ml-2 opacity-80">(수강 코드 입력해도 수강 신청 불가)</span>
+              </Button>
+            </div>
           </div>
 
           {/* Bottom Action */}

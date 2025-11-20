@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
@@ -21,31 +21,57 @@ export default function ModalBase({
 }: ModalBaseProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [shouldRender, setShouldRender] = useState(false)
 
+  // Handle animation lifecycle
   useEffect(() => {
     if (open) {
+      // Start rendering the modal
+      setShouldRender(true)
+      // Trigger enter animation after a small delay
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true)
+        })
+      })
+
       // Store the currently focused element
       previousActiveElement.current = document.activeElement as HTMLElement
 
-      // Focus the modal
-      modalRef.current?.focus()
-
       // Prevent body scroll
       document.body.style.overflow = 'hidden'
-    } else {
-      // Restore body scroll
-      document.body.style.overflow = 'unset'
+    } else if (shouldRender) {
+      // Trigger exit animation
+      setIsAnimating(false)
 
-      // Return focus to the previously focused element
-      if (previousActiveElement.current) {
-        previousActiveElement.current.focus()
-      }
+      // Wait for animation to complete before unmounting
+      const timer = setTimeout(() => {
+        setShouldRender(false)
+
+        // Restore body scroll
+        document.body.style.overflow = 'unset'
+
+        // Return focus to the previously focused element
+        if (previousActiveElement.current) {
+          previousActiveElement.current.focus()
+        }
+      }, 200) // Match animation duration
+
+      return () => clearTimeout(timer)
     }
 
     return () => {
       document.body.style.overflow = 'unset'
     }
-  }, [open])
+  }, [open, shouldRender])
+
+  // Focus modal when animation starts
+  useEffect(() => {
+    if (isAnimating && modalRef.current) {
+      modalRef.current.focus()
+    }
+  }, [isAnimating])
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -60,7 +86,7 @@ export default function ModalBase({
     }
   }, [open, onClose])
 
-  if (!open) return null
+  if (!shouldRender) return null
 
   const modalContent = (
     <div
@@ -71,14 +97,20 @@ export default function ModalBase({
     >
       {/* Backdrop - 전체화면으로 어둡게 */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50"
+        className={`absolute inset-0 bg-black transition-opacity duration-200 ease-out ${
+          isAnimating ? 'bg-opacity-50' : 'bg-opacity-0'
+        }`}
         onClick={onClose}
       />
 
       {/* Modal */}
       <div
         ref={modalRef}
-        className={`relative bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-hidden focus:outline-none z-10`}
+        className={`relative bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] overflow-hidden focus:outline-none z-10 transition-all duration-200 ease-out ${
+          isAnimating
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-4'
+        }`}
         tabIndex={-1}
       >
         {/* Header */}

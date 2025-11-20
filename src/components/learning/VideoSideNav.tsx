@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { List, MessageCircle, HelpCircle, ClipboardList, Smile, Subtitles, X, ChevronDown, ChevronRight } from 'lucide-react'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { List, MessageCircle, HelpCircle, ClipboardList, Smile, Subtitles, X, ChevronDown, ChevronRight, ChevronLeft, Menu, ArrowLeft } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getCourse } from '../../core/api/courses'
 import type { Course } from '../../types'
@@ -21,64 +21,43 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'curriculum', label: '커리큘럼', icon: List },
-  { id: 'qna', label: 'Q&A', icon: MessageCircle },
-  { id: 'notes', label: '노트', icon: ClipboardList },
-  { id: 'reaction', label: '반응', icon: Smile },
-  { id: 'scripts', label: '스크립트', icon: Subtitles },
 ]
 
 export default function VideoSideNav({ onTabChange, activeTab, isExpanded, onExpandChange, courseId }: VideoSideNavProps) {
 
   return (
     <>
-      {/* Expanded Side Panel */}
-      <div className={`fixed left-0 top-0 h-full bg-white z-50 flex transition-transform duration-300 ease-in-out ${
-        isExpanded ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        {/* Side Menu Bar - Vertical navigation on the left */}
-        <div className="flex flex-col items-center justify-center bg-gray-50 p-2 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.id}
-                onClick={() => onTabChange(item.id)}
-                className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 ${
-                  activeTab === item.id
-                    ? 'bg-black text-white'
-                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                }`}
-                title={item.label}
-              >
-                <Icon className="h-5 w-5" />
-              </button>
-            )
-          })}
+      {/* Side Menu Bar - 항상 표시되는 좌측 버튼 영역 */}
+      <div className="fixed left-0 bg-gray-50 z-50 flex flex-col items-center justify-center p-2 border-r-2 border-gray-300 shadow-sm" style={{ top: '56px', height: 'calc(100vh - 56px)' }}>
+        {/* 목록 아이콘과 토글 버튼을 함께 중앙 배치 */}
+        <div className="flex flex-col items-center space-y-2">
+          {/* 목록 아이콘 */}
+          <List className="h-5 w-5 text-gray-500" />
+          {/* 토글 버튼 */}
+          <button
+            onClick={() => onExpandChange(!isExpanded)}
+            className="w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+            title={isExpanded ? '사이드바 숨기기' : '사이드바 보이기'}
+          >
+            {isExpanded ? (
+              <ChevronLeft className="h-5 w-5" />
+            ) : (
+              <ChevronRight className="h-5 w-5" />
+            )}
+          </button>
         </div>
+      </div>
+
+      {/* Expanded Side Panel */}
+      <div className={`fixed left-14 bg-white z-40 flex transition-transform duration-300 ease-in-out ${
+        isExpanded ? 'translate-x-0 border-r-2 border-gray-300 shadow-lg' : '-translate-x-full'
+      }`} style={{ top: '56px', width: '256px', height: 'calc(100vh - 56px)' }}>
 
         {/* Main Content Area */}
-        <div className="flex flex-col h-full w-80">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">
-              {navItems.find(item => item.id === activeTab)?.label}
-            </h2>
-            <button
-              onClick={() => onExpandChange(false)}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg p-2 transition-colors"
-              title="사이드바 닫기"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
+        <div className="flex flex-col h-full w-full">
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto pt-0">
             {activeTab === 'curriculum' && <CurriculumContent courseId={courseId} />}
-            {activeTab === 'scripts' && <ScriptContent />}
-            {activeTab === 'qna' && <QnAContent />}
-            {activeTab === 'notes' && <NotesContent />}
-            {activeTab === 'reaction' && <ReactionContent />}
           </div>
         </div>
       </div>
@@ -94,10 +73,17 @@ interface CurriculumContentProps {
 function CurriculumContent({ courseId }: CurriculumContentProps) {
   const navigate = useNavigate()
   const params = useParams()
+  const location = useLocation()
   const [expandedSection, setExpandedSection] = useState<number | null>(null)
   const [modules, setModules] = useState<Array<{ id: number; title: string; lessons?: Array<{ id: number; title: string }> }>>([])
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // 현재 경로에서 역할 판단 및 뒤로가기 경로 결정
+  const isInstructor = location.pathname.includes('/instructor/')
+  const backPath = isInstructor
+    ? `/instructor/course/${params.id}/home`
+    : `/student/course/${params.id}`
 
   // DB에서 커리큘럼과 강좌 정보 로드
   useEffect(() => {
@@ -131,12 +117,23 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
 
 
   return (
-    <div className="space-y-3">
-      {/* Course Header */}
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-2 whitespace-normal break-words leading-snug">
+    <div className="space-y-2">
+      {/* Course Header - 상단에 위치, 본문 경로 표시와 같은 높이 */}
+      <div className="px-6 border-b-2 border-gray-300 shadow-sm" style={{ height: '56px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* 뒤로가기 버튼 */}
+        <button
+          onClick={() => navigate(backPath)}
+          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+          title={isInstructor ? '강좌 홈으로 이동' : '강좌 정보로 이동'}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        {/* 강좌 제목 */}
+        <h3 className="text-lg font-bold text-gray-900 whitespace-normal break-words leading-snug text-center flex-1">
           {course?.title || '강좌 제목을 불러올 수 없습니다'}
         </h3>
+        {/* 오른쪽 여백 (뒤로가기 버튼과 대칭) */}
+        <div className="flex-shrink-0 w-8 h-8" />
         {/* 부가 설명/진도율 바 제거 요청에 따라 미노출 */}
       </div>
 
@@ -154,17 +151,17 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
               className="border-b border-gray-200 last:border-b-0"
             >
               <div
-                className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="px-6 py-2.5 hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => setExpandedSection(isExpanded ? null : module.id)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 flex-1 min-w-0">
                     {isExpanded ? (
-                      <ChevronDown className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     )}
-                    <h4 className="text-base font-semibold text-gray-900 truncate">{module.title}</h4>
+                    <h4 className="text-sm font-semibold text-gray-900 truncate">{module.title}</h4>
                   </div>
                 </div>
               </div>
@@ -174,15 +171,19 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
                   {module.lessons.map((lesson: { id: number; title: string }) => (
                     <div
                       key={lesson.id}
-                      className="group p-3 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"
+                      className="group px-6 py-2 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"
                       onClick={() => {
                         // React Router의 navigate를 사용하여 URL 업데이트
-                        navigate(`/student/learning/${params.id}?lesson=${lesson.id}`, { replace: false })
+                        // 현재 경로에 따라 적절한 경로로 이동
+                        const learningPath = isInstructor
+                          ? `/instructor/course/${params.id}/learning?lesson=${lesson.id}`
+                          : `/student/learning/${params.id}?lesson=${lesson.id}`
+                        navigate(learningPath, { replace: false })
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{lesson.title}</p>
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-900 truncate">{lesson.title}</p>
                         </div>
                       </div>
                     </div>

@@ -5,12 +5,16 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   assetsInclude: ['**/*.mp4', '**/*.webm', '**/*.ogg'],
+  optimizeDeps: {
+    include: ['html2pdf.js'],
+  },
   server: {
     port: 5173,
     strictPort: true
   },
   build: {
     rollupOptions: {
+      external: ['html2pdf.js'],
       output: {
         manualChunks(id) {
           // 큰 라이브러리들을 별도 청크로 분리
@@ -20,7 +24,7 @@ export default defineConfig({
               return 'react-vendor'
             }
             // PDF 관련
-            if (id.includes('react-pdf') || id.includes('pdfjs-dist')) {
+            if (id.includes('react-pdf') || id.includes('pdfjs-dist') || id.includes('html2pdf')) {
               return 'pdf-vendor'
             }
             // 에디터 관련
@@ -58,5 +62,8 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000, // 1MB로 증가 (큰 청크 경고 임계값)
+    commonjsOptions: {
+      include: [/html2pdf\.js/, /node_modules/],
+    },
   },
 })

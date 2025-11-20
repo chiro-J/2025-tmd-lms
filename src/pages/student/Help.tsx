@@ -3,7 +3,6 @@ import { ChevronDown, Mail, MessageSquare, HelpCircle, Search, Send, CheckCircle
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { mockFAQ } from '../../mocks'
 import type { FAQItem } from '../../types'
 import * as adminApi from '../../core/api/admin'
 import { useAuth } from '../../contexts/AuthContext'
@@ -12,9 +11,9 @@ export default function Help() {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [faqItems, setFaqItems] = useState<FAQItem[]>([])
+  const [loadingFAQ, setLoadingFAQ] = useState(false)
   const [contactForm, setContactForm] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
     subject: '',
     message: '',
     courseName: '',
@@ -29,7 +28,24 @@ export default function Help() {
   const [enrolledCourses, setEnrolledCourses] = useState<Array<{ courseId: number; courseName: string; courseNumber: string }>>([])
   const [selectedCourse, setSelectedCourse] = useState<{ courseName: string; courseNumber: string } | null>(null)
 
-  const filteredFAQ = mockFAQ.filter(item =>
+  useEffect(() => {
+    const loadFAQ = async () => {
+      setLoadingFAQ(true)
+      try {
+        const { getFAQ } = await import('../../core/api/faq')
+        const faq = await getFAQ('student')
+        setFaqItems(faq)
+      } catch (error) {
+        console.error('FAQ 로드 실패:', error)
+        setFaqItems([])
+      } finally {
+        setLoadingFAQ(false)
+      }
+    }
+    loadFAQ()
+  }, [])
+
+  const filteredFAQ = faqItems.filter(item =>
     item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -72,7 +88,7 @@ export default function Help() {
       if (!user?.email) return
       setLoadingInquiries(true)
       try {
-        const data = await adminApi.getMyInquiries(user.email)
+        const data = await adminApi.getMyInquiries()
         setMyInquiries(data)
       } catch (error) {
         console.error('내 문의사항 로드 실패:', error)
@@ -93,16 +109,12 @@ export default function Help() {
       await adminApi.createInquiry({
         title: contactForm.subject,
         content: contactForm.message,
-        userName: contactForm.name,
-        email: contactForm.email,
         courseName: contactForm.courseName || undefined,
         courseNumber: contactForm.courseNumber || undefined
       })
 
       setSubmitSuccess(true)
       setContactForm({
-        name: user?.name || '',
-        email: user?.email || '',
         subject: '',
         message: '',
         courseName: selectedCourse?.courseName || '',
@@ -111,7 +123,7 @@ export default function Help() {
 
       // 문의사항 목록 새로고침
       if (user?.email) {
-        const data = await adminApi.getMyInquiries(user.email)
+        const data = await adminApi.getMyInquiries()
         setMyInquiries(data)
       }
 
@@ -124,7 +136,7 @@ export default function Help() {
     }
   }
 
-  const categories = [...new Set(mockFAQ.map(item => item.category))]
+  const categories = [...new Set(faqItems.map(item => item.category))]
 
   // 카테고리별로 FAQ 그룹화
   const faqByCategory = categories.reduce((acc, category) => {
@@ -341,32 +353,6 @@ export default function Help() {
                 )}
 
                 <form onSubmit={handleContactSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                      이름 *
-                    </label>
-                    <Input
-                      type="text"
-                      value={contactForm.name}
-                      onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
-                      required
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                      이메일 *
-                    </label>
-                    <Input
-                      type="email"
-                      value={contactForm.email}
-                      onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
-                      required
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-base py-2"
-                    />
-                  </div>
-
                   {enrolledCourses.length > 0 && (
                     <div>
                       <label className="block text-base font-semibold text-gray-700 mb-2">

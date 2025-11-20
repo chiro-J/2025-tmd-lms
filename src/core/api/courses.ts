@@ -137,7 +137,7 @@ export interface CourseResource {
   id: number;
   courseId: number;
   title: string;
-  type: 'pdf' | 'slide' | 'code' | 'link';
+  type: 'pdf' | 'slide' | 'code' | 'link' | 'image';
   fileUrl?: string;
   linkUrl?: string;
   code?: string;
@@ -165,7 +165,7 @@ export const createCourseResource = async (
   courseId: number,
   data: {
     title: string;
-    type: 'pdf' | 'slide' | 'code' | 'link';
+    type?: 'pdf' | 'slide' | 'code' | 'link' | 'image';
     file?: File;
     linkUrl?: string;
     code?: string;
@@ -174,7 +174,21 @@ export const createCourseResource = async (
   try {
     const formData = new FormData();
     formData.append('title', data.title);
-    formData.append('type', data.type);
+
+    // 파일이 있으면 파일 확장자로 타입 자동 감지
+    let type = data.type
+    if (data.file && !type) {
+      const fileName = data.file.name.toLowerCase()
+      const ext = fileName.substring(fileName.lastIndexOf('.') + 1)
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+        type = 'image'
+      } else if (ext === 'pdf') {
+        type = 'pdf'
+      } else {
+        type = 'slide' // 기본값
+      }
+    }
+    formData.append('type', type || 'pdf')
 
     if (data.file) {
       formData.append('file', data.file);

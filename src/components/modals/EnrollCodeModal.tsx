@@ -38,9 +38,17 @@ export default function EnrollCodeModal({ open, onClose, onEnrollSuccess }: Enro
         return
       }
 
+      // 공개/비공개 설정 확인
+      const isPublic = course.status === '공개'
+      if (!isPublic) {
+        setError('이 강좌는 비공개 강좌입니다. 수강 신청이 불가능합니다.')
+        setIsLoading(false)
+        return
+      }
+
       // DB에 수강 등록
       const courseId = Number(course.id)
-      await enrollInCourse(courseId, user.id)
+      await enrollInCourse(courseId, typeof user.id === 'number' ? user.id : Number(user.id))
 
       // localStorage 동기화 (백업용)
       const enrolledCourseIds = JSON.parse(
@@ -62,9 +70,11 @@ export default function EnrollCodeModal({ open, onClose, onEnrollSuccess }: Enro
 
       // 강좌 상세 페이지로 이동
       navigate(`/student/course/${course.id}`)
-    } catch (error) {
+    } catch (error: any) {
       console.error('수강코드 등록 실패:', error)
-      setError('수강 코드 확인 중 오류가 발생했습니다.')
+      // 백엔드에서 전달된 에러 메시지 사용
+      const errorMessage = error.response?.data?.message || error.message || '수강 코드 확인 중 오류가 발생했습니다.'
+      setError(errorMessage)
       setIsLoading(false)
     }
   }

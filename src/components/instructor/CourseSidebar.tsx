@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Bell, Home, BookOpen, ClipboardList, Users, Settings, MessageCircle, FileText } from 'lucide-react'
-import { mockInstructorNotifications } from '../../mocks'
+import { ChevronDown, ChevronRight, Bell, Home, BookOpen, ClipboardList, Users, Settings, MessageCircle, FileText, Trash2 } from 'lucide-react'
 import type { Notification } from '../../types'
+import * as adminApi from '../../core/api/admin'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface CourseSidebarProps {
   currentCourse?: {
@@ -13,6 +14,7 @@ interface CourseSidebarProps {
 }
 
 function CourseSidebar({ currentCourse }: CourseSidebarProps) {
+  const { user } = useAuth()
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['curriculum', 'students', 'assignments', 'exams', 'community', 'settings'])
   const courseId = currentCourse?.id || '1'
   const [showNotificationMenu, setShowNotificationMenu] = useState(false)
@@ -20,9 +22,66 @@ function CourseSidebar({ currentCourse }: CourseSidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
 
+  // 알림 데이터 로드
   useEffect(() => {
-    setNotifications(mockInstructorNotifications)
-  }, [])
+    const loadNotifications = async () => {
+      if (!user) return
+
+      // notifications 테이블은 사용하지 않음 (notices만 사용)
+      // 실제로는 notices 테이블의 데이터를 Notification 타입으로 변환해서 사용
+      const baseNotifications: Notification[] = []
+
+      // 시스템 공지사항 로드 (강의자만)
+      if (user.role === 'instructor') {
+        try {
+          const userId = typeof user.id === 'number' ? user.id : (typeof user.id === 'string' ? parseInt(user.id, 10) : 1)
+          const savedBlockNotifications = localStorage.getItem(`block_system_notifications_${userId}`)
+          const blockNotifications = savedBlockNotifications
+            ? JSON.parse(savedBlockNotifications)
+            : false
+
+          const systemNotices = await adminApi.getNotices()
+
+          // 활성 상태인 공지사항만 필터링
+          const filteredNotices = systemNotices.filter(notice => {
+            if (notice.status !== 'active') return false
+            if (blockNotifications) {
+              return notice.priority === 'high'
+            }
+            return true
+          })
+
+          // 시스템 공지사항을 Notification 타입으로 변환
+          const systemNotifications: Notification[] = filteredNotices.map(notice => ({
+            id: notice.id + 10000,
+            type: 'announcement',
+            title: notice.title,
+            message: notice.content.length > 100
+              ? notice.content.substring(0, 100) + '...'
+              : notice.content,
+            createdAt: notice.createdDate || new Date().toISOString(),
+            read: false,
+            link: '/instructor/notifications',
+            courseId: undefined,
+            courseTitle: undefined
+          }))
+
+          // 기본 알림과 시스템 공지사항 합치기
+          const allNotifications = [...baseNotifications, ...systemNotifications]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+          setNotifications(allNotifications)
+        } catch (error) {
+          console.error('시스템 공지사항 로드 실패:', error)
+          setNotifications(baseNotifications)
+        }
+      } else {
+        setNotifications(baseNotifications)
+      }
+    }
+
+    loadNotifications()
+  }, [user])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -394,6 +453,32 @@ function CourseSidebar({ currentCourse }: CourseSidebarProps) {
                 }`}>
                   공동 강의자 설정
                 </Link>
+                <button
+                  onClick={async () => {
+                    if (!currentCourse?.id) return
+
+                    const confirmed = window.confirm(
+                      `정말 "${currentCourse.title}" 강좌를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 강좌와 관련된 모든 데이터(수강자, 과제, 시험, Q&A 등)가 함께 삭제됩니다.`
+                    )
+
+                    if (!confirmed) return
+
+                    try {
+                      await adminApi.deleteCourse(Number(currentCourse.id))
+                      alert('강좌가 삭제되었습니다.')
+                      navigate('/instructor/dashboard')
+                    } catch (error) {
+                      console.error('강좌 삭제 실패:', error)
+                      alert('강좌 삭제에 실패했습니다. 다시 시도해주세요.')
+                    }
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm rounded text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Trash2 className="h-4 w-4" />
+                    <span className="font-medium">강의 삭제</span>
+                  </div>
+                </button>
               </div>
             )}
           </div>

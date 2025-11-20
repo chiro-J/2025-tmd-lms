@@ -51,8 +51,9 @@ export const logout = async (): Promise<void> => {
   try {
     await apiClient.post('/auth/logout');
   } catch (error) {
-    console.error('로그아웃 실패:', error);
-    throw error;
+    // 로그아웃 실패는 조용히 처리 (refresh token이 없을 수 있음)
+    // console.error('로그아웃 실패:', error);
+    // throw하지 않고 조용히 처리
   }
 };
 
@@ -62,7 +63,7 @@ export const getProfile = async (): Promise<User> => {
     return response.data;
   } catch (error: any) {
     // 401 에러는 로그인하지 않은 상태로 정상적인 상황이므로 조용히 처리
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.silent) {
       // 토큰이 없거나 만료된 경우이므로 에러를 그대로 throw하되 로깅은 하지 않음
       throw error;
     }
@@ -158,6 +159,18 @@ export const checkPhone = async (phone: string): Promise<{ exists: boolean; avai
     console.error('전화번호 중복 체크 실패:', error);
     // 에러 발생 시 중복으로 간주
     return { exists: true, available: false };
+  }
+};
+
+// ========== 회원 탈퇴 API ==========
+
+export const deleteAccount = async (): Promise<{ message: string }> => {
+  try {
+    const response = await apiClient.delete<{ message: string }>('/auth/account');
+    return response.data;
+  } catch (error: any) {
+    console.error('회원 탈퇴 실패:', error);
+    throw new Error(error.response?.data?.message || '회원 탈퇴에 실패했습니다.');
   }
 };
 

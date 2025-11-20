@@ -21,22 +21,57 @@ export default function IntroductionPreview() {
   const [pdfPageNumbers, setPdfPageNumbers] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false)
-      return
-    }
+    const loadIntroduction = async () => {
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
-    // localStorage에서 소개글 블록 로드
-    const savedBio = localStorage.getItem(`instructor_bio_blocks_${userId}`)
-    if (savedBio) {
       try {
-        const parsed = JSON.parse(savedBio)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setContentBlocks(parsed)
+        // DB에서 먼저 로드 시도
+        const { getInstructorIntroduction } = await import('../../core/api/admin')
+        const dbIntroduction = await getInstructorIntroduction(userId)
+
+        if (dbIntroduction) {
+          try {
+            const parsed = JSON.parse(dbIntroduction)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setContentBlocks(parsed)
+              setLoading(false)
+              return
+            }
+          } catch (error) {
+            console.error('DB 소개글 파싱 실패:', error)
+          }
         }
       } catch (error) {
-        console.error('소개글 블록 로드 실패:', error)
-        // 기존 텍스트 형식이면 마이그레이션
+        console.error('DB에서 소개글 로드 실패:', error)
+        // DB 실패 시 localStorage에서 로드
+      }
+
+      // localStorage에서 소개글 블록 로드 (하위 호환성)
+      const savedBio = localStorage.getItem(`instructor_bio_blocks_${userId}`)
+      if (savedBio) {
+        try {
+          const parsed = JSON.parse(savedBio)
+          if (Array.isArray(parsed)) {
+            setContentBlocks(parsed)
+          }
+        } catch (error) {
+          console.error('소개글 블록 로드 실패:', error)
+          // 기존 텍스트 형식이면 마이그레이션
+          const oldBio = localStorage.getItem(`instructor_bio_${userId}`)
+          if (oldBio) {
+            const migratedBlock: ContentBlock = {
+              id: `block-${Date.now()}`,
+              type: 'markdown',
+              content: oldBio
+            }
+            setContentBlocks([migratedBlock])
+          }
+        }
+      } else {
+        // 블록 형식이 없으면 기존 텍스트 형식 확인
         const oldBio = localStorage.getItem(`instructor_bio_${userId}`)
         if (oldBio) {
           const migratedBlock: ContentBlock = {
@@ -47,20 +82,11 @@ export default function IntroductionPreview() {
           setContentBlocks([migratedBlock])
         }
       }
-    } else {
-      // 블록 형식이 없으면 기존 텍스트 형식 확인
-      const oldBio = localStorage.getItem(`instructor_bio_${userId}`)
-      if (oldBio) {
-        const migratedBlock: ContentBlock = {
-          id: `block-${Date.now()}`,
-          type: 'markdown',
-          content: oldBio
-        }
-        setContentBlocks([migratedBlock])
-      }
+
+      setLoading(false)
     }
 
-    setLoading(false)
+    loadIntroduction()
   }, [user, userId])
 
   const getYouTubeVideoId = (url: string) => {

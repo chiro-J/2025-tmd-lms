@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { User, FileText, Eye, Loader2 } from 'lucide-react'
+import { User, FileText, Eye, Loader2, Edit3, Save } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { ProfileProvider, useProfile } from '../../contexts/ProfileContext'
 import PersonalInfoTab from '../../components/student/PersonalInfoTab'
 import ResumeTab from '../../components/student/ResumeTab'
 import PreviewTab from '../../components/student/PreviewTab'
+import Button from '../../components/ui/Button'
 
 type TabType = 'personal' | 'resume' | 'preview'
 
@@ -47,10 +48,22 @@ const calculateCompleteness = (profileData: any) => {
 
 function ProfileContent() {
   const { user } = useAuth()
-  const { profileData } = useProfile()
+  const { profileData, saveToLocalStorage } = useProfile()
   const [activeTab, setActiveTab] = useState<TabType>('personal')
+  const [isEditMode, setIsEditMode] = useState(false)
 
   const completeness = calculateCompleteness(profileData)
+
+  const handleToggleEditMode = () => {
+    if (isEditMode) {
+      // 저장 모드 -> 열람 모드
+      saveToLocalStorage()
+      setIsEditMode(false)
+    } else {
+      // 열람 모드 -> 편집 모드
+      setIsEditMode(true)
+    }
+  }
 
   if (!user) {
     return (
@@ -81,24 +94,48 @@ function ProfileContent() {
         <div className="sticky top-16 z-10 bg-base-200 pb-4 pt-4">
           {/* Tab Navigation */}
           <div className="bg-base-100 rounded-lg mb-4 p-2 shadow-sm">
-            <div className="flex gap-2 border-b border-base-300">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-primary text-primary-content font-semibold'
-                        : 'text-base-content/70 hover:bg-base-200'
-                    }`}
+            <div className="flex items-center justify-between border-b border-base-300">
+              <div className="flex gap-2">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition-colors ${
+                        activeTab === tab.id
+                          ? 'bg-primary text-primary-content font-semibold'
+                          : 'text-base-content/70 hover:bg-base-200'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Edit/Save Toggle Button - Only show on resume tab */}
+              {activeTab === 'resume' && (
+                <div className="pr-2">
+                  <Button
+                    onClick={handleToggleEditMode}
+                    className={isEditMode ? 'btn-primary' : 'btn-outline'}
                   >
-                    <Icon className="h-4 w-4" />
-                    {tab.label}
-                  </button>
-                )
-              })}
+                    {isEditMode ? (
+                      <>
+                        <Save className="h-4 w-4" />
+                        저장
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="h-4 w-4" />
+                        편집
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -128,7 +165,7 @@ function ProfileContent() {
         {/* Tab Content */}
         <div>
           {activeTab === 'personal' && <PersonalInfoTab />}
-          {activeTab === 'resume' && <ResumeTab />}
+          {activeTab === 'resume' && <ResumeTab isEditMode={isEditMode} />}
           {activeTab === 'preview' && <PreviewTab />}
         </div>
       </main>

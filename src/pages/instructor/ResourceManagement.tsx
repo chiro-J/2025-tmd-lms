@@ -82,13 +82,28 @@ export default function ResourceManagement() {
               <Card key={resource.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-primary" />
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center overflow-hidden">
+                      {resource.type === 'image' && resource.fileUrl ? (
+                        <img
+                          src={resource.fileUrl.startsWith('http') ? resource.fileUrl : `http://localhost:3000${resource.fileUrl}`}
+                          alt={resource.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            const parent = e.currentTarget.parentElement
+                            if (parent) {
+                              parent.innerHTML = '<FileText className="h-5 w-5 text-primary" />'
+                            }
+                          }}
+                        />
+                      ) : (
+                        <FileText className="h-5 w-5 text-primary" />
+                      )}
                     </div>
                     <div>
                       <h3 className="font-medium text-base-content">{resource.title}</h3>
                       <p className="text-sm text-base-content/70">
-                        {resource.fileSize ? `${(resource.fileSize / 1024 / 1024).toFixed(2)} MB` : '-'} • {new Date(resource.createdAt).toLocaleDateString('ko-KR')}
+                        {resource.type === 'image' ? '이미지' : resource.type === 'pdf' ? 'PDF' : resource.type === 'slide' ? '슬라이드' : resource.type === 'link' ? '링크' : resource.type === 'code' ? '코드' : '자료'} • {resource.fileSize ? `${(resource.fileSize / 1024 / 1024).toFixed(2)} MB` : '-'} • {new Date(resource.createdAt).toLocaleDateString('ko-KR')}
                       </p>
                     </div>
                   </div>
@@ -97,7 +112,18 @@ export default function ResourceManagement() {
                       <Button
                         variant="outline"
                         className="text-base-content/70 rounded-xl"
-                        onClick={() => window.open(resource.fileUrl, '_blank')}
+                        onClick={() => {
+                          if (!resource.fileUrl) return
+                          // 이미지 타입이면 새 창에서 이미지 표시, 아니면 파일 다운로드/열기
+                          if (resource.type === 'image') {
+                            const imageUrl = resource.fileUrl.startsWith('http')
+                              ? resource.fileUrl
+                              : `http://localhost:3000${resource.fileUrl}`
+                            window.open(imageUrl, '_blank')
+                          } else {
+                            window.open(resource.fileUrl, '_blank')
+                          }
+                        }}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         미리보기
@@ -279,7 +305,7 @@ export default function ResourceManagement() {
                       setUploading(true)
                       const newResource = await createCourseResource(courseId, {
                         title: newTitle || selectedFile?.name || '자료',
-                        type: 'pdf', // 기본값으로 설정 (백엔드에서 처리)
+                        // type은 파일 확장자로 자동 감지됨
                         file: selectedFile || undefined,
                       })
                       setResources([newResource, ...resources])

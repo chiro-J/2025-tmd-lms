@@ -1,4 +1,6 @@
 
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
@@ -9,19 +11,12 @@ import { getMonthName, getWeekRange, getDaysInMonth, getDaysInWeek } from "../..
 import { useCalendarNavigation } from "../../hooks/useCalendarNavigation";
 import { useMemos } from "../../hooks/useMemos";
 
-const initialMemos = [
-  {
-    id: "1",
-    title: "이번 주 학습 목표",
-    content: "React Hooks 완전 정복하기\nTypeScript 기초 마스터",
-    date: new Date().toISOString().split("T")[0],
-    color: "#3B82F6",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+// Mock data removed - memos are now loaded from the backend API
+const initialMemos: any[] = [];
 
 export default function Calendar() {
+  const location = useLocation();
+  const hasAutoSelectedRef = useRef(false);
   const {
     currentDate,
     view,
@@ -51,6 +46,7 @@ export default function Calendar() {
     handleSaveMemo,
     handleEditMemo,
     handleCancelMemo,
+    handleDeleteMemo,
     getMemosForDate,
     getMemosForMonth,
     getMemosForWeek,
@@ -63,6 +59,29 @@ export default function Calendar() {
     : getMemosForWeek(currentDate);
 
   const days = view === "month" ? getDaysInMonth(currentDate) : getDaysInWeek(currentDate);
+
+  // Auto-select date when navigating from dashboard (only once)
+  useEffect(() => {
+    if (hasAutoSelectedRef.current) return;
+
+    const state = location.state as { selectedDate?: string; openMemoForm?: boolean };
+    if (state?.selectedDate) {
+      const dateObj = new Date(state.selectedDate);
+      // Set the current month to the selected date's month
+      setCurrentDate(new Date(dateObj.getFullYear(), dateObj.getMonth(), 1));
+      // Select the date
+      handleDateClick(state.selectedDate);
+      // Open memo form if requested
+      if (state.openMemoForm) {
+        handleAddMemo(state.selectedDate);
+      }
+      // Mark as processed
+      hasAutoSelectedRef.current = true;
+      // Clear the state to prevent re-selecting on re-render
+      window.history.replaceState({}, document.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
@@ -177,6 +196,7 @@ export default function Calendar() {
               onViewChange={handleViewChange}
               onAddMemo={() => handleAddMemo(selectedDate || undefined)}
               onEditMemo={handleEditMemo}
+              onDeleteMemo={handleDeleteMemo}
               onTitleChange={setMemoTitle}
               onContentChange={setMemoContent}
               onDateChange={setMemoDate}

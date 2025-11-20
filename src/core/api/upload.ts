@@ -1,16 +1,18 @@
 import apiClient from './client'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-
 /**
  * 파일 업로드
  * POST /api/upload
+ * @param file 업로드할 파일
+ * @param type 파일 타입
+ * @param source 파일 출처 (lesson, thumbnail, assignment, resource)
  */
-export const uploadFile = async (file: File, type: 'pdf' | 'image' | 'video'): Promise<{ url: string }> => {
+export const uploadFile = async (file: File, type: 'pdf' | 'image' | 'video', source: 'lesson' | 'thumbnail' | 'assignment' | 'resource' = 'lesson'): Promise<{ url: string }> => {
   try {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('type', type)
+    formData.append('source', source)
 
     const response = await apiClient.post<{ url: string }>('/upload', formData, {
       headers: {
@@ -18,15 +20,8 @@ export const uploadFile = async (file: File, type: 'pdf' | 'image' | 'video'): P
       },
     })
 
-    // 상대 경로를 절대 URL로 변환
-    const absoluteUrl = response.data.url.startsWith('http')
-      ? response.data.url
-      : `${API_BASE_URL}${response.data.url}`
-
-    return {
-      ...response.data,
-      url: absoluteUrl
-    }
+    // 백엔드에서 이미 절대 URL을 반환하므로 그대로 사용
+    return response.data
   } catch (error) {
     console.error('파일 업로드 실패:', error)
     throw error

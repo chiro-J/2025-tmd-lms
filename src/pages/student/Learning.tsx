@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import { ExternalLink, ChevronLeft, ChevronRight, List } from 'lucide-react'
 import { marked } from 'marked'
 import { Document, Page } from 'react-pdf'
 import { pdfjs } from 'react-pdf'
 import VideoSideNav from '../../components/learning/VideoSideNav'
 import type { ContentBlock } from '../../types/curriculum'
 import type { CurriculumModule, Lesson } from '../../core/api/curriculum'
+import { updateLearningProgress, getLearningProgress } from '../../core/api/learning-progress'
+import { useAuth } from '../../contexts/AuthContext'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
@@ -13,6 +16,7 @@ export default function Learning() {
   const params = useParams()
   const courseId = Number(params.id) || 1
   const [searchParams] = useSearchParams()
+  const { user } = useAuth()
   const [sideNavTab, setSideNavTab] = useState('curriculum')
   const [isSideNavExpanded, setIsSideNavExpanded] = useState(true)
   const [curriculumModules, setCurriculumModules] = useState<CurriculumModule[]>([])
@@ -22,25 +26,44 @@ export default function Learning() {
   const [pdfPages, setPdfPages] = useState<Record<string, number>>({})
   const [pdfPageNumbers, setPdfPageNumbers] = useState<Record<string, number>>({})
   const [pdfLoading, setPdfLoading] = useState<Record<string, boolean>>({})
-  const [pdfScale, setPdfScale] = useState<Record<string, number>>({})
+  const [pdfPageSizes, setPdfPageSizes] = useState<Record<string, { width: number; height: number }>>({})
 
   const selectedLessonId = useMemo(() => searchParams.get('lesson') || '', [searchParams])
 
-  // 마지막 학습한 강좌 및 레슨 저장
+  // 마지막 학습한 강좌 및 레슨 저장 (백엔드 API 사용)
   useEffect(() => {
-    if (courseId) {
-      localStorage.setItem('lastLearnedCourseId', String(courseId))
-      localStorage.setItem('lastLearnedCourseTimestamp', String(Date.now()))
-    }
-  }, [courseId])
+    if (courseId && selectedLessonId && user?.id) {
+      // lesson ID를 숫자로 변환
+      let actualLessonId: number | null = null
+      if (selectedLessonId && selectedLessonId.includes('-')) {
+        const parts = selectedLessonId.split('-')
+        actualLessonId = Number(parts[parts.length - 1])
+      } else {
+        actualLessonId = Number(selectedLessonId)
+      }
 
-  // 마지막 방문한 레슨 저장
-  useEffect(() => {
-    if (courseId && selectedLessonId) {
+      // 유효한 lesson ID인 경우에만 저장
+      if (!isNaN(actualLessonId) && actualLessonId > 0) {
+        const userId = typeof user.id === 'number' ? user.id : Number(user.id)
+        updateLearningProgress({
+          userId,
+          courseId,
+          lessonId: actualLessonId
+        }).catch((error: any) => {
+          // 500 에러는 서버 문제이므로 조용히 처리 (사용자 경험에 영향 최소화)
+          if (error.response?.status === 500) {
+            console.warn('서버 오류로 학습 진행률 저장 실패 (무시됨)')
+          } else {
+            console.error('학습 진행률 저장 실패:', error)
+          }
+        })
+      }
+
+      // localStorage 폴백 (기존 호환성 유지)
+      localStorage.setItem('lastLearnedCourseId', String(courseId))
       localStorage.setItem(`lastLearnedLesson_${courseId}`, selectedLessonId)
-      localStorage.setItem(`lastLearnedLessonTimestamp_${courseId}`, String(Date.now()))
     }
-  }, [courseId, selectedLessonId])
+  }, [courseId, selectedLessonId, user?.id])
 
   // PDF 옵션 메모이제이션 (불필요한 리로드 방지)
   const pdfOptions = useMemo(
@@ -48,6 +71,14 @@ export default function Learning() {
       cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
       cMapPacked: true,
       standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/',
+      // 원본 화질을 위한 옵션
+      disableAutoFetch: false,
+      disableStream: false,
+      disableRange: false,
+      verbosity: 0,
+      // 고해상도 렌더링을 위한 옵션
+      useSystemFonts: false,
+      isEvalSupported: false,
     }),
     []
   )
@@ -69,7 +100,13 @@ export default function Learning() {
   // 선택된 레슨 데이터 찾기 및 DB에서 contentBlocks 불러오기
   useEffect(() => {
     if (!selectedLessonId || curriculumModules.length === 0) {
-      setSelectedLessonData(null)
+      // curriculumModules가 아직 로드되지 않았으면 로딩 상태 유지
+      if (curriculumModules.length === 0 && selectedLessonId) {
+        setLoadingLesson(true)
+      } else {
+        setSelectedLessonData(null)
+        setLoadingLesson(false)
+      }
       return
     }
 
@@ -212,7 +249,8 @@ export default function Learning() {
   }, [selectedLessonId, curriculumModules, courseId])
 
   const selectedContent = useMemo(() => {
-    if (loadingLesson) {
+    // curriculumModules가 로드되지 않았거나 레슨을 로딩 중이면 로딩 상태 표시
+    if (loadingLesson || (selectedLessonId && curriculumModules.length === 0)) {
       return {
         title: '로딩 중...',
         text: '강의 내용을 불러오는 중입니다.'
@@ -227,67 +265,67 @@ export default function Learning() {
       title: '학습 자료를 선택해 주세요',
       text: '오른쪽 커리큘럼에서 학습 항목을 선택하면 해당 자료가 표시됩니다.'
     }
-  }, [selectedLessonData, loadingLesson])
+  }, [selectedLessonData, loadingLesson, selectedLessonId, curriculumModules.length])
 
-  // URL에서 lesson 파라미터가 없으면 마지막 수강 레슨으로 자동 이동
+  // URL에서 lesson 파라미터가 없으면 마지막 수강 레슨으로 자동 이동 (백엔드 API 사용)
   useEffect(() => {
-    if (!selectedLessonId && curriculumModules.length > 0) {
-      const lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
-      if (lastLearnedLessonId) {
-        // 마지막 수강 레슨이 존재하면 해당 레슨으로 이동
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.set('lesson', lastLearnedLessonId)
-        window.history.replaceState({}, '', newUrl.toString())
-        // searchParams를 강제로 업데이트하기 위해 location 변경 이벤트 발생
-        window.dispatchEvent(new PopStateEvent('popstate'))
+    const loadLastLearnedLesson = async () => {
+      if (!selectedLessonId && curriculumModules.length > 0 && user?.id) {
+        try {
+          const userId = typeof user.id === 'number' ? user.id : Number(user.id)
+          const progress = await getLearningProgress(userId, courseId)
+
+          let lastLearnedLessonId: string | null = null
+          if (progress?.lessonId) {
+            lastLearnedLessonId = String(progress.lessonId)
+          } else {
+            // localStorage 폴백 (기존 데이터 호환성)
+            lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
+          }
+
+          if (lastLearnedLessonId) {
+            // 마지막 수강 레슨이 존재하면 해당 레슨으로 이동
+            const newUrl = new URL(window.location.href)
+            newUrl.searchParams.set('lesson', lastLearnedLessonId)
+            window.history.replaceState({}, '', newUrl.toString())
+            // searchParams를 강제로 업데이트하기 위해 location 변경 이벤트 발생
+            window.dispatchEvent(new PopStateEvent('popstate'))
+          }
+        } catch (error) {
+          // 실패 시 localStorage 폴백
+          const lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
+          if (lastLearnedLessonId) {
+            const newUrl = new URL(window.location.href)
+            newUrl.searchParams.set('lesson', lastLearnedLessonId)
+            window.history.replaceState({}, '', newUrl.toString())
+            window.dispatchEvent(new PopStateEvent('popstate'))
+          }
+        }
       }
     }
-  }, [selectedLessonId, curriculumModules, courseId])
+    loadLastLearnedLesson()
+  }, [selectedLessonId, curriculumModules, courseId, user?.id])
 
   return (
-    <div className="fixed inset-0 bg-gray-50 overflow-hidden">
-      {/* Header / GNB */}
-      <div
-        className="fixed top-0 z-40 bg-gray-100 border-b border-gray-300 shadow-sm"
-        style={{
-          left: isSideNavExpanded ? '368px' : '0',
-          width: isSideNavExpanded ? 'calc(100vw - 368px)' : '100vw'
-        }}
-      >
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold mb-1 whitespace-normal break-words leading-snug text-gray-900">
-                {selectedContent.title}
-              </h1>
-            </div>
-            <button
-              onClick={() => window.history.back()}
-              className="px-4 py-2 rounded-lg transition-colors text-gray-700 hover:bg-gray-200"
-            >
-              ← 뒤로가기
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Content Container */}
-      <div
-        className="fixed top-16 bottom-0 transition-all duration-300 bg-gray-50"
-        style={{
-          left: isSideNavExpanded ? '368px' : '0',
-          width: isSideNavExpanded ? 'calc(100vw - 368px)' : '100vw'
-        }}
-      >
+    <div className="fixed inset-0 bg-gray-50 overflow-hidden" style={{ top: '56px' }}>
+        {/* Content Container */}
+        <div
+          className="fixed bottom-0 transition-all duration-300 bg-gray-50"
+          style={{
+            top: '56px',
+            left: isSideNavExpanded ? '312px' : '56px',
+            width: isSideNavExpanded ? 'calc(100vw - 312px)' : 'calc(100vw - 56px)'
+          }}
+        >
         {/* Content Switch */}
         {(
           <div className="w-full h-full bg-gray-50 overflow-y-auto">
             <div className="max-w-none w-full bg-gray-50 min-h-full">
-              {/* 경로 표시 */}
+              {/* 경로 표시 - 헤더 바로 아래에 위치 */}
               {(() => {
                 // selectedLessonId가 "3-1" 형식인 경우 실제 lesson ID만 추출
                 let actualLessonId = selectedLessonId
-                if (selectedLessonId.includes('-')) {
+                if (selectedLessonId && selectedLessonId.includes('-')) {
                   const parts = selectedLessonId.split('-')
                   actualLessonId = parts[parts.length - 1]
                 }
@@ -297,17 +335,21 @@ export default function Learning() {
                   m.lessons?.some((l: Lesson) => l.id === lessonIdNum)
                 )
                 const currentLesson = currentModule?.lessons?.find((l: Lesson) => l.id === lessonIdNum)
-                return currentModule && currentLesson ? (
-                  <div className={`pt-8 pb-4 border-b border-gray-200 ${isSideNavExpanded ? 'pl-24' : 'pl-16'}`}>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <span className="font-medium text-gray-900">{currentModule.title}</span>
-                      <span>/</span>
-                      <span className="text-gray-700">{currentLesson.title}</span>
+
+                if (currentModule && currentLesson) {
+                  return (
+                    <div className="border-b-2 border-gray-300 shadow-sm pl-12" style={{ height: '56px', display: 'flex', alignItems: 'center' }}>
+                      <div className="flex items-center space-x-2 text-lg text-gray-600">
+                        <span className="font-semibold text-gray-900 text-xl">{currentModule.title}</span>
+                        <span className="text-gray-500 text-lg">/</span>
+                        <span className="text-gray-700 font-semibold text-xl">{currentLesson.title}</span>
+                      </div>
                     </div>
-                  </div>
-                ) : null
+                  )
+                }
+                return null
               })()}
-              <div className={`prose prose-lg max-w-none py-12 ${isSideNavExpanded ? 'pl-24 pr-8' : 'pl-16 pr-8'}`}>
+              <div className="prose prose-lg max-w-none py-12 pl-12 pr-12">
                 {selectedContentBlocks.length > 0 ? (
                   <div className="space-y-6">
                     {selectedContentBlocks.map((block) => {
@@ -349,78 +391,77 @@ export default function Learning() {
 
                         const currentPage = pdfPageNumbers[block.id] || 1
                         const totalPages = pdfPages[block.id] || 0
-                        const currentScale = pdfScale[block.id] || 1.0
-                        const maxWidth = Math.min(1200, window.innerWidth - (isSideNavExpanded ? 400 : 100))
-                        const pageWidth = maxWidth * currentScale
+                        // 원본 화질을 위한 고해상도 렌더링
+                        const devicePixelRatio = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1
+                        // PDF 원본 크기 가져오기
+                        const pageSize = pdfPageSizes[block.id]
+
+                        // 컨테이너의 실제 사용 가능한 너비 계산 (사이드바 고려)
+                        const sidebarWidth = isSideNavExpanded ? 304 : 0
+                        const padding = isSideNavExpanded ? 160 : 128 // 좌우 패딩 합계
+                        const availableWidth = window.innerWidth - sidebarWidth - padding
+
+                        let pageWidth: number
+                        let calculatedPageHeight: number | null = null
+
+                        if (pageSize) {
+                          // PDF 원본 비율 계산
+                          const aspectRatio = pageSize.width / pageSize.height
+
+                          // 너비를 먼저 결정 (사용 가능한 너비의 95% 사용)
+                          pageWidth = availableWidth * 0.95
+
+                          // 화질 향상을 위해 scale을 약간 높임 (최대 1.5배까지)
+                          const baseScale = pageWidth / pageSize.width
+                          const enhancedScale = Math.min(baseScale * 1.1, 1.5)
+                          pageWidth = pageSize.width * enhancedScale
+
+                          // 계산된 너비에 맞춰서 높이 계산 (PDF 원본 비율 유지)
+                          calculatedPageHeight = pageWidth / aspectRatio
+                        } else {
+                          // 원본 크기를 아직 모르면 컨테이너 크기의 95% 사용
+                          pageWidth = availableWidth * 0.95
+                        }
+
+                        // 새 창에서 PDF 열기
+                        const handleOpenInNewWindow = () => {
+                          // sessionStorage에 PDF URL 저장 (URL이 너무 길거나 base64인 경우 대비)
+                          const storageKey = `pdf-viewer-${block.id}-${Date.now()}`
+                          sessionStorage.setItem(storageKey, pdfUrl)
+
+                          // 짧은 키만 URL 파라미터로 전달
+                          const viewerUrl = `/student/pdf-viewer?key=${storageKey}`
+
+                          // 팝업 차단 확인
+                          const newWindow = window.open(viewerUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+
+                          if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.')
+                            // 팝업이 차단된 경우 sessionStorage 정리
+                            sessionStorage.removeItem(storageKey)
+                          }
+                        }
 
                         return (
                           <div key={block.id} className="w-full">
-                            {/* PDF 뷰어 컨트롤 바 */}
-                            <div className="flex items-center justify-between p-3 bg-gray-200 border border-gray-300 rounded-t-lg border-b-0">
-                              {/* 페이지 이동 컨트롤 - 가운데 정렬 */}
-                              <div className="flex-1 flex items-center justify-center space-x-2">
-                                <button
-                                  onClick={() => setPdfPageNumbers(prev => ({ ...prev, [block.id]: Math.max(1, (prev[block.id] || 1) - 1) }))}
-                                  disabled={currentPage === 1 || pdfLoading[block.id]}
-                                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700"
-                                >
-                                  ← 이전
-                                </button>
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    max={totalPages}
-                                    value={currentPage}
-                                    onChange={(e) => {
-                                      const page = parseInt(e.target.value) || 1
-                                      const validPage = Math.max(1, Math.min(totalPages, page))
-                                      setPdfPageNumbers(prev => ({ ...prev, [block.id]: validPage }))
-                                    }}
-                                    className="w-16 px-2 py-2 text-center border border-gray-400 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
-                                    disabled={pdfLoading[block.id]}
-                                  />
-                                  <span className="text-sm text-gray-700 font-medium">/ {totalPages}</span>
-                                </div>
-                                <button
-                                  onClick={() => setPdfPageNumbers(prev => ({ ...prev, [block.id]: Math.min(totalPages, (prev[block.id] || 1) + 1) }))}
-                                  disabled={currentPage === totalPages || pdfLoading[block.id]}
-                                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700"
-                                >
-                                  다음 →
-                                </button>
-                              </div>
-                              {/* 줌 컨트롤 - 오른쪽 정렬 */}
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => setPdfScale(prev => ({ ...prev, [block.id]: Math.max(0.5, (prev[block.id] || 1.0) - 0.25) }))}
-                                  disabled={pdfLoading[block.id]}
-                                  className="px-3 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700"
-                                  title="축소"
-                                >
-                                  −
-                                </button>
-                                <span className="text-sm text-gray-700 min-w-[60px] text-center font-medium">
-                                  {Math.round(currentScale * 100)}%
-                                </span>
-                                <button
-                                  onClick={() => setPdfScale(prev => ({ ...prev, [block.id]: Math.min(2.0, (prev[block.id] || 1.0) + 0.25) }))}
-                                  disabled={pdfLoading[block.id]}
-                                  className="px-3 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm font-medium text-gray-700"
-                                  title="확대"
-                                >
-                                  +
-                                </button>
-                              </div>
+                            {/* PDF 뷰어 헤더 - 새 창 열기 버튼 */}
+                            <div className="flex items-center justify-end p-2 bg-gray-100 border border-gray-200 rounded-t-lg border-b-0">
+                              <button
+                                onClick={handleOpenInNewWindow}
+                                className="flex items-center space-x-1 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-200 rounded-lg transition-colors"
+                                title="새 창에서 열기"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                <span>새 창에서 열기</span>
+                              </button>
                             </div>
-
-                            {/* PDF 뷰어 컨테이너 - 고정 높이로 레이아웃 시프트 방지 */}
+                            {/* PDF 뷰어 컨테이너 - PDF 높이에 맞춰 동적 조정 */}
                             <div
-                              className="border border-gray-200 rounded-b-lg overflow-auto bg-gray-50 flex justify-center items-start"
+                              className="border border-gray-200 border-t-0 overflow-hidden bg-gray-50 flex justify-center items-start"
                               style={{
-                                minHeight: '600px',
-                                maxHeight: '800px',
-                                height: '800px'
+                                width: '100%',
+                                minHeight: '400px',
+                                height: calculatedPageHeight ? `${calculatedPageHeight}px` : 'auto'
                               }}
                             >
                               <Document
@@ -428,10 +469,24 @@ export default function Learning() {
                                 onLoadStart={() => {
                                   setPdfLoading(prev => ({ ...prev, [block.id]: true }))
                                 }}
-                                onLoadSuccess={(pdf) => {
+                                onLoadSuccess={async (pdf) => {
                                   setPdfPages(prev => ({ ...prev, [block.id]: pdf.numPages }))
                                   if (!pdfPageNumbers[block.id]) {
                                     setPdfPageNumbers(prev => ({ ...prev, [block.id]: 1 }))
+                                  }
+                                  // 첫 페이지의 원본 크기 가져오기
+                                  try {
+                                    const firstPage = await pdf.getPage(1)
+                                    const viewport = firstPage.getViewport({ scale: 1.0 })
+                                    setPdfPageSizes(prev => ({
+                                      ...prev,
+                                      [block.id]: {
+                                        width: viewport.width,
+                                        height: viewport.height
+                                      }
+                                    }))
+                                  } catch (error) {
+                                    console.error('PDF 페이지 크기 가져오기 실패:', error)
                                   }
                                   setPdfLoading(prev => ({ ...prev, [block.id]: false }))
                                 }}
@@ -457,7 +512,7 @@ export default function Learning() {
                                 }
                                 options={pdfOptions}
                               >
-                                <div style={{ minHeight: '600px', width: pageWidth, position: 'relative' }}>
+                                <div style={{ width: pageWidth, position: 'relative', margin: '0 auto' }}>
                                   {pdfLoading[block.id] && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75 z-10">
                                       <div className="text-center">
@@ -469,9 +524,10 @@ export default function Learning() {
                                   <Page
                                     pageNumber={currentPage}
                                     width={pageWidth}
-                                    scale={currentScale}
                                     renderTextLayer={false}
                                     renderAnnotationLayer={false}
+                                    // 원본 화질을 위한 고해상도 렌더링 (원본 크기 유지)
+                                    devicePixelRatio={devicePixelRatio}
                                     onLoadStart={() => {
                                       setPdfLoading(prev => ({ ...prev, [block.id]: true }))
                                     }}
@@ -482,7 +538,7 @@ export default function Learning() {
                                       setPdfLoading(prev => ({ ...prev, [block.id]: false }))
                                     }}
                                     loading={
-                                      <div className="flex items-center justify-center" style={{ minHeight: '600px', width: pageWidth }}>
+                                      <div className="flex items-center justify-center" style={{ width: pageWidth, minHeight: '400px' }}>
                                         <div className="text-center">
                                           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                                           <p className="text-gray-500">페이지 로딩 중...</p>
@@ -492,6 +548,47 @@ export default function Learning() {
                                   />
                                 </div>
                               </Document>
+                            </div>
+
+                            {/* PDF 뷰어 하단 컨트롤 바 - 페이지 이동 */}
+                            <div className="flex items-center justify-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-b-lg border-t-0 shadow-sm">
+                              <div className="flex items-center space-x-3">
+                                <button
+                                  onClick={() => setPdfPageNumbers(prev => ({ ...prev, [block.id]: Math.max(1, (prev[block.id] || 1) - 1) }))}
+                                  disabled={currentPage === 1 || pdfLoading[block.id]}
+                                  className="flex items-center justify-center w-10 h-10 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-400 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md group"
+                                  title="이전 페이지"
+                                >
+                                  <ChevronLeft className={`h-5 w-5 ${currentPage === 1 || pdfLoading[block.id] ? 'text-gray-400' : 'text-gray-700 group-hover:text-blue-600'}`} />
+                                </button>
+                                <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-gray-300 shadow-sm">
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={totalPages}
+                                    value={currentPage}
+                                    onChange={(e) => {
+                                      const page = parseInt(e.target.value) || 1
+                                      const validPage = Math.max(1, Math.min(totalPages, page))
+                                      setPdfPageNumbers(prev => ({ ...prev, [block.id]: validPage }))
+                                    }}
+                                    onFocus={(e) => e.target.select()}
+                                    className="w-12 px-1 py-1 text-center border-0 rounded text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent text-gray-900 tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    disabled={pdfLoading[block.id]}
+                                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                                  />
+                                  <span className="text-sm text-gray-500 font-medium">/</span>
+                                  <span className="text-sm text-gray-700 font-semibold w-12 text-center tabular-nums" style={{ fontVariantNumeric: 'tabular-nums' }}>{totalPages}</span>
+                                </div>
+                                <button
+                                  onClick={() => setPdfPageNumbers(prev => ({ ...prev, [block.id]: Math.min(totalPages, (prev[block.id] || 1) + 1) }))}
+                                  disabled={currentPage === totalPages || pdfLoading[block.id]}
+                                  className="flex items-center justify-center w-10 h-10 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-400 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md group"
+                                  title="다음 페이지"
+                                >
+                                  <ChevronRight className={`h-5 w-5 ${currentPage === totalPages || pdfLoading[block.id] ? 'text-gray-400' : 'text-gray-700 group-hover:text-blue-600'}`} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )

@@ -5,17 +5,24 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 import { getCourse, getCourseNotices, type CourseNotice } from '../../core/api/courses'
+import { getCurriculum, type CurriculumModule, type Lesson } from '../../core/api/curriculum'
+import { getLearningProgress } from '../../core/api/learning-progress'
+import { useAuth } from '../../contexts/AuthContext'
 import ViewEnrollmentCodeModal from '../../components/modals/ViewEnrollmentCodeModal'
+import { normalizeThumbnailUrl } from '../../utils/thumbnail'
 
 export default function CourseHome() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const courseId = Number(id) || 1
   const [course, setCourse] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showEnrollmentCodeModal, setShowEnrollmentCodeModal] = useState(false)
   const [notices, setNotices] = useState<CourseNotice[]>([])
   const [noticesLoading, setNoticesLoading] = useState(true)
+  const [recentLesson, setRecentLesson] = useState<{ module: CurriculumModule; lesson: Lesson } | null>(null)
+  const [curriculumLoading, setCurriculumLoading] = useState(true)
 
   // DB에서 강좌 정보 로드
   useEffect(() => {
@@ -54,6 +61,76 @@ export default function CourseHome() {
     loadNotices()
   }, [courseId])
 
+  // DB에서 커리큘럼 로드하여 마지막으로 본 레슨 찾기 (백엔드 API 사용)
+  useEffect(() => {
+    const loadRecentLesson = async () => {
+      try {
+        setCurriculumLoading(true)
+        const curriculum = await getCurriculum(courseId)
+
+        // 백엔드 API에서 마지막으로 본 레슨 조회
+        let lastLearnedLessonId: number | null = null
+        if (user?.id) {
+          const userId = typeof user.id === 'number' ? user.id : Number(user.id)
+          const progress = await getLearningProgress(userId, courseId)
+          if (progress?.lessonId) {
+            lastLearnedLessonId = progress.lessonId
+          }
+        }
+
+        // localStorage 폴백 (기존 데이터 호환성)
+        if (!lastLearnedLessonId) {
+          const localLastLearned = localStorage.getItem(`lastLearnedLesson_${courseId}`)
+          if (localLastLearned) {
+            const parsed = Number(localLastLearned)
+            if (!isNaN(parsed)) {
+              lastLearnedLessonId = parsed
+            }
+          }
+        }
+
+        if (lastLearnedLessonId && curriculum.length > 0) {
+          // 모든 모듈과 레슨을 순회하며 마지막으로 본 레슨 찾기
+          for (const module of curriculum) {
+            if (module.lessons && module.lessons.length > 0) {
+              const foundLesson = module.lessons.find(lesson => {
+                const lessonId = Number(lesson.id)
+                return lessonId === lastLearnedLessonId
+              })
+
+              if (foundLesson) {
+                setRecentLesson({
+                  module,
+                  lesson: foundLesson
+                })
+                return
+              }
+            }
+          }
+        }
+
+        // 마지막으로 본 레슨이 없으면 첫 번째 모듈의 첫 번째 레슨 표시
+        for (const module of curriculum) {
+          if (module.lessons && module.lessons.length > 0) {
+            // order 순서대로 정렬
+            const sortedLessons = [...module.lessons].sort((a, b) => a.order - b.order)
+            setRecentLesson({
+              module,
+              lesson: sortedLessons[0]
+            })
+            break
+          }
+        }
+      } catch (error) {
+        console.error('커리큘럼 로드 실패:', error)
+        setRecentLesson(null)
+      } finally {
+        setCurriculumLoading(false)
+      }
+    }
+    loadRecentLesson()
+  }, [courseId, user?.id])
+
   if (loading) {
     return (
       <CoursePageLayout currentPageTitle="강좌 홈">
@@ -85,7 +162,7 @@ export default function CourseHome() {
             {/* Course Image */}
             <div className="w-32 h-24 rounded-lg overflow-hidden flex-shrink-0">
               <img
-                src={course.thumbnail || '/photo/aaa.jpg'}
+                src={normalizeThumbnailUrl(course.thumbnail)}
                 alt={course.title}
                 className="w-full h-full object-cover"
               />
@@ -127,25 +204,40 @@ export default function CourseHome() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">최근 진행한 강의</h3>
-            <Button
-              onClick={() => navigate(`/instructor/course/${id}/edit`)}
-              className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-4 py-2"
-            >
-              이어 하기
-            </Button>
+            {recentLesson && (
+              <Button
+                onClick={() => navigate(`/instructor/course/${id}/learning?lesson=${recentLesson.lesson.id}`)}
+                className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-4 py-2"
+              >
+                이어 하기
+              </Button>
+            )}
           </div>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Play className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">1강. React 기초</h4>
-                  <p className="text-sm text-gray-600">현재 진행 중</p>
+            {curriculumLoading ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500">로딩 중...</p>
+              </div>
+            ) : recentLesson ? (
+              <div
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => navigate(`/instructor/course/${id}/learning?lesson=${recentLesson.lesson.id}`)}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Play className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">{recentLesson.module.title} - {recentLesson.lesson.title}</h4>
+                    <p className="text-sm text-gray-600">현재 진행 중</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500">등록된 강의가 없습니다.</p>
+              </div>
+            )}
           </div>
         </Card>
 

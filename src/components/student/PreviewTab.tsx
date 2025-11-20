@@ -51,9 +51,11 @@ export default function PreviewTab() {
       let html2pdf
       try {
         // @ts-ignore
-        html2pdf = (await import('html2pdf.js')).default
+        const html2pdfModule = await import('html2pdf.js')
+        html2pdf = html2pdfModule.default || html2pdfModule
       } catch (importError) {
         // 라이브러리가 없으면 인쇄 기능 사용
+        console.error('html2pdf.js 로드 실패:', importError)
         alert('PDF 다운로드 기능을 사용하려면 html2pdf.js 라이브러리를 설치해주세요.\n\nnpm install html2pdf.js\n\n대신 인쇄 기능을 사용하시겠습니까?')
         window.print()
         return
@@ -62,9 +64,9 @@ export default function PreviewTab() {
       const opt = {
         margin: 10,
         filename: `${profileData.name}_이력서.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
       }
 
       html2pdf().set(opt).from(element).save()
@@ -209,18 +211,19 @@ export default function PreviewTab() {
         {/* Header with Profile Image */}
         <div className={styles.header}>
           <div className="flex items-start gap-6">
-            {/* Profile Image */}
+            {/* Profile Photo (Resume) - 3:4 ratio */}
             <div className="flex-shrink-0">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-lg">
-                {profileData.profileImage ? (
+              <div className="w-36 h-48 rounded-lg overflow-hidden bg-gray-200 border-4 border-white shadow-lg">
+                {profileData.resumePhoto ? (
                   <img
-                    src={profileData.profileImage}
+                    src={profileData.resumePhoto}
                     alt={profileData.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500">
-                    <User className="h-16 w-16 text-white" />
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500">
+                    <User className="h-16 w-16 text-white mb-2" />
+                    <span className="text-xs text-white/80">720x960</span>
                   </div>
                 )}
               </div>

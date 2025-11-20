@@ -6,7 +6,13 @@
       "Bash(curl:*)",
       "Bash(npm install:*)",
       "WebFetch(domain:code.claude.com)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(node run-migration.js:*)",
+      "Bash(node check-users-table.js:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

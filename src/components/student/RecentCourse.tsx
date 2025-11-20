@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Course } from '../../types';
+import { normalizeThumbnailUrl } from '../../utils/thumbnail';
 
 interface RecentCourseProps {
   recentCourse?: Course;
@@ -26,7 +27,7 @@ export default function RecentCourse({ recentCourse, loading }: RecentCourseProp
               {/* Course Thumbnail */}
               <div
                 className="w-40 h-28 rounded-lg relative overflow-hidden flex-shrink-0 bg-cover bg-center"
-                style={{ backgroundImage: `url('${recentCourse.thumbnail || '/photo/bbb.jpg'}')` }}
+                style={{ backgroundImage: `url('${normalizeThumbnailUrl(recentCourse.thumbnail, '/thumbnails/bbb.jpg')}')` }}
               >
                 <div className="absolute inset-0 bg-black/20"></div>
               </div>

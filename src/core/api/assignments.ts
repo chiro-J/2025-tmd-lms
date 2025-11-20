@@ -41,8 +41,7 @@ export const createAssignment = async (
     dueDate: string;
     maxScore?: number;
     instructions?: string[];
-    allowedFileTypes?: string[];
-    maxFileSize?: number;
+    contentBlocks?: any[];
   }
 ): Promise<Assignment> => {
   try {
@@ -67,8 +66,6 @@ export const updateAssignment = async (
     dueDate?: string;
     maxScore?: number;
     instructions?: string[];
-    allowedFileTypes?: string[];
-    maxFileSize?: number;
     contentBlocks?: any[];
   }
 ): Promise<Assignment> => {
@@ -164,6 +161,84 @@ export const seedAssignments = async (courseId: number): Promise<{ message: stri
     return response.data;
   } catch (error) {
     console.error('시드 데이터 생성 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 과제 제출
+ * POST /api/courses/:courseId/assignments/:assignmentId/submit
+ */
+export const submitAssignment = async (
+  courseId: number,
+  assignmentId: number,
+  files: File[]
+): Promise<AssignmentSubmission> => {
+  try {
+    const formData = new FormData();
+
+    // 파일명을 별도로 전송 (한글 인코딩 문제 해결)
+    const fileNames: string[] = [];
+    files.forEach((file) => {
+      formData.append('files', file);
+      fileNames.push(file.name); // 원본 파일명 저장
+    });
+
+    // 파일명을 JSON으로 전송
+    formData.append('fileNames', JSON.stringify(fileNames));
+
+    const response = await apiClient.post<AssignmentSubmission>(
+      `/courses/${courseId}/assignments/${assignmentId}/submit`,
+      formData
+    );
+    return response.data;
+  } catch (error) {
+    console.error('과제 제출 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 내 제출물 조회
+ * GET /api/courses/:courseId/assignments/:assignmentId/my-submission
+ */
+export const getMySubmission = async (
+  courseId: number,
+  assignmentId: number
+): Promise<AssignmentSubmission | null> => {
+  try {
+    const response = await apiClient.get<AssignmentSubmission | null>(
+      `/courses/${courseId}/assignments/${assignmentId}/my-submission`
+    );
+    // null이 반환될 수 있으므로 명시적으로 처리
+    return response.data || null;
+  } catch (error: any) {
+    if (error.response?.status === 404 || error.response?.status === 400) {
+      return null;
+    }
+    console.error('제출물 조회 실패:', error);
+    console.error('에러 상세:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.response?.data?.message,
+    });
+    // 에러가 발생해도 null 반환 (제출물이 없는 것으로 처리)
+    return null;
+  }
+};
+
+/**
+ * 제출물 삭제
+ * DELETE /api/courses/:courseId/assignment-submissions/:submissionId
+ */
+export const deleteSubmission = async (
+  courseId: number,
+  submissionId: number
+): Promise<void> => {
+  try {
+    await apiClient.delete(`/courses/${courseId}/assignment-submissions/${submissionId}`);
+  } catch (error) {
+    console.error('제출물 삭제 실패:', error);
     throw error;
   }
 };

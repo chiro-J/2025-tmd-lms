@@ -1,24 +1,18 @@
 import { useState, useEffect } from 'react'
 import type { Memo } from '../types/calendar'
-import { getMemosFromStorage, saveMemoToStorage } from '../utils/calendarStorage'
+import * as memosApi from '../core/api/memos'
+import { toKstDateString as toKstDateStringUtil, getTodayKst } from '../utils/calendar'
+
+// useMemos에서 사용하는 toKstDateString (문자열과 Date 모두 처리)
+const toKstDateString = (inputDate?: string | Date) => {
+  if (!inputDate) return getTodayKst()
+  if (typeof inputDate === 'string') return inputDate
+  return toKstDateStringUtil(inputDate)
+}
 
 export function useMemos(initialMemos: Memo[] = []) {
-  // localStorage에서 메모 로드
-  const [memos, setMemos] = useState<Memo[]>(() => {
-    const storedMemos = getMemosFromStorage()
-    return storedMemos.length > 0 ? storedMemos : initialMemos
-  })
-
-  // localStorage와 동기화
-  useEffect(() => {
-    if (memos.length > 0) {
-      try {
-        localStorage.setItem('lms_calendar_memos', JSON.stringify(memos))
-      } catch (error) {
-        console.error('Failed to save memos to storage:', error)
-      }
-    }
-  }, [memos])
+  const [memos, setMemos] = useState<Memo[]>(initialMemos)
+  const [loading, setLoading] = useState(false)
   const [isAddingMemo, setIsAddingMemo] = useState(false)
   const [editingMemoId, setEditingMemoId] = useState<string | null>(null)
   const [memoTitle, setMemoTitle] = useState('')
@@ -27,47 +21,63 @@ export function useMemos(initialMemos: Memo[] = []) {
   const [memoColor, setMemoColor] = useState('#3B82F6')
   const [showColorPicker, setShowColorPicker] = useState(false)
 
+  // Load memos from API on mount only (no dependencies to prevent re-fetching)
+  useEffect(() => {
+    const loadMemos = async () => {
+      try {
+        setLoading(true)
+        const data = await memosApi.getMemos()
+        setMemos(data)
+      } catch (error) {
+        console.error('Failed to load memos:', error)
+        setMemos(initialMemos)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadMemos()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleAddMemo = (defaultDate?: string) => {
     setIsAddingMemo(true)
     setMemoTitle('')
     setMemoContent('')
-    setMemoDate(defaultDate || new Date().toISOString().split('T')[0])
+    setMemoDate(toKstDateString(defaultDate))
     setMemoColor('#3B82F6')
   }
 
-  const handleSaveMemo = () => {
+  const handleSaveMemo = async () => {
     if (!memoTitle.trim() && !memoContent.trim()) return
 
-    if (editingMemoId) {
-      setMemos((prev) =>
-        prev.map((memo) =>
-          memo.id === editingMemoId
-            ? {
-                ...memo,
-                title: memoTitle,
-                content: memoContent,
-                date: memoDate,
-                color: memoColor,
-                updatedAt: new Date(),
-              }
-            : memo
+    try {
+      if (editingMemoId) {
+        // Update existing memo
+        const updatedMemo = await memosApi.updateMemo(Number(editingMemoId), {
+          title: memoTitle,
+          content: memoContent,
+          memoDate: memoDate,
+          color: memoColor,
+        })
+        setMemos((prev) =>
+          prev.map((memo) => (memo.id === editingMemoId ? updatedMemo : memo))
         )
-      )
-      setEditingMemoId(null)
-    } else {
-      const newMemo: Memo = {
-        id: Date.now().toString(),
-        title: memoTitle,
-        content: memoContent,
-        date: memoDate,
-        color: memoColor,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        setEditingMemoId(null)
+      } else {
+        // Create new memo
+        const newMemo = await memosApi.createMemo({
+          title: memoTitle,
+          content: memoContent,
+          memoDate: memoDate,
+          color: memoColor,
+        })
+        setMemos((prev) => [newMemo, ...prev])
       }
-      setMemos((prev) => [newMemo, ...prev])
+      handleCancelMemo()
+    } catch (error) {
+      console.error('Failed to save memo:', error)
+      alert('메모 저장에 실패했습니다.')
     }
-
-    handleCancelMemo()
   }
 
   const handleEditMemo = (memo: Memo) => {
@@ -86,6 +96,16 @@ export function useMemos(initialMemos: Memo[] = []) {
     setMemoContent('')
     setMemoDate('')
     setMemoColor('#3B82F6')
+  }
+
+  const handleDeleteMemo = async (memoId: string) => {
+    try {
+      await memosApi.deleteMemo(Number(memoId))
+      setMemos((prev) => prev.filter((memo) => memo.id !== memoId))
+    } catch (error) {
+      console.error('Failed to delete memo:', error)
+      alert('메모 삭제에 실패했습니다.')
+    }
   }
 
   const getMemosForDate = (dateStr: string) => {
@@ -117,45 +137,42 @@ export function useMemos(initialMemos: Memo[] = []) {
     })
   }
 
-  // 강의 일정 자동 기록 함수
-  const autoRecordLesson = (title: string, content: string, date?: string) => {
-    const today = date || new Date().toISOString().split('T')[0]
-    
-    // 같은 날짜에 같은 제목의 메모가 있는지 확인
-    const existingMemo = memos.find(
-      (memo) => memo.date === today && memo.title === title
-    )
+  // Auto-record lesson (creates or updates memo)
+  const autoRecordLesson = async (title: string, content: string, date?: string) => {
+    const today = date ? toKstDateString(date) : toKstDateString()
 
-    if (existingMemo) {
-      // 이미 있으면 업데이트
-      setMemos((prev) =>
-        prev.map((memo) =>
-          memo.id === existingMemo.id
-            ? {
-                ...memo,
-                content: content,
-                updatedAt: new Date(),
-              }
-            : memo
-        )
+    try {
+      // Check if memo exists for this date and title
+      const existingMemo = memos.find(
+        (memo) => memo.date === today && memo.title === title
       )
-    } else {
-      // 없으면 새로 추가
-      const newMemo: Memo = {
-        id: Date.now().toString(),
-        title: title,
-        content: content,
-        date: today,
-        color: '#10B981', // 학습 관련은 초록색
-        createdAt: new Date(),
-        updatedAt: new Date(),
+
+      if (existingMemo) {
+        // Update existing memo
+        const updatedMemo = await memosApi.updateMemo(Number(existingMemo.id), {
+          content: content,
+        })
+        setMemos((prev) =>
+          prev.map((memo) => (memo.id === existingMemo.id ? updatedMemo : memo))
+        )
+      } else {
+        // Create new memo
+        const newMemo = await memosApi.createMemo({
+          title: title,
+          content: content,
+          memoDate: today,
+          color: '#10B981', // Green for learning-related memos
+        })
+        setMemos((prev) => [newMemo, ...prev])
       }
-      setMemos((prev) => [newMemo, ...prev])
+    } catch (error) {
+      console.error('Failed to auto-record lesson:', error)
     }
   }
 
   return {
     memos,
+    loading,
     isAddingMemo,
     editingMemoId,
     memoTitle,
@@ -172,14 +189,10 @@ export function useMemos(initialMemos: Memo[] = []) {
     handleSaveMemo,
     handleEditMemo,
     handleCancelMemo,
+    handleDeleteMemo,
     getMemosForDate,
     getMemosForMonth,
     getMemosForWeek,
     autoRecordLesson,
   }
 }
-
-
-
-
-

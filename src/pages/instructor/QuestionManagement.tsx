@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { Save, Plus, Clock } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -7,13 +8,34 @@ import QuestionList from '../../components/question/QuestionList'
 import QuestionEditor from '../../components/question/QuestionEditor'
 import QuestionPreview from '../../components/question/QuestionPreview'
 import { useQuestionForm } from '../../hooks/useQuestionForm'
-import { mockQuestions } from '../../data/mockQuestions'
-import { mockExamsInfo } from '../../data/mockExams'
-import type { QuestionStatus } from '../../types/question'
+import type { QuestionStatus, QuestionData } from '../../types/question'
 
 export default function QuestionManagement() {
-  const [savedQuestions, setSavedQuestions] = useState(mockQuestions)
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>('1')
+  const { id: courseId } = useParams()
+  const [savedQuestions, setSavedQuestions] = useState<QuestionData[]>([])
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
+  const [examsInfo, setExamsInfo] = useState<Record<string, { id: string; title: string; type: string }>>({})
+
+  const loadQuestions = async () => {
+    if (!courseId) return
+    try {
+      const { getQuestions, getExamsInfo } = await import('../../core/api/questions')
+      const [questions, examsInfoData] = await Promise.all([
+        getQuestions(Number(courseId)),
+        getExamsInfo(Number(courseId)),
+      ])
+
+      setSavedQuestions(questions)
+      setExamsInfo(examsInfoData)
+    } catch (error) {
+      console.error('문제 목록 로드 실패:', error)
+    }
+  }
+
+  useEffect(() => {
+    loadQuestions()
+  }, [courseId])
+
   const [filterStatus, setFilterStatus] = useState<'all' | QuestionStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -30,7 +52,7 @@ export default function QuestionManagement() {
     handleTempSave,
     handleSaveQuestion,
     handleNewQuestion
-  } = useQuestionForm(selectedQuestion, savedQuestions, setSavedQuestions)
+  } = useQuestionForm(selectedQuestion, savedQuestions, setSavedQuestions, Number(courseId), loadQuestions)
 
   const handleInputChange = (field: string | number | symbol, value: any) => {
     handleInputChangeRaw(field as keyof typeof formData, value)
@@ -96,7 +118,7 @@ export default function QuestionManagement() {
               onQuestionSelect={handleQuestionSelect}
               onFilterStatusChange={setFilterStatus}
               onSearchQueryChange={setSearchQuery}
-              mockExams={mockExamsInfo}
+              examsInfo={examsInfo}
             />
           </Card>
         </div>
@@ -108,7 +130,7 @@ export default function QuestionManagement() {
               formData={formData}
               selectedQuestionId={selectedQuestionId}
               lastSaved={lastSaved}
-              mockExams={mockExamsInfo}
+              examsInfo={examsInfo}
               onInputChange={handleInputChange}
               onTypeChange={handleTypeChange}
               onOptionChange={handleOptionChange}

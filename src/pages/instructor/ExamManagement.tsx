@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Plus, Upload, FileText, AlertCircle } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Card from '../../components/ui/Card'
@@ -9,18 +9,41 @@ import ExamTableHeader from '../../components/exam/ExamTableHeader'
 import ExamRow from '../../components/exam/ExamRow'
 import { useExamFilters } from '../../hooks/useExamFilters'
 import { useExamSort } from '../../hooks/useExamSort'
-import { mockExams } from '../../data/mockExams'
+import type { Exam } from '../../types/exam'
 
 export default function ExamManagement() {
   const navigate = useNavigate()
   const { id: courseId } = useParams()
+  const [exams, setExams] = useState<Exam[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const loadExams = async () => {
+    if (!courseId) {
+      setLoading(false)
+      return
+    }
+    try {
+      const { getExamsByCourse } = await import('../../core/api/exams')
+      const response = await getExamsByCourse(Number(courseId))
+      setExams(response)
+    } catch (error) {
+      console.error('시험 목록 로드 실패:', error)
+      setExams([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadExams()
+  }, [courseId])
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0]
 
   // Separate today's exams and other exams
-  const todayExams = useMemo(() => mockExams.filter(exam => exam.startDate === today), [today])
-  const otherExams = useMemo(() => mockExams.filter(exam => exam.startDate !== today), [today])
+  const todayExams = useMemo(() => exams.filter(exam => exam.startDate === today), [exams, today])
+  const otherExams = useMemo(() => exams.filter(exam => exam.startDate !== today), [exams, today])
 
   // Today's exams filters and sorting
   const todayFiltersState = useExamFilters(todayExams)
@@ -113,7 +136,12 @@ export default function ExamManagement() {
                   </tr>
                 ) : (
                   todaySortState.sortedExams.map((exam) => (
-                    <ExamRow key={exam.id} exam={exam} courseId={courseId!} />
+                    <ExamRow
+                      key={exam.id}
+                      exam={exam}
+                      courseId={courseId!}
+                      onDelete={loadExams}
+                    />
                   ))
                 )}
               </tbody>
@@ -148,11 +176,19 @@ export default function ExamManagement() {
               onSort={sortState.handleSort}
             />
             <tbody className="bg-base-100 divide-y divide-base-300">
-              {mockExams.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td colSpan={8} className="px-3 py-8 text-center">
                     <div className="text-base-content/70">
-                      <p className="text-lg font-medium mb-2">No data available in table</p>
+                      <p className="text-lg font-medium mb-2">로딩 중...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : exams.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-8 text-center">
+                    <div className="text-base-content/70">
+                      <p className="text-lg font-medium mb-2">시험/과제가 없습니다</p>
                       <p className="text-sm">시험과 과제를 추가해보세요.</p>
                     </div>
                   </td>
@@ -173,7 +209,12 @@ export default function ExamManagement() {
                 </tr>
               ) : (
                 sortState.sortedExams.map((exam) => (
-                  <ExamRow key={exam.id} exam={exam} courseId={courseId!} />
+                  <ExamRow
+                    key={exam.id}
+                    exam={exam}
+                    courseId={courseId!}
+                    onDelete={loadExams}
+                  />
                 ))
               )}
             </tbody>
@@ -194,9 +235,9 @@ export default function ExamManagement() {
             <div className="flex items-center space-x-2">
               <span className="text-sm text-base-content/70">
                 {filtersState.hasActiveFilters ? (
-                  <>총 {mockExams.length}개 중 {sortState.sortedExams.length}개 표시</>
+                  <>총 {exams.length}개 중 {sortState.sortedExams.length}개 표시</>
                 ) : (
-                  <>총 {mockExams.length}개 항목</>
+                  <>총 {exams.length}개 항목</>
                 )}
               </span>
             </div>

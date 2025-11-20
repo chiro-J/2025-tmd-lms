@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Upload, FileText, Clock, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Upload, FileText, Clock, AlertCircle, ArrowLeft } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
-import { getAssignment, getAssignments } from '../../core/api/assignments'
-import type { Assignment } from '../../types/assignment'
+import { getAssignment, getAssignments, submitAssignment, getMySubmission } from '../../core/api/assignments'
+import type { Assignment, AssignmentSubmission } from '../../types/assignment'
 
 type ContentBlockType = 'text' | 'markdown'
 
@@ -21,11 +21,14 @@ export default function AssignmentSubmit() {
   const assignmentId = Number(id) || 0
 
   const [assignment, setAssignment] = useState<Assignment | null>(null)
+  const [courseId, setCourseId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionSuccess, setSubmissionSuccess] = useState(false)
-  const [fileErrors, setFileErrors] = useState<Record<number, string>>({})
+  const [mySubmission, setMySubmission] = useState<AssignmentSubmission | null>(null)
+  const [loadingSubmission, setLoadingSubmission] = useState(true)
 
   // DB에서 과제 정보 로드
   useEffect(() => {
@@ -56,6 +59,36 @@ export default function AssignmentSubmit() {
 
         if (foundAssignment) {
           setAssignment(foundAssignment)
+          // courseId는 foundAssignment에 포함되어 있음
+          const finalCourseId = foundAssignment.courseId
+          if (finalCourseId) {
+            setCourseId(finalCourseId)
+
+            // 내 제출물 조회 (courseId가 확정된 후)
+            try {
+              console.log('제출물 조회 시도:', { courseId: finalCourseId, assignmentId })
+              const submission = await getMySubmission(finalCourseId, assignmentId)
+              console.log('제출물 조회 결과:', submission)
+              if (submission) {
+                console.log('제출물 발견! 상태 업데이트:', submission)
+                setMySubmission(submission)
+              } else {
+                console.log('제출물 없음')
+                setMySubmission(null)
+              }
+            } catch (error: any) {
+              console.error('제출물 조회 실패:', error)
+              console.error('에러 상세:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.response?.data?.message,
+              })
+              // 에러 발생 시 제출물이 없는 것으로 처리
+              setMySubmission(null)
+            }
+          } else {
+            console.error('courseId를 찾을 수 없습니다. foundAssignment:', foundAssignment)
+          }
         } else {
           console.error('과제를 찾을 수 없습니다.')
         }
@@ -63,6 +96,7 @@ export default function AssignmentSubmit() {
         console.error('과제 정보 로드 실패:', error)
       } finally {
         setLoading(false)
+        setLoadingSubmission(false)
       }
     }
 
@@ -71,49 +105,11 @@ export default function AssignmentSubmit() {
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
-    const newErrors: Record<number, string> = {}
-
-    files.forEach((file, index) => {
-      const currentIndex = selectedFiles.length + index
-
-      // 파일 크기 검증
-      if (assignment && assignment.maxFileSize) {
-        const maxSizeBytes = assignment.maxFileSize * 1024 * 1024 // MB to bytes
-        if (file.size > maxSizeBytes) {
-          newErrors[currentIndex] = `파일 크기가 ${assignment.maxFileSize}MB를 초과합니다. (${formatFileSize(file.size)})`
-        }
-      }
-
-      // 파일 형식 검증
-      if (assignment && assignment.allowedFileTypes && assignment.allowedFileTypes.length > 0) {
-        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
-        if (!assignment.allowedFileTypes.includes(fileExtension)) {
-          newErrors[currentIndex] = `허용되지 않은 파일 형식입니다. (${fileExtension})`
-        }
-      }
-    })
-
-    setFileErrors(newErrors)
     setSelectedFiles(prev => [...prev, ...files])
   }
 
   const handleFileRemove = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index))
-    setFileErrors(prev => {
-      const newErrors = { ...prev }
-      delete newErrors[index]
-      // 인덱스 재조정
-      const updatedErrors: Record<number, string> = {}
-      Object.keys(newErrors).forEach(key => {
-        const keyNum = Number(key)
-        if (keyNum > index) {
-          updatedErrors[keyNum - 1] = newErrors[keyNum]
-        } else if (keyNum < index) {
-          updatedErrors[keyNum] = newErrors[keyNum]
-        }
-      })
-      return updatedErrors
-    })
   }
 
   const handleSubmit = async () => {
@@ -123,27 +119,48 @@ export default function AssignmentSubmit() {
       return
     }
 
-    // 파일 오류 확인
-    if (Object.keys(fileErrors).length > 0) {
-      alert('파일 오류를 수정한 후 제출해주세요.')
-      return
-    }
-
     // 제출 확인
     if (!confirm('과제를 제출하시겠습니까?\n제출 후에는 수정할 수 없을 수 있습니다.')) {
       return
     }
 
+    if (!courseId) {
+      alert('강좌 정보를 찾을 수 없습니다.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      // TODO: 실제 API 연동
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const submission = await submitAssignment(courseId, assignmentId, selectedFiles)
+      console.log('과제 제출 성공:', submission)
       setSubmissionSuccess(true)
       setSelectedFiles([])
-      setFileErrors({})
-    } catch (error) {
+
+      // 제출 후 내 제출물 다시 조회
+      if (courseId) {
+        try {
+          // DB 반영을 위해 약간의 지연
+          await new Promise(resolve => setTimeout(resolve, 500))
+          console.log('제출 후 제출물 재조회:', { courseId, assignmentId })
+          const updatedSubmission = await getMySubmission(courseId, assignmentId)
+          console.log('제출 후 제출물 조회 결과:', updatedSubmission)
+          if (updatedSubmission) {
+            setMySubmission(updatedSubmission)
+          }
+        } catch (error: any) {
+          console.error('제출 후 제출물 조회 실패:', error)
+        }
+      }
+    } catch (error: any) {
       console.error('과제 제출 실패:', error)
-      alert('과제 제출에 실패했습니다. 다시 시도해주세요.')
+      console.error('에러 상세:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.response?.data?.message,
+        headers: error.response?.headers,
+      })
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || '과제 제출에 실패했습니다. 다시 시도해주세요.'
+      alert(`과제 제출 실패: ${errorMessage}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -274,49 +291,76 @@ export default function AssignmentSubmit() {
               </div>
             </Card>
 
-            {/* File Upload */}
+            {/* File Upload or Submission Status */}
             <Card>
               <div className="p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">파일 제출</h2>
+                {mySubmission ? (
+                  // 제출 완료 상태
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900">제출 상태</h2>
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        제출완료
+                      </span>
+                    </div>
 
-                {/* 제출 가능한 파일 형식 안내 */}
-                {(assignment?.allowedFileTypes && assignment.allowedFileTypes.length > 0) && (
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
-                    <div className="flex items-start mb-3">
-                      <FileText className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-blue-900 mb-3">📎 제출 가능한 파일 형식</p>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {assignment.allowedFileTypes.map((fileType, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg border-2 border-blue-700 shadow-sm"
-                            >
-                              {fileType.replace('.', '').toUpperCase()}
-                            </span>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-center mb-2">
+                        <span className="text-green-800 font-medium">
+                          {new Date(mySubmission.submittedAt || '').toLocaleString('ko-KR')}에 제출되었습니다.
+                        </span>
+                      </div>
+                      {mySubmission.status === '지연' && (
+                        <p className="text-sm text-yellow-700 mt-2">
+                          마감 시간 이후 제출로 지연 처리되었습니다.
+                        </p>
+                      )}
+                      {mySubmission.score !== null && mySubmission.score !== undefined && (
+                        <p className="text-sm text-gray-700 mt-2">
+                          점수: <span className="font-semibold">{mySubmission.score}점</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {mySubmission.files && mySubmission.files.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-2">제출한 파일</h3>
+                        <div className="space-y-2">
+                          {mySubmission.files.map((file, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center">
+                                <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                                <span className="text-sm text-gray-900">{file.name}</span>
+                                <span className="text-xs text-gray-500 ml-2">
+                                  ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                              </div>
+                              <a
+                                href={file.url.startsWith('http') ? file.url : `http://localhost:3000${file.url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:text-blue-800"
+                              >
+                                다운로드
+                              </a>
+                            </div>
                           ))}
                         </div>
-                        {assignment.maxFileSize && (
-                          <div className="text-xs text-blue-800 space-y-1.5 bg-white/50 p-2 rounded border border-blue-200">
-                            <p className="font-semibold text-blue-900">📦 파일 크기 제한</p>
-                            <p className="text-blue-700">
-                              • 최대 파일 크기: <span className="font-bold">{assignment.maxFileSize}MB</span>
-                            </p>
-                            <p className="text-blue-700">
-                              • 여러 파일을 제출할 경우 각 파일이 {assignment.maxFileSize}MB 이하여야 합니다
-                            </p>
-                            <p className="text-blue-700">
-                              • 파일이 큰 경우 ZIP으로 압축하여 제출할 수 있습니다
-                            </p>
-                            <p className="text-blue-700">
-                              • 파일 형식이 올바르지 않으면 제출이 거부될 수 있습니다
-                            </p>
-                          </div>
-                        )}
                       </div>
-                    </div>
+                    )}
+
+                    {mySubmission.feedback && (
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-2">강사 피드백</h3>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{mySubmission.feedback}</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                ) : (
+                  // 제출하지 않은 상태
+                  <>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">파일 제출</h2>
+
 
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -327,7 +371,6 @@ export default function AssignmentSubmit() {
                   <input
                     type="file"
                     multiple
-                    accept={(assignment?.allowedFileTypes ?? []).join(',')}
                     onChange={handleFileSelect}
                     className="hidden"
                     id="file-upload"
@@ -347,51 +390,38 @@ export default function AssignmentSubmit() {
                       선택된 파일 ({selectedFiles.length}개)
                     </h3>
                     <div className="space-y-2">
-                      {selectedFiles.map((file, index) => {
-                        const hasError = fileErrors[index]
-                        return (
-                          <div
-                            key={index}
-                            className={`flex items-start justify-between p-3 rounded-lg ${
-                              hasError ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
-                            }`}
-                          >
-                            <div className="flex items-start flex-1">
-                              <FileText className={`h-4 w-4 mr-2 mt-0.5 flex-shrink-0 ${hasError ? 'text-red-500' : 'text-gray-400'}`} />
-                              <div className="flex-1 min-w-0">
-                                <span className={`text-sm ${hasError ? 'text-red-900 font-medium' : 'text-gray-900'}`}>
-                                  {file.name}
-                                </span>
-                                <span className={`text-xs ml-2 ${hasError ? 'text-red-600' : 'text-gray-500'}`}>
-                                  ({formatFileSize(file.size)})
-                                </span>
-                                {hasError && (
-                                  <p className="text-xs text-red-600 mt-1">{fileErrors[index]}</p>
-                                )}
-                              </div>
+                      {selectedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-start justify-between p-3 rounded-lg bg-gray-50"
+                        >
+                          <div className="flex items-start flex-1">
+                            <FileText className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm text-gray-900">
+                                {file.name}
+                              </span>
+                              <span className="text-xs ml-2 text-gray-500">
+                                ({formatFileSize(file.size)})
+                              </span>
                             </div>
-                            <button
-                              onClick={() => handleFileRemove(index)}
-                              className="text-red-600 hover:text-red-800 text-sm ml-2 flex-shrink-0"
-                            >
-                              제거
-                            </button>
                           </div>
-                        )
-                      })}
+                          <button
+                            onClick={() => handleFileRemove(index)}
+                            className="text-red-600 hover:text-red-800 text-sm ml-2 flex-shrink-0"
+                          >
+                            제거
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    {Object.keys(fileErrors).length > 0 && (
-                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                        ⚠️ 오류가 있는 파일을 수정한 후 제출해주세요.
-                      </div>
-                    )}
                   </div>
                 )}
 
                 {/* 제출 전 안내 */}
-                {selectedFiles.length > 0 && Object.keys(fileErrors).length === 0 && (
+                {selectedFiles.length > 0 && (
                   <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800 font-medium mb-1">⚠️ 제출 전 확인사항</p>
+                    <p className="text-sm text-yellow-800 font-medium mb-1">제출 전 확인사항</p>
                     <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
                       <li>제출한 파일은 수정하거나 삭제할 수 없을 수 있습니다.</li>
                       <li>파일명을 확인하여 올바른 파일을 제출했는지 확인해주세요.</li>
@@ -418,8 +448,7 @@ export default function AssignmentSubmit() {
                     disabled={
                       selectedFiles.length === 0 ||
                       isSubmitting ||
-                      isOverdue ||
-                      Object.keys(fileErrors).length > 0
+                      isOverdue
                     }
                     className="min-w-[120px]"
                   >
@@ -431,10 +460,11 @@ export default function AssignmentSubmit() {
                 {submissionSuccess && (
                   <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-center">
-                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
                       <span className="text-green-800 font-medium">과제가 성공적으로 제출되었습니다!</span>
                     </div>
                   </div>
+                )}
+                  </>
                 )}
               </div>
             </Card>
@@ -461,27 +491,6 @@ export default function AssignmentSubmit() {
                     <p className="text-sm font-medium text-gray-600">최대 점수</p>
                     <p className="text-sm text-gray-900">{assignment.maxScore ?? 100}점</p>
                   </div>
-                  {assignment.maxFileSize && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">파일 크기 제한</p>
-                      <p className="text-sm text-gray-900">{assignment.maxFileSize}MB</p>
-                    </div>
-                  )}
-                  {assignment.allowedFileTypes && assignment.allowedFileTypes.length > 0 && (
-                    <div>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">제출 가능한 파일 형식</p>
-                      <div className="flex flex-wrap gap-2">
-                        {assignment.allowedFileTypes.map((fileType, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2.5 py-1 bg-blue-600 text-white text-xs font-semibold rounded-lg border-2 border-blue-700"
-                          >
-                            {fileType.replace('.', '').toUpperCase()}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </Card>
@@ -489,28 +498,20 @@ export default function AssignmentSubmit() {
             {/* 과제 제출 안내 */}
             <Card>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">💡 제출 안내</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">제출 안내</h3>
                 <div className="space-y-3 text-sm text-gray-700">
-                  <div className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <p>파일은 여러 개를 동시에 제출할 수 있습니다.</p>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <p>파일 크기와 형식을 확인한 후 제출해주세요.</p>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <p>제출 후에는 파일을 수정하거나 삭제할 수 없습니다.</p>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <p>마감 시간 이후 제출 시 지연 처리됩니다.</p>
+                  <p>파일은 여러 개를 동시에 제출할 수 있습니다.</p>
+                  <p>제출 후에는 파일을 수정하거나 삭제할 수 없습니다.</p>
+                  <p>마감 시간 이후 제출 시 지연 처리됩니다.</p>
+                  <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
+                    <p className="text-xs text-gray-700">
+                      제출과제 관련 문의는 QnA 게시판을 이용해주세요.
+                    </p>
                   </div>
                   {assignment && !isOverdue && (
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
                       <p className="text-xs text-blue-800 font-medium">
-                        ⏰ 남은 시간: {daysLeft}일
+                        남은 시간: {daysLeft}일
                       </p>
                     </div>
                   )}

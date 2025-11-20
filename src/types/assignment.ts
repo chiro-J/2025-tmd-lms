@@ -6,8 +6,6 @@ export type Assignment = {
   dueDate: string; // ISO date
   maxScore?: number;
   instructions?: string[];
-  allowedFileTypes?: string[];
-  maxFileSize?: number; // MB
   contentBlocks?: any[]; // 이미지, PDF, 동영상 등 콘텐츠 블록
   submissions: number;
   total: number;

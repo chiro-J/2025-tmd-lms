@@ -17,7 +17,11 @@ export default function SubmissionDetailModal({
   submission,
   onSaveScore
 }: SubmissionDetailModalProps) {
-  const [score, setScore] = useState<string>(submission?.score?.toString() || '')
+  const [score, setScore] = useState<string>(
+    submission?.score !== null && submission?.score !== undefined
+      ? submission.score.toString()
+      : ''
+  )
   const [feedback, setFeedback] = useState<string>(submission?.feedback || '')
 
   if (!submission) return null

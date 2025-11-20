@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import type { Course } from '../../types';
+import { useState, useEffect } from "react";
+import { useAuth } from '../../contexts/AuthContext';
+// import { getWeeklyLearningData } from '../../core/api/learning'; // API 비활성화
 
-interface WeeklyActivityProps {
-  recentCourse?: Course;
-  loading?: boolean;
-}
+export default function WeeklyActivity() {
+  const { user } = useAuth();
+  const [dataLoading, setDataLoading] = useState(true);
+  const [weeklyData, setWeeklyData] = useState({
+    days: ["월", "화", "수", "목", "금", "토", "일"],
+    thisWeek: [null, null, null, null, null, null, null] as (number | null)[],
+    lastWeek: [0, 0, 0, 0, 0, 0, 0] as number[],
+  });
 
-export default function WeeklyActivity({ recentCourse, loading }: WeeklyActivityProps) {
-  const navigate = useNavigate();
   const [hoveredPoint, setHoveredPoint] = useState<{
     value: number;
     day: string;
@@ -17,18 +19,55 @@ export default function WeeklyActivity({ recentCourse, loading }: WeeklyActivity
     y: number;
   } | null>(null);
 
-  // Weekly learning data (last 7 days) - in hours
-  const weeklyData = useMemo(() => {
-    const days = ["월", "화", "수", "목", "금", "토", "일"];
+  // 주간 학습 데이터 로드 (API 비활성화 - mock 데이터만 표시)
+  useEffect(() => {
+    // API 호출 비활성화 - mock 데이터만 표시
+    setDataLoading(true);
 
-    return {
-      days,
-      // 이번 주는 목요일까지만 데이터, 금토일은 null (단위: 시간)
-      thisWeek: [2.5, 4.5, 3.0, 6.5, null, null, null],
-      // 지난 주는 전체 데이터 (단위: 시간)
-      lastWeek: [1.5, 2.5, 5.0, 3.5, 7.0, 4.5, 5.5],
-    };
-  }, []);
+    // Mock 데이터 설정
+    setTimeout(() => {
+      setWeeklyData({
+        days: ["월", "화", "수", "목", "금", "토", "일"],
+        thisWeek: [2.5, 4.5, 3.0, 6.5, null, null, null],
+        lastWeek: [1.5, 2.5, 5.0, 3.5, 7.0, 4.5, 5.5],
+      });
+      setDataLoading(false);
+    }, 300); // 로딩 애니메이션을 위한 짧은 딜레이
+
+    // API 호출 비활성화
+    // const loadWeeklyData = async () => {
+    //   if (!user?.id) {
+    //     setDataLoading(false);
+    //     return;
+    //   }
+
+    //   try {
+    //     setDataLoading(true);
+    //     const data = await getWeeklyLearningData(
+    //       typeof user.id === 'number' ? user.id : Number(user.id)
+    //     );
+
+    //     setWeeklyData(prev => ({
+    //       ...prev,
+    //       thisWeek: data.thisWeek,
+    //       lastWeek: data.lastWeek
+    //     }));
+    //   } catch (error) {
+    //     // API가 구현되지 않았으므로 조용히 처리 (404 오류는 무시)
+    //     // console.error('주간 학습 데이터 로드 실패:', error);
+    //     // 에러 시 mock 데이터로 폴백
+    //     setWeeklyData(prev => ({
+    //       ...prev,
+    //       thisWeek: [2.5, 4.5, 3.0, 6.5, null, null, null],
+    //       lastWeek: [1.5, 2.5, 5.0, 3.5, 7.0, 4.5, 5.5],
+    //     }));
+    //   } finally {
+    //     setDataLoading(false);
+    //   }
+    // };
+
+    // loadWeeklyData();
+  }, [user?.id]);
 
   const maxValue = Math.max(
     ...weeklyData.thisWeek.filter((v): v is number => v !== null),
@@ -66,7 +105,14 @@ export default function WeeklyActivity({ recentCourse, loading }: WeeklyActivity
   };
 
   return (
-    <div className="p-4 md:p-6 card-panel space-y-6">
+    <div className="p-4 md:p-6 card-panel space-y-6 relative">
+      {/* Loading Overlay */}
+      {dataLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-20 rounded-lg">
+          <div className="text-sm text-gray-500">데이터 로딩 중...</div>
+        </div>
+      )}
+
       {/* Weekly Learning Chart Section */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -204,12 +250,24 @@ export default function WeeklyActivity({ recentCourse, loading }: WeeklyActivity
           </div>
 
           {/* X-axis labels (요일만) */}
-          <div className="flex justify-around mt-3 ml-10 text-xs text-neutral-600">
-            {weeklyData.days.map((day, i) => (
-              <div key={i} className="text-center">
-                {day}
-              </div>
-            ))}
+          <div className="flex mt-3">
+            <div className="pr-3 text-xs font-medium text-transparent select-none">
+              {yAxisMax}
+            </div>
+            <div className="relative flex-1 text-xs text-neutral-600">
+              {weeklyData.days.map((day, i) => (
+                <div
+                  key={i}
+                  className="absolute text-center"
+                  style={{
+                    left: `${((i + 0.5) / 7) * 100}%`,
+                    transform: 'translateX(-50%)'
+                  }}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -243,7 +301,3 @@ export default function WeeklyActivity({ recentCourse, loading }: WeeklyActivity
     </div>
   );
 }
-
-
-
-

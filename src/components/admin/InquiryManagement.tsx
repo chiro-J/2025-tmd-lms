@@ -14,6 +14,7 @@ interface Inquiry {
   response?: string;
   courseName?: string;
   courseNumber?: string;
+  role?: string;
 }
 
 interface InquiryManagementProps {
@@ -34,6 +35,7 @@ export default function InquiryManagement({
   const [filterCourseName, setFilterCourseName] = useState("");
   const [filterCourseNumber, setFilterCourseNumber] = useState("");
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed'>('all');
+  const [filterRole, setFilterRole] = useState<'all' | 'student' | 'instructor'>('all');
 
   const handleInquiryResponse = (inquiry: Inquiry) => {
     setSelectedInquiry(inquiry);
@@ -78,6 +80,10 @@ export default function InquiryManagement({
     }
     // 상태 필터
     if (filterStatus !== 'all' && inquiry.status !== filterStatus) {
+      return false;
+    }
+    // 역할 필터
+    if (filterRole !== 'all' && inquiry.role !== filterRole) {
       return false;
     }
     return true;
@@ -174,20 +180,37 @@ export default function InquiryManagement({
                 </div>
               </div>
 
-              {/* 필터 초기화 */}
-              {(filterCourseName || filterCourseNumber || filterStatus !== 'all') && (
-                <button
-                  onClick={() => {
-                    setFilterCourseName("");
-                    setFilterCourseNumber("");
-                    setFilterStatus('all');
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-base flex items-center gap-2"
-                >
-                  <X className="h-4 w-4" />
-                  초기화
-                </button>
-              )}
+              {/* 역할 필터 */}
+              <div className="min-w-[120px]">
+                <div className="relative">
+                  <select
+                    value={filterRole}
+                    onChange={(e) => setFilterRole(e.target.value as 'all' | 'student' | 'instructor')}
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base appearance-none bg-white cursor-pointer"
+                  >
+                    <option value="all">전체 역할</option>
+                    <option value="student">수강생</option>
+                    <option value="instructor">강의자</option>
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* 필터 초기화 - 항상 표시 */}
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setFilterCourseName("");
+                  setFilterCourseNumber("");
+                  setFilterStatus('all');
+                  setFilterRole('all');
+                }}
+                disabled={!searchQuery && !filterCourseName && !filterCourseNumber && filterStatus === 'all' && filterRole === 'all'}
+                className="px-4 py-2 border border-gray-300 rounded-lg transition-colors text-base flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 disabled:hover:bg-white"
+              >
+                <X className="h-4 w-4" />
+                초기화
+              </button>
             </div>
           </div>
 
@@ -205,6 +228,7 @@ export default function InquiryManagement({
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">번호</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">제목</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">문의자</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">역할</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">코스</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">기수</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">상태</th>
@@ -229,6 +253,17 @@ export default function InquiryManagement({
                           <div className="font-medium">{inquiry.user}</div>
                           <div className="text-sm text-gray-500">{inquiry.email}</div>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {inquiry.role && (
+                          <span className={`px-2 py-1 text-sm font-medium rounded-full ${
+                            inquiry.role === 'instructor'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {inquiry.role === 'instructor' ? '강의자' : '수강생'}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-base text-gray-600">
                         {inquiry.courseName || '-'}

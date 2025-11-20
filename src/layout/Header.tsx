@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, Bell, User, Menu, LogOut, ChevronDown, GraduationCap, Shield, Users } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { mockNotifications, mockInstructorNotifications } from '../mocks'
 import type { Notification } from '../types'
 import * as adminApi from '../core/api/admin'
 
@@ -69,13 +68,9 @@ export default function Header() {
     const loadNotifications = async () => {
       if (!user) return
 
-      // 기본 알림 로드
-      let baseNotifications: Notification[] = []
-      if (user.role === 'instructor') {
-        baseNotifications = mockInstructorNotifications
-      } else {
-        baseNotifications = mockNotifications
-      }
+      // notifications 테이블은 사용하지 않음 (notices만 사용)
+      // 실제로는 notices 테이블의 데이터를 Notification 타입으로 변환해서 사용
+      const baseNotifications: Notification[] = []
 
       // 시스템 공지사항 로드 (수강생과 강의자만)
       if (user.role === 'student' || user.role === 'instructor') {

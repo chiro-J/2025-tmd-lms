@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Bell, CheckCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
-import { mockNotifications, mockInstructorNotifications } from '../../mocks'
 import type { Notification } from '../../types'
 import * as adminApi from '../../core/api/admin'
 import Card from '../../components/ui/Card'
@@ -19,8 +18,6 @@ function NotificationSettingsCard({ userId, blockNotifications, setBlockNotifica
     const newValue = !blockNotifications
     setBlockNotifications(newValue)
     localStorage.setItem(`block_system_notifications_${userId}`, JSON.stringify(newValue))
-    // 알림 목록 새로고침을 위해 페이지 리로드
-    window.location.reload()
   }
 
   return (
@@ -80,13 +77,9 @@ export default function Notifications() {
       }
 
       try {
-        // 기본 알림 로드
-        let baseNotifications: Notification[] = []
-        if (user.role === 'instructor') {
-          baseNotifications = mockInstructorNotifications
-        } else {
-          baseNotifications = mockNotifications
-        }
+        // notifications 테이블은 사용하지 않음 (notices만 사용)
+        // 실제로는 notices 테이블의 데이터를 Notification 타입으로 변환해서 사용
+        const baseNotifications: Notification[] = []
 
         // 시스템 공지사항 로드 (수강생과 강의자만)
         if (user.role === 'student' || user.role === 'instructor') {
@@ -143,10 +136,20 @@ export default function Notifications() {
     }
 
     loadNotifications()
-  }, [user])
+  }, [user, blockNotifications])
 
-  const handleNotificationClick = (notification: Notification) => {
-    // 읽음 처리
+  const handleNotificationClick = async (notification: Notification) => {
+    // 읽음 처리 (API 호출)
+    if (!notification.read) {
+      try {
+        const { markNotificationAsRead } = await import('../../core/api/notifications')
+        await markNotificationAsRead(notification.id)
+      } catch (error) {
+        console.error('알림 읽음 처리 실패:', error)
+      }
+    }
+
+    // 로컬 상태 업데이트
     setNotifications(prev =>
       prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
     )
@@ -157,7 +160,14 @@ export default function Notifications() {
     }
   }
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
+    try {
+      const { markAllNotificationsAsRead } = await import('../../core/api/notifications')
+      await markAllNotificationsAsRead()
+    } catch (error) {
+      console.error('모든 알림 읽음 처리 실패:', error)
+    }
+
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 

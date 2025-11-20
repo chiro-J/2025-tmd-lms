@@ -47,7 +47,7 @@ function QnADetail() {
 
     try {
       setSubmitting(true)
-      await createCourseQnAAnswer(courseId, qna.id, user.id, answerText)
+      await createCourseQnAAnswer(courseId, qna.id, typeof user.id === 'number' ? user.id : Number(user.id), answerText)
       // QnA 목록 새로고침
       const data = await getCourseQnAs(courseId)
       const updatedQnA = data.find(q => q.id === qnaIdNum)

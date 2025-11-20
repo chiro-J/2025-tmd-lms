@@ -3,7 +3,7 @@ import Card from "../ui/Card";
 import Button from "../ui/Button";
 import MemoForm from "./MemoForm";
 import MemoList from "./MemoList";
-import { getWeekRange } from "../../utils/calendar";
+import { getWeekRange, toKstDateString } from "../../utils/calendar";
 import type { Memo } from "../../types/calendar";
 
 interface MemoSectionProps {
@@ -20,6 +20,7 @@ interface MemoSectionProps {
   onViewChange: (view: "month" | "week") => void;
   onAddMemo: () => void;
   onEditMemo: (memo: Memo) => void;
+  onDeleteMemo: (memoId: string) => void;
   onTitleChange: (title: string) => void;
   onContentChange: (content: string) => void;
   onDateChange: (date: string) => void;
@@ -43,6 +44,7 @@ export default function MemoSection({
   onViewChange,
   onAddMemo,
   onEditMemo,
+  onDeleteMemo,
   onTitleChange,
   onContentChange,
   onDateChange,
@@ -145,13 +147,9 @@ export default function MemoSection({
           memos={filteredMemos}
           emptyMessage={getEmptyMessage()}
           onEditMemo={onEditMemo}
+          onDeleteMemo={onDeleteMemo}
         />
       </div>
     </Card>
   );
 }
-
-
-
-
-

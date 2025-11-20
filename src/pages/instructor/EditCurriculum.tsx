@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { ChevronDown, ChevronRight, FileText, Edit, Save, X, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileText, Edit, Save, X, Plus, Trash2 } from 'lucide-react'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
 import Button from '../../components/ui/Button'
 import { pdfjs } from 'react-pdf'
@@ -183,7 +183,7 @@ export default function EditCurriculum() {
     }
     try {
       const { uploadFile } = await import('../../core/api/upload')
-      const result = await uploadFile(file, 'pdf')
+      const result = await uploadFile(file, 'pdf', 'lesson')
       updateBlockContent(blockId, result.url)
     } catch (error) {
       console.error('PDF 업로드 실패:', error)
@@ -206,7 +206,7 @@ export default function EditCurriculum() {
     }
     try {
       const { uploadFile } = await import('../../core/api/upload')
-      const result = await uploadFile(file, 'image')
+      const result = await uploadFile(file, 'image', 'lesson')
       updateBlockContent(blockId, result.url)
     } catch (error) {
       console.error('이미지 업로드 실패:', error)
@@ -223,17 +223,18 @@ export default function EditCurriculum() {
   }
 
   // DB에서 커리큘럼 데이터 로드
-  useEffect(() => {
-    const loadCurriculum = async () => {
-      try {
-        const { getCurriculum } = await import('../../core/api/curriculum')
-        const apiModules = await getCurriculum(courseId)
-        const transformed = transformApiToEditFormat(apiModules)
-        setCurriculums(transformed)
-      } catch (error) {
-        console.error('커리큘럼 로드 실패:', error)
-      }
+  const loadCurriculum = async () => {
+    try {
+      const { getCurriculum } = await import('../../core/api/curriculum')
+      const apiModules = await getCurriculum(courseId)
+      const transformed = transformApiToEditFormat(apiModules)
+      setCurriculums(transformed)
+    } catch (error) {
+      console.error('커리큘럼 로드 실패:', error)
     }
+  }
+
+  useEffect(() => {
     loadCurriculum()
   }, [courseId])
 
@@ -275,6 +276,39 @@ export default function EditCurriculum() {
             }
           } catch (error) {
             console.error('커리큘럼 삭제 실패:', error)
+            alert(`삭제에 실패했습니다: ${error}`)
+          }
+        }
+      } else {
+        alert('삭제에 실패했습니다: ID 오류')
+      }
+    }
+  }
+
+  const handleDeleteLesson = async (lessonId: string, curriculumId: string) => {
+    const curriculum = curriculums.find(c => c.id === curriculumId)
+    if (curriculum) {
+      const lessonDbId = parseInt(lessonId.replace('lesson-', ''))
+      const curriculumDbId = parseInt(curriculumId.replace('curriculum-', ''))
+      if (!isNaN(lessonDbId) && !isNaN(curriculumDbId)) {
+        if (confirm('정말 이 강의를 삭제하시겠습니까?')) {
+          try {
+            const { deleteLesson } = await import('../../core/api/curriculum')
+            await deleteLesson(courseId, curriculumDbId, lessonDbId)
+            setCurriculums(prev => prev.map(c => {
+              if (c.id === curriculumId) {
+                return {
+                  ...c,
+                  lessons: c.lessons.filter(l => l.id !== lessonId)
+                }
+              }
+              return c
+            }))
+            if (selectedLesson && selectedLesson.id === lessonId) {
+              setSelectedLesson(null)
+            }
+          } catch (error) {
+            console.error('레슨 삭제 실패:', error)
             alert(`삭제에 실패했습니다: ${error}`)
           }
         }
@@ -563,6 +597,20 @@ export default function EditCurriculum() {
               <span className="text-sm font-medium text-gray-900 truncate">{lesson.title}</span>
             )}
           </div>
+          {isEditMode && !isEditing && (
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeleteLesson(lesson.id, curriculumId)
+                }}
+                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="강의 삭제"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )
