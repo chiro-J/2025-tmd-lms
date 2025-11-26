@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Search, Mail, Download, MoreVertical, UserPlus, Settings, ChevronDown } from 'lucide-react'
+import { Search, Mail, Download, MoreVertical, UserPlus, Settings, ChevronDown, UserX } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
-import { getCourseEnrollments, type CourseEnrollment } from '../../core/api/courses'
+import { getCourseEnrollments, unenrollFromCourse, type CourseEnrollment } from '../../core/api/courses'
 
 export default function ManageStudents() {
   const { id } = useParams()
@@ -34,20 +34,30 @@ export default function ManageStudents() {
     enrollment.user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const handleRemoveStudent = async (enrollment: CourseEnrollment) => {
+    if (!window.confirm(`정말 ${enrollment.user.name}님을 수강에서 제외하시겠습니까?`)) {
+      return
+    }
+
+    try {
+      await unenrollFromCourse(courseId, enrollment.user.id)
+      // 목록에서 제거
+      setEnrollments(prev => prev.filter(e => e.id !== enrollment.id))
+      alert('수강자가 제외되었습니다.')
+    } catch (error) {
+      console.error('수강자 제외 실패:', error)
+      alert('수강자 제외에 실패했습니다.')
+    }
+  }
+
 
   const rightActions = (
-    <>
-      <Button variant="outline" className="text-base-content/70 rounded-xl">
-        <Settings className="h-4 w-4 mr-1" />
-        그룹 편집
+    <Link to="/instructor/course/1/invite-students">
+      <Button className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl">
+        <UserPlus className="h-4 w-4 mr-1" />
+        신규 수강자 초대하기
       </Button>
-      <Link to="/instructor/course/1/invite-students">
-        <Button className="bg-primary hover:bg-primary/90 text-primary-content rounded-xl">
-          <UserPlus className="h-4 w-4 mr-1" />
-          신규 수강자 초대하기
-        </Button>
-      </Link>
-    </>
+    </Link>
   )
 
   return (
@@ -87,13 +97,6 @@ export default function ManageStudents() {
         {/* Filters and Actions */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-700">그룹</span>
-            </div>
-            <button className="text-sm text-gray-600 hover:text-gray-900">
-              초기화
-            </button>
             <div className="relative">
               <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -124,16 +127,10 @@ export default function ManageStudents() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    수강자 번호
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     수강자 정보
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     이메일
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    그룹
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     관리
@@ -143,13 +140,13 @@ export default function ManageStudents() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={3} className="px-6 py-4 text-center text-gray-500">
                       로딩 중...
                     </td>
                   </tr>
                 ) : filteredEnrollments.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={3} className="px-6 py-4 text-center text-gray-500">
                       수강자가 없습니다.
                     </td>
                   </tr>
@@ -157,31 +154,20 @@ export default function ManageStudents() {
                   filteredEnrollments.map((enrollment, index) => (
                     <tr key={enrollment.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{enrollment.user.id}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8">
-                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-700">
-                              {enrollment.user.name.charAt(0)}
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{enrollment.user.name}</div>
-                            <div className="text-sm text-gray-500">{enrollment.user.email}</div>
-                          </div>
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{enrollment.user.name}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {enrollment.user.email}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        기본 그룹
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button className="text-red-600 hover:text-red-900">
-                          [→ 퇴장]
-                        </button>
+                        <Button
+                          onClick={() => handleRemoveStudent(enrollment)}
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 rounded-lg px-3 py-1.5 flex items-center gap-1.5"
+                        >
+                          <UserX className="h-4 w-4" />
+                          강의에서 제외
+                        </Button>
                       </td>
                     </tr>
                   ))

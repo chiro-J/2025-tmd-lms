@@ -5,7 +5,6 @@ import MainLayout from "./layout/MainLayout";
 
 // Contexts
 import { CourseCreationProvider } from "./contexts/CourseCreationContext";
-import { NoticeProvider } from "./contexts/NoticeContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 
 // Auth pages
@@ -98,11 +97,9 @@ export default function App() {
       {/* Main app with layout */}
       <Route element={
         <CourseCreationProvider>
-          <NoticeProvider>
-            <ProfileProvider>
-              <MainLayout />
-            </ProfileProvider>
-          </NoticeProvider>
+          <ProfileProvider>
+            <MainLayout />
+          </ProfileProvider>
         </CourseCreationProvider>
       }>
         {/* Student */}
@@ -110,6 +107,7 @@ export default function App() {
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student/enroll" element={<EnrollCourse />} />
         <Route path="/student/course/:id" element={<CourseDetail />} />
+        <Route path="/student/course/:id/quiz/:quizId" element={<QuizPlayer />} />
         <Route path="/student/course/:courseId/notice/:noticeId" element={<CourseNoticeDetail />} />
         <Route path="/student/course/:id/qna/:qnaId" element={<StudentQnADetail />} />
         <Route path="/student/learning/:id" element={<Learning />} />
@@ -118,7 +116,6 @@ export default function App() {
         <Route path="/student/calendar" element={<Calendar />} />
         <Route path="/student/profile" element={<Profile />} />
         <Route path="/student/assignment/:id" element={<AssignmentSubmit />} />
-        <Route path="/student/quiz/:id" element={<QuizPlayer />} />
         <Route path="/student/instructor/:instructorId/introduction" element={<InstructorIntroduction />} />
         <Route path="/student/help" element={<Help />} />
         <Route path="/student/notifications" element={<Notifications />} />

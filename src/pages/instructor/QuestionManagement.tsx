@@ -21,7 +21,7 @@ export default function QuestionManagement() {
     try {
       const { getQuestions, getExamsInfo } = await import('../../core/api/questions')
       const [questions, examsInfoData] = await Promise.all([
-        getQuestions(Number(courseId)),
+        getQuestions({ courseId: Number(courseId) }),
         getExamsInfo(Number(courseId)),
       ])
 

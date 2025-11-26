@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Save, X } from 'lucide-react';
+import { ArrowLeft, Bell, Save, X, Upload, XCircle, File, Image as ImageIcon } from 'lucide-react';
 import * as adminApi from '../../core/api/admin';
+import { uploadFile } from '../../core/api/upload';
 import Card from '../../components/ui/Card';
 
 export default function AdminNoticeCreate() {
@@ -13,6 +14,46 @@ export default function AdminNoticeCreate() {
     priority: 'medium' as 'low' | 'medium' | 'high',
     status: 'active' as 'active' | 'inactive'
   });
+  const [attachments, setAttachments] = useState<Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }>>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 파일 크기 제한 (100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      alert('파일 크기는 100MB를 초과할 수 없습니다.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // 파일 타입 결정
+      let fileType: 'pdf' | 'image' | 'video' = 'image';
+      if (file.type === 'application/pdf') {
+        fileType = 'pdf';
+      } else if (file.type.startsWith('video/')) {
+        fileType = 'video';
+      } else if (file.type.startsWith('image/')) {
+        fileType = 'image';
+      }
+
+      const result = await uploadFile(file, fileType, 'notice');
+      setAttachments(prev => [...prev, result]);
+    } catch (error) {
+      console.error('파일 업로드 실패:', error);
+      alert('파일 업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+      // input 초기화
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
@@ -26,12 +67,13 @@ export default function AdminNoticeCreate() {
         title: formData.title.trim(),
         content: formData.content.trim(),
         author: '관리자',
-        priority: formData.priority
+        priority: formData.priority,
+        attachments: attachments.length > 0 ? attachments : null
       });
 
       // 상태도 업데이트해야 하는 경우
       if (formData.status === 'inactive') {
-        await adminApi.updateNotice(createdNotice.id, { status: 'inactive' });
+        await adminApi.updateNotice(createdNotice.id, { status: 'inactive', attachments: attachments.length > 0 ? attachments : null });
       }
 
       alert('공지사항이 작성되었습니다.');
@@ -189,6 +231,61 @@ export default function AdminNoticeCreate() {
               rows={15}
               placeholder="공지사항 내용을 입력하세요"
             />
+          </div>
+
+          {/* 첨부파일 */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">첨부파일</label>
+            <div className="space-y-4">
+              {/* 파일 업로드 버튼 */}
+              <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                <div className="flex flex-col items-center space-y-2">
+                  <Upload className="h-8 w-8 text-gray-400" />
+                  <span className="text-sm text-gray-600">
+                    {uploading ? '업로드 중...' : '파일을 선택하거나 드래그하세요'}
+                  </span>
+                  <span className="text-xs text-gray-500">이미지, PDF, 동영상 (최대 100MB)</span>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  accept="image/*,application/pdf,video/*"
+                  disabled={uploading}
+                />
+              </label>
+
+              {/* 첨부파일 목록 */}
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  {attachments.map((attachment, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        {attachment.mimetype.startsWith('image/') ? (
+                          <ImageIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        ) : (
+                          <File className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{attachment.originalname}</p>
+                          <p className="text-xs text-gray-500">{(attachment.size / 1024).toFixed(2)} KB</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveAttachment(index)}
+                        className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        title="삭제"
+                      >
+                        <XCircle className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 하단 버튼 */}

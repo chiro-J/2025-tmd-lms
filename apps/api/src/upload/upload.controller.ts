@@ -29,6 +29,12 @@ const getUploadPath = (source: string, type?: string): string => {
   } else if (source === 'resource') {
     const uploadPath = process.env.UPLOAD_PATH_RESOURCE || 'resources';
     return path.join(basePath, uploadPath);
+  } else if (source === 'notice') {
+    const uploadPath = process.env.UPLOAD_PATH_NOTICE || 'notices';
+    return path.join(basePath, uploadPath);
+  } else if (source === 'inquiry') {
+    const uploadPath = process.env.UPLOAD_PATH_INQUIRY || 'inquiries';
+    return path.join(basePath, uploadPath);
   } else {
     // lesson (기본값)
     if (type === 'pdf') {
@@ -61,6 +67,12 @@ const sourceFolders = {
     pdf: getUploadPath('resource'),
     image: getUploadPath('resource'),
   },
+  notice: {
+    file: getUploadPath('notice'),
+  },
+  inquiry: {
+    file: getUploadPath('inquiry'),
+  },
 };
 
 // 모든 폴더 생성
@@ -91,6 +103,10 @@ const storage = diskStorage({
       folder = getUploadPath('assignment');
     } else if (source === 'resource') {
       folder = getUploadPath('resource');
+    } else if (source === 'notice') {
+      folder = getUploadPath('notice');
+    } else if (source === 'inquiry') {
+      folder = getUploadPath('inquiry');
     } else {
       // lesson (기본값)
       folder = getUploadPath('lesson', type);
@@ -172,6 +188,8 @@ export class UploadController {
       type: fileType,
       originalPath: file.path,
       filename: file.filename,
+      originalname: file.originalname,
+      encoding: file.encoding,
     });
 
     // Multer가 저장한 파일을 올바른 위치로 이동
@@ -185,6 +203,10 @@ export class UploadController {
         targetFolder = getUploadPath('assignment');
       } else if (fileSource === 'resource') {
         targetFolder = getUploadPath('resource');
+      } else if (fileSource === 'notice') {
+        targetFolder = getUploadPath('notice');
+      } else if (fileSource === 'inquiry') {
+        targetFolder = getUploadPath('inquiry');
       } else {
         // lesson (기본값)
         targetFolder = getUploadPath('lesson', fileType);
@@ -251,11 +273,13 @@ export class UploadController {
       detectedType: fileType,
       mimetype: file.mimetype,
       originalname: file.originalname,
+      originalnameBuffer: file.originalname ? Buffer.from(file.originalname, 'latin1').toString('utf8') : null,
       filename: file.filename,
       url: result.url, // 절대 URL
       fileExists: fileExists,
       size: file.size,
       multerPath: file.path, // Multer가 저장한 경로
+      resultOriginalname: result.originalname,
     });
 
     if (!fileExists && this.configService.get<string>('STORAGE_TYPE') !== 's3') {

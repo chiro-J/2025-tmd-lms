@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, Request, UseGuards } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { Exam } from './entities/exam.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('courses/:courseId/exams')
 export class ExamsController {
@@ -43,6 +44,35 @@ export class ExamsController {
   ) {
     await this.examsService.remove(id);
     return { message: '시험이 삭제되었습니다.' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/submit')
+  async submitExam(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { answers: Record<string, any>; timeSpent: number },
+    @Request() req,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new Error('로그인이 필요합니다.');
+    }
+    return this.examsService.submitExam(id, userId, body.answers, body.timeSpent);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/my-submission')
+  async getMySubmission(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new Error('로그인이 필요합니다.');
+    }
+    return this.examsService.getMySubmission(id, userId);
   }
 }
 

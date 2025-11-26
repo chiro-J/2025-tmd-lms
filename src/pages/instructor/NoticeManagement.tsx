@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Plus, ClipboardList, Calendar, ChevronLeft, ChevronRight, Bell } from 'lucide-react'
+import { Plus, ClipboardList, Calendar, ChevronLeft, ChevronRight, Bell, Trash2, File } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CourseSidebar from '../../components/instructor/CourseSidebar'
 import CourseHeader from '../../components/instructor/CourseHeader'
-import { getCourse, getCourseNotices, type CourseNotice } from '../../core/api/courses'
+import { getCourse, getCourseNotices, deleteCourseNotice, type CourseNotice } from '../../core/api/courses'
 
 export default function NoticeManagement() {
   const { id } = useParams()
@@ -49,6 +49,24 @@ export default function NoticeManagement() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const handleDeleteNotice = async (noticeId: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm('정말 이 공지사항을 삭제하시겠습니까? 첨부된 파일도 함께 삭제됩니다.')) {
+      return
+    }
+
+    try {
+      await deleteCourseNotice(courseId, noticeId)
+      // 목록 새로고침
+      const data = await getCourseNotices(courseId)
+      setNotices(data)
+      alert('공지사항이 삭제되었습니다.')
+    } catch (error) {
+      console.error('공지사항 삭제 실패:', error)
+      alert('공지사항 삭제에 실패했습니다.')
+    }
   }
 
   const totalPages = Math.ceil(notices.length / itemsPerPage)
@@ -126,13 +144,15 @@ export default function NoticeManagement() {
             <>
               <div className="space-y-4">
                 {currentNotices.map((notice) => (
-                  <button
+                  <div
                     key={notice.id}
-                    onClick={() => navigate(`/instructor/course/${courseId}/notice/${notice.id}`)}
-                    className="w-full text-left card-panel p-5 hover:shadow-md transition-all hover:bg-gray-50 cursor-pointer group"
+                    className="w-full card-panel p-5 hover:shadow-md transition-all hover:bg-gray-50 group"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 flex-1 min-w-0">
+                      <button
+                        onClick={() => navigate(`/instructor/course/${courseId}/notice/${notice.id}`)}
+                        className="flex items-center space-x-4 flex-1 min-w-0 text-left"
+                      >
                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Bell className="h-5 w-5 text-blue-600" />
                         </div>
@@ -145,14 +165,32 @@ export default function NoticeManagement() {
                               <Calendar className="h-3 w-3" />
                               <span>{formatDate(notice.createdAt)}</span>
                             </div>
+                            {notice.attachments && notice.attachments.length > 0 && (
+                              <div className="flex items-center gap-1 text-blue-600">
+                                <File className="h-3 w-3" />
+                                <span>첨부파일 {notice.attachments.length}개</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      </button>
                       <div className="flex items-center space-x-3 flex-shrink-0">
-                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                        <button
+                          onClick={(e) => handleDeleteNotice(notice.id, e)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/instructor/course/${courseId}/notice/${notice.id}`)}
+                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
 

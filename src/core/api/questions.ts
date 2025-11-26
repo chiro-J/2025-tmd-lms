@@ -3,11 +3,10 @@ import type { QuestionData } from '../../types/question';
 
 /**
  * 문제 목록 조회
- * GET /api/questions?courseId=:courseId
+ * GET /api/questions
  */
-export const getQuestions = async (courseId?: number): Promise<QuestionData[]> => {
+export const getQuestions = async (params: { courseId?: number; examId?: number } = {}): Promise<QuestionData[]> => {
   try {
-    const params = courseId ? { courseId } : {};
     const response = await apiClient.get<any[]>('/questions', { params });
     // 백엔드 응답을 QuestionData 타입으로 변환
     return response.data.map(q => ({

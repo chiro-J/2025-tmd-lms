@@ -34,13 +34,26 @@ export default function CreateExam() {
   const [filterStatus, setFilterStatus] = useState<'all' | QuestionStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const loadQuestions = async () => {
+  const getEffectiveExamId = (overrideExamId?: number | null) => {
+    if (overrideExamId) return overrideExamId
+    if (createdExamId) return createdExamId
+    if (examId) return Number(examId)
+    return null
+  }
+
+  const loadQuestions = async (overrideExamId?: number | null) => {
     if (!courseId) return
     try {
+      const targetExamId = getEffectiveExamId(overrideExamId)
+      const questionsPromise: Promise<QuestionData[]> = targetExamId
+        ? getQuestions({ courseId: Number(courseId), examId: targetExamId })
+        : Promise.resolve([] as QuestionData[])
+
       const [questions, examsInfoData] = await Promise.all([
-        getQuestions(Number(courseId)),
+        questionsPromise,
         getExamsInfo(Number(courseId)),
       ])
+
       setSavedQuestions(questions)
       setAvailableQuestions(questions)
       setExamsInfo(examsInfoData)
@@ -56,7 +69,7 @@ export default function CreateExam() {
       try {
         setLoading(true)
         // 문제 목록 로드
-        await loadQuestions()
+        await loadQuestions(examId ? Number(examId) : null)
 
         // 수정 모드인 경우 시험 정보 로드
         if (examId) {
@@ -128,7 +141,7 @@ export default function CreateExam() {
         alert('시험이 생성되었습니다. 이제 문제를 추가할 수 있습니다.')
         setCreatedExamId(createdExam.id)
         setCurrentStep('questions')
-        await loadQuestions()
+        await loadQuestions(createdExam.id)
       }
     } catch (error) {
       console.error('시험 저장 실패:', error)

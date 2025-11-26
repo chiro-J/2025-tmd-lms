@@ -6,10 +6,10 @@ export class Question {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'exam_id', nullable: true })
+  @Column({ name: 'exam_id' })
   examId: number;
 
-  @ManyToOne(() => Exam, exam => exam.questions, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => Exam, exam => exam.questions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'exam_id' })
   exam: Exam;
 

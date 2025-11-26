@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Clock, CheckCircle, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Clock, CheckCircle, ArrowLeft, ArrowRight, AlertTriangle, Save } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import type { Quiz, QuizQuestion } from '../../types'
 import QuizReviewModal from '../../components/modals/QuizReviewModal'
+import { getQuestionTypeLabel } from '../../utils/questionUtils'
 
 export default function QuizPlayer() {
   const { id: courseId, quizId } = useParams()
@@ -14,9 +15,36 @@ export default function QuizPlayer() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [timeLeft, setTimeLeft] = useState(0)
+  const [startTime, setStartTime] = useState<number>(Date.now())
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [hasExistingSubmission, setHasExistingSubmission] = useState(false)
+
+  // localStorage에서 답안 복원
+  useEffect(() => {
+    if (hasExistingSubmission) return
+    if (quizId && courseId) {
+      const savedAnswers = localStorage.getItem(`exam_answers_${courseId}_${quizId}`)
+      if (savedAnswers) {
+        try {
+          const parsed = JSON.parse(savedAnswers)
+          setAnswers(parsed)
+        } catch (error) {
+          console.error('저장된 답안 복원 실패:', error)
+        }
+      }
+    }
+  }, [quizId, courseId, hasExistingSubmission])
+
+  // 답안 변경 시 localStorage에 저장
+  useEffect(() => {
+    if (hasExistingSubmission) return
+    if (quizId && courseId && Object.keys(answers).length > 0) {
+      localStorage.setItem(`exam_answers_${courseId}_${quizId}`, JSON.stringify(answers))
+    }
+  }, [answers, quizId, courseId, hasExistingSubmission])
 
   useEffect(() => {
     const loadQuiz = async () => {
@@ -26,37 +54,66 @@ export default function QuizPlayer() {
       }
       try {
         setLoading(true)
-        const { getExam } = await import('../../core/api/exams')
+        const { getExam, getMyExamSubmission } = await import('../../core/api/exams')
         const { getCourse } = await import('../../core/api/courses')
 
+        // 시험 데이터와 강좌 데이터는 필수, 제출 데이터는 선택적
         const [examData, courseData] = await Promise.all([
           getExam(Number(courseId), Number(quizId)),
           getCourse(Number(courseId)),
         ])
 
+        // 제출 데이터는 별도로 조회 (에러가 나도 계속 진행)
+        let submissionData = null
+        try {
+          submissionData = await getMyExamSubmission(Number(courseId), Number(quizId))
+        } catch (error: any) {
+          // 제출 데이터 조회 실패는 무시 (제출하지 않은 것으로 처리)
+          submissionData = null
+        }
+
         // Exam과 Question을 Quiz 형태로 변환
         const exam = examData as any
+
+        // questions가 없거나 비어있으면 에러 처리
+        if (!exam.questions || exam.questions.length === 0) {
+          alert('이 시험에는 문제가 등록되지 않았습니다.')
+          navigate(`/student/course/${courseId}`)
+          return
+        }
+
         const quizData: Quiz = {
           id: exam.id.toString(),
           title: exam.title,
           courseId: exam.courseId?.toString() || courseId.toString(),
           courseTitle: courseData.title,
-          questions: (exam.questions || []).map((q: any) => ({
+          questions: exam.questions.map((q: any) => ({
             id: q.id.toString(),
             question: q.question,
             type: q.type as QuizQuestion['type'],
             options: q.options || [],
             correctAnswer: q.correctAnswer,
-            points: q.points,
-            explanation: q.explanation,
+            points: q.points || 10,
+            explanation: q.explanation || '',
           })),
-          timeLimit: exam.timeLimit || 30,
-          totalPoints: (exam.questions || []).reduce((sum: number, q: any) => sum + q.points, 0),
+          timeLimit: typeof exam.timeLimit === 'number' ? exam.timeLimit : undefined,
+          totalPoints: exam.questions.reduce((sum: number, q: any) => sum + (q.points || 10), 0),
           dueDate: exam.endDate,
         }
 
         setQuiz(quizData)
-        setTimeLeft(quizData.timeLimit * 60)
+        setTimeLeft(quizData.timeLimit ? quizData.timeLimit * 60 : 0)
+        setStartTime(Date.now())
+
+        if (submissionData) {
+          setHasExistingSubmission(true)
+          setAnswers(submissionData.answers || {})
+          localStorage.removeItem(`exam_answers_${courseId}_${quizId}`)
+          setIsSubmitted(true)
+          setShowReview(true)
+        } else {
+          setHasExistingSubmission(false)
+        }
       } catch (error) {
         console.error('퀴즈 로드 실패:', error)
         navigate(`/student/course/${courseId}`)
@@ -66,6 +123,45 @@ export default function QuizPlayer() {
     }
     loadQuiz()
   }, [quizId, courseId, navigate])
+
+  // handleSubmit을 useCallback으로 정의하여 useEffect에서 사용 가능하도록 함
+  const handleSubmit = useCallback(async () => {
+    if (!quizId || !courseId) return
+
+    setShowConfirmModal(false)
+    setSubmitting(true)
+    try {
+      const timeSpent = Math.floor((Date.now() - startTime) / 1000) // 초 단위
+      const { submitExam } = await import('../../core/api/exams')
+
+      await submitExam(Number(courseId), Number(quizId), answers, timeSpent)
+
+      // localStorage에서 답안 제거
+      localStorage.removeItem(`exam_answers_${courseId}_${quizId}`)
+
+      setHasExistingSubmission(true)
+      setIsSubmitted(true)
+      setShowReview(true)
+    } catch (error) {
+      console.error('시험 제출 실패:', error)
+      alert('시험 제출에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setSubmitting(false)
+    }
+  }, [quizId, courseId, answers, startTime])
+
+  // Timer effect - 모든 Hook은 early return 전에 호출되어야 함
+  useEffect(() => {
+    if (!quiz || !quiz.timeLimit || timeLeft <= 0 || isSubmitted) return
+
+    if (timeLeft > 0 && !isSubmitted) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
+      return () => clearTimeout(timer)
+    } else if (timeLeft === 0 && !isSubmitted) {
+      // 시간이 0이 되면 자동으로 제출
+      handleSubmit()
+    }
+  }, [timeLeft, isSubmitted, quiz, handleSubmit])
 
   if (loading) {
     return (
@@ -93,18 +189,6 @@ export default function QuizPlayer() {
 
   const currentQuestion = quiz.questions[currentQuestionIndex]
 
-  // Timer effect
-  useEffect(() => {
-    if (!quiz || timeLeft <= 0 || isSubmitted) return
-
-    if (timeLeft > 0 && !isSubmitted) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
-      return () => clearTimeout(timer)
-    } else if (timeLeft === 0 && !isSubmitted) {
-      handleSubmit()
-    }
-  }, [timeLeft, isSubmitted, quiz])
-
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
@@ -130,43 +214,15 @@ export default function QuizPlayer() {
     }
   }
 
-  const handleSubmit = () => {
-    setIsSubmitted(true)
-    setShowReview(true)
-  }
-
-  const calculateScore = () => {
-    let correct = 0
-    quiz.questions.forEach(question => {
-      const userAnswer = answers[question.id]
-      if (userAnswer === question.correctAnswer) {
-        correct++
-      }
-    })
-    return Math.round((correct / quiz.questions.length) * 100)
-  }
-
-  const getQuestionTypeLabel = (type: QuizQuestion['type']) => {
-    switch (type) {
-      case 'multiple-choice':
-        return '객관식'
-      case 'true-false':
-        return '참/거짓'
-      case 'short-answer':
-        return '주관식'
-      default:
-        return '문제'
-    }
-  }
-
-  const isTimeWarning = timeLeft < 300 // 5 minutes warning
+  const hasTimeLimit = Boolean(quiz.timeLimit && quiz.timeLimit > 0)
+  const isTimeWarning = hasTimeLimit && timeLeft < 300 // 5 minutes warning
 
   if (showReview) {
     return (
       <QuizReviewModal
         quiz={quiz}
         userAnswers={answers}
-        onClose={() => setShowReview(false)}
+        onClose={() => navigate(courseId ? `/student/course/${courseId}` : '/student/dashboard')}
       />
     )
   }
@@ -183,15 +239,22 @@ export default function QuizPlayer() {
             </div>
             <div className="flex items-center space-x-4">
               {/* Timer */}
-              <div className={`flex items-center px-4 py-2 rounded-lg ${
-                isTimeWarning ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-              }`}>
-                <Clock className="h-4 w-4 mr-2" />
-                <span className="font-mono text-lg">{formatTime(timeLeft)}</span>
-              </div>
+              {hasTimeLimit ? (
+                <div className={`flex items-center px-4 py-2 rounded-lg ${
+                  isTimeWarning ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span className="font-mono text-lg font-semibold">{formatTime(timeLeft)}</span>
+                </div>
+              ) : (
+                <div className="flex items-center px-4 py-2 rounded-lg bg-gray-100 text-gray-600">
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span className="font-semibold">제한 없음</span>
+                </div>
+              )}
 
               {/* Progress */}
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 font-medium">
                 {currentQuestionIndex + 1} / {quiz.questions.length}
               </div>
             </div>
@@ -199,7 +262,7 @@ export default function QuizPlayer() {
         </div>
 
         {/* Time Warning */}
-        {isTimeWarning && (
+        {hasTimeLimit && isTimeWarning && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center">
               <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
@@ -226,7 +289,7 @@ export default function QuizPlayer() {
                     </span>
                   </div>
                   <div className="text-sm text-gray-500">
-                    문제 {currentQuestionIndex + 1}
+                    문제 {currentQuestionIndex + 1} / {quiz.questions.length}
                   </div>
                 </div>
 
@@ -309,6 +372,16 @@ export default function QuizPlayer() {
                   </Button>
 
                   <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        // localStorage에 이미 자동 저장되므로 알림만 표시
+                        alert('답안이 자동으로 저장되었습니다.')
+                      }}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      저장
+                    </Button>
                     {currentQuestionIndex === quiz.questions.length - 1 ? (
                       <Button
                         onClick={() => setShowConfirmModal(true)}
@@ -334,19 +407,21 @@ export default function QuizPlayer() {
             {/* Quiz Info */}
             <Card>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">퀴즈 정보</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">시험 정보</h3>
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm font-medium text-gray-600">제한 시간</p>
-                    <p className="text-sm text-gray-900">{quiz.timeLimit}분</p>
+                    <p className="text-sm text-gray-900 font-semibold">
+                      {hasTimeLimit ? `${quiz.timeLimit}분` : '제한 없음'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">총 문제</p>
-                    <p className="text-sm text-gray-900">{quiz.questions.length}문제</p>
+                    <p className="text-sm text-gray-900 font-semibold">{quiz.questions.length}문제</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">총 점수</p>
-                    <p className="text-sm text-gray-900">{quiz.totalPoints}점</p>
+                    <p className="text-sm text-gray-900 font-semibold">{quiz.totalPoints}점</p>
                   </div>
                 </div>
               </div>
@@ -361,11 +436,11 @@ export default function QuizPlayer() {
                     <button
                       key={index}
                       onClick={() => setCurrentQuestionIndex(index)}
-                      className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                         index === currentQuestionIndex
                           ? 'bg-blue-600 text-white'
                           : answers[quiz.questions[index].id] !== undefined
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-green-100 text-green-800 border border-green-300'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -373,9 +448,9 @@ export default function QuizPlayer() {
                     </button>
                   ))}
                 </div>
-                <div className="mt-4 text-xs text-gray-500">
-                  <div className="flex items-center mb-1">
-                    <div className="w-3 h-3 bg-green-100 rounded mr-2"></div>
+                <div className="mt-4 text-xs text-gray-500 space-y-1">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-100 border border-green-300 rounded mr-2"></div>
                     <span>답변 완료</span>
                   </div>
                   <div className="flex items-center">
@@ -391,10 +466,10 @@ export default function QuizPlayer() {
         {/* Submit Confirmation Modal */}
         {showConfirmModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">퀴즈 제출 확인</h3>
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">시험 제출 확인</h3>
               <p className="text-gray-600 mb-6">
-                정말로 퀴즈를 제출하시겠습니까? 제출 후에는 답안을 수정할 수 없습니다.
+                정말로 시험을 제출하시겠습니까? 제출 후에는 답안을 수정할 수 없습니다.
               </p>
               <div className="flex space-x-3">
                 <Button
@@ -406,9 +481,10 @@ export default function QuizPlayer() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={submitting}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50"
                 >
-                  제출하기
+                  {submitting ? '제출 중...' : '제출하기'}
                 </Button>
               </div>
             </div>
@@ -418,14 +494,3 @@ export default function QuizPlayer() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-

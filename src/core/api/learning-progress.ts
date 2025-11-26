@@ -1,5 +1,4 @@
 import apiClient from './client'
-import { useAuth } from '../../contexts/AuthContext'
 
 export interface LearningProgress {
   id: number

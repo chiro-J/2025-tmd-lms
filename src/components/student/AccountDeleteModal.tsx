@@ -30,15 +30,28 @@ export default function AccountDeleteModal({ isOpen, onClose, onConfirm }: Accou
   const isValid = inputValue === CONFIRM_TEXT
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={(e) => {
+        // backdrop 클릭만 처리
+        if (e.target === e.currentTarget) {
+          handleClose()
+        }
+      }}
+    >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-none"
       />
 
       {/* Modal */}
-      <div className="relative bg-base-100 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
+      <div
+        className="relative bg-base-100 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"
+        onClick={(e) => {
+          // 모달 컨텐츠 내부 클릭은 이벤트 전파 중단
+          e.stopPropagation()
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-base-300 bg-error/5">
           <div className="flex items-center gap-3">
@@ -109,3 +122,4 @@ export default function AccountDeleteModal({ isOpen, onClose, onConfirm }: Accou
     </div>
   )
 }
+

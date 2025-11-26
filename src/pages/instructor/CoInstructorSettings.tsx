@@ -21,32 +21,28 @@ export default function CoInstructorSettings() {
       name: '김강사',
       email: 'instructor1@example.com',
       role: '메인 강의자',
-      notificationEnabled: true,
-      avatar: '김'
+      notificationEnabled: true
     },
     {
       id: 2,
       name: '김강사',
       email: 'instructor2@example.com',
       role: '공동 강의자',
-      notificationEnabled: true,
-      avatar: '김'
+      notificationEnabled: true
     },
     {
       id: 3,
       name: '김강사',
       email: 'instructor3@example.com',
       role: '공동 강의자',
-      notificationEnabled: false,
-      avatar: '김'
+      notificationEnabled: false
     },
     {
       id: 4,
       name: '김강사',
       email: 'instructor4@example.com',
       role: '공동 강의자',
-      notificationEnabled: false,
-      avatar: '김'
+      notificationEnabled: false
     }
   ])
 
@@ -150,7 +146,7 @@ export default function CoInstructorSettings() {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8">
                           <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-700">
-                            {instructor.avatar}
+                            {instructor.name.charAt(0)}
                           </div>
                         </div>
                         <div className="ml-4">

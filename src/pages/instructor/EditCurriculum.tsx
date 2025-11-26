@@ -8,14 +8,17 @@ import { pdfjs } from 'react-pdf'
 import { transformApiToEditFormat } from '../../utils/curriculumTransform'
 import type { ContentBlock, ContentBlockType, Curriculum, Lesson } from '../../types/curriculum'
 import LessonContentEditor from '../../components/instructor/LessonContentEditor'
+import { getCourse } from '../../core/api/courses'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 export default function EditCurriculum() {
   const { id } = useParams()
   const courseId = Number(id) || 1
+  const [course, setCourse] = useState<{ title: string } | null>(null)
   const [curriculums, setCurriculums] = useState<Curriculum[]>([])
   const [expandedCurriculums, setExpandedCurriculums] = useState<string[]>([])
+  const [allExpanded, setAllExpanded] = useState(false)
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [content, setContent] = useState<string>('')
@@ -222,19 +225,31 @@ export default function EditCurriculum() {
     return (match && match[2].length === 11) ? match[2] : null
   }
 
-  // DB에서 커리큘럼 데이터 로드
-  const loadCurriculum = async () => {
-    try {
-      const { getCurriculum } = await import('../../core/api/curriculum')
-      const apiModules = await getCurriculum(courseId)
-      const transformed = transformApiToEditFormat(apiModules)
-      setCurriculums(transformed)
-    } catch (error) {
-      console.error('커리큘럼 로드 실패:', error)
-    }
-  }
-
+  // DB에서 강의 정보 로드
   useEffect(() => {
+    const loadCourse = async () => {
+      try {
+        const courseData = await getCourse(courseId)
+        setCourse(courseData)
+      } catch (error) {
+        console.error('강의 정보 로드 실패:', error)
+      }
+    }
+    loadCourse()
+  }, [courseId])
+
+  // DB에서 커리큘럼 데이터 로드
+  useEffect(() => {
+    const loadCurriculum = async () => {
+      try {
+        const { getCurriculum } = await import('../../core/api/curriculum')
+        const apiModules = await getCurriculum(courseId)
+        const transformed = transformApiToEditFormat(apiModules)
+        setCurriculums(transformed)
+      } catch (error) {
+        console.error('커리큘럼 로드 실패:', error)
+      }
+    }
     loadCurriculum()
   }, [courseId])
 
@@ -498,6 +513,16 @@ export default function EditCurriculum() {
     )
   }
 
+  const toggleAllCurriculums = () => {
+    setAllExpanded(!allExpanded)
+    if (allExpanded) {
+      setExpandedCurriculums([])
+    } else {
+      setExpandedCurriculums(curriculums.map(c => c.id))
+    }
+  }
+
+
   const renderLesson = (lesson: Lesson, curriculumId: string) => {
     const isEditing = editingLessonId === lesson.id
 
@@ -621,44 +646,54 @@ export default function EditCurriculum() {
       currentPageTitle="교육과정"
       rightActions={
         !isEditMode ? (
-          <Button
-            onClick={async () => {
-              if (selectedLesson) {
-                const curriculum = curriculums.find(c => c.lessons.some(l => l.id === selectedLesson.id))
-                if (curriculum) {
-                  await loadLessonContent(selectedLesson, curriculum.id)
+            <Button
+              onClick={async () => {
+                if (selectedLesson) {
+                  const curriculum = curriculums.find(c => c.lessons.some(l => l.id === selectedLesson.id))
+                  if (curriculum) {
+                    await loadLessonContent(selectedLesson, curriculum.id)
+                  }
                 }
-              }
-              setIsEditMode(true)
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center space-x-2"
-          >
-            <Edit className="h-4 w-4" />
-            <span>편집하기</span>
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSave}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center space-x-2"
-          >
-            <Save className="h-4 w-4" />
-            <span>변경내용 저장하기</span>
-          </Button>
+                setIsEditMode(true)
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center space-x-2"
+            >
+              <Edit className="h-4 w-4" />
+              <span>편집하기</span>
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSave}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center space-x-2"
+            >
+              <Save className="h-4 w-4" />
+              <span>변경내용 저장하기</span>
+            </Button>
         )
       }
     >
       <div className="flex gap-6 h-full">
         {/* 왼쪽 사이드바 - 커리큘럼 목록 */}
         <div className="w-80 flex-shrink-0 bg-white rounded-xl shadow-md border-2 border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">강의 구성</h2>
-            {isEditMode && (
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-gray-900 truncate">{course?.title || '강의 구성'}</h2>
+              {isEditMode && (
+                <button
+                  onClick={() => setShowAddCurriculumForm(!showAddCurriculumForm)}
+                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="목차 추가"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+            {curriculums.length > 0 && (
               <button
-                onClick={() => setShowAddCurriculumForm(!showAddCurriculumForm)}
-                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                title="목차 추가"
+                onClick={toggleAllCurriculums}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                <Plus className="h-5 w-5" />
+                {allExpanded ? '모두 접기' : '모두 펼치기'}
               </button>
             )}
           </div>
@@ -707,7 +742,7 @@ export default function EditCurriculum() {
 
             {/* 강의 목록 */}
             <div className="overflow-y-auto">
-              {curriculums.map((curriculum) => {
+              {curriculums.map((curriculum, moduleIndex) => {
                 const isExpanded = expandedCurriculums.includes(curriculum.id)
                 const isEditing = editingCurriculumId === curriculum.id
                 const isDragged = draggedCurriculumId === curriculum.id
@@ -737,6 +772,9 @@ export default function EditCurriculum() {
                           ) : (
                             <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
                           )}
+                          <span className="text-primary font-semibold text-sm flex-shrink-0">
+                            {String(moduleIndex + 1).padStart(2, '0')}
+                          </span>
                           {isEditing ? (
                             <div className="flex-1 space-y-2">
                               <input

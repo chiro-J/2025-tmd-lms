@@ -120,3 +120,4 @@ export const updateTraining = async (userId: number, id: string, training: Parti
 export const deleteTraining = async (userId: number, id: string): Promise<void> => {
   await apiClient.delete(`/users/${userId}/profile/trainings/${id}`)
 }
+

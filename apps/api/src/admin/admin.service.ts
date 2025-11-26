@@ -389,9 +389,10 @@ export class AdminService {
 
   // ========== 공지사항 관련 ==========
   async findAllNotices(): Promise<Notice[]> {
-    return this.noticeRepository.find({
+    const notices = await this.noticeRepository.find({
       order: { createdAt: 'DESC' },
     });
+    return notices;
   }
 
   async findNoticeById(id: number): Promise<Notice> {
@@ -407,25 +408,67 @@ export class AdminService {
     content: string;
     author: string;
     priority?: 'low' | 'medium' | 'high';
+    attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
   }): Promise<Notice> {
+    // attachments 처리: 빈 배열이면 null로 변환
+    let attachmentsData = null;
+    if (data.attachments && Array.isArray(data.attachments) && data.attachments.length > 0) {
+      attachmentsData = data.attachments;
+    }
+
     const notice = this.noticeRepository.create({
       title: data.title,
       content: data.content,
       author: data.author,
       priority: data.priority || 'medium',
       status: 'active',
+      attachments: attachmentsData,
     });
-    return this.noticeRepository.save(notice);
+    const saved = await this.noticeRepository.save(notice);
+    return saved;
   }
 
   async updateNotice(id: number, data: Partial<Notice>): Promise<Notice> {
     const notice = await this.findNoticeById(id);
+
+    // 첨부파일이 변경되는 경우, 이전 첨부파일 삭제
+    if (data.attachments !== undefined && notice.attachments) {
+      const uploadService = await getUploadService();
+      const oldAttachments = Array.isArray(notice.attachments) ? notice.attachments : [];
+      const newAttachments = data.attachments ? (Array.isArray(data.attachments) ? data.attachments : []) : [];
+
+      // 이전 첨부파일 중 새로운 목록에 없는 파일 삭제
+      const newUrls = new Set(newAttachments.map(a => a.url));
+      for (const attachment of oldAttachments) {
+        if (!newUrls.has(attachment.url)) {
+          try {
+            await uploadService.deleteFile(attachment.url);
+          } catch (error) {
+            console.error(`공지사항 첨부파일 삭제 실패: ${attachment.url}`, error);
+          }
+        }
+      }
+    }
+
     Object.assign(notice, data);
     return this.noticeRepository.save(notice);
   }
 
   async deleteNotice(id: number): Promise<void> {
     const notice = await this.findNoticeById(id);
+
+    // 첨부파일 삭제
+    if (notice.attachments && Array.isArray(notice.attachments)) {
+      const uploadService = await getUploadService();
+          for (const attachment of notice.attachments) {
+            try {
+              await uploadService.deleteFile(attachment.url);
+            } catch (error) {
+              console.error(`공지사항 첨부파일 삭제 실패: ${attachment.url}`, error);
+            }
+          }
+    }
+
     await this.noticeRepository.remove(notice);
   }
 
@@ -452,7 +495,7 @@ export class AdminService {
         inquiries = await queryRunner.query(`
           SELECT
             id, title, content, user_name as "userName",
-            email, user_role as "userRole", status, response, "createdAt"
+            email, user_role as "userRole", status, response, attachments, "createdAt"
           FROM inquiries
           ORDER BY "createdAt" DESC
         `);
@@ -460,7 +503,7 @@ export class AdminService {
         inquiries = await queryRunner.query(`
           SELECT
             id, title, content, user_name as "userName",
-            email, NULL as "userRole", status, response, "createdAt"
+            email, NULL as "userRole", status, response, attachments, "createdAt"
           FROM inquiries
           ORDER BY "createdAt" DESC
         `);
@@ -491,6 +534,7 @@ export class AdminService {
             : new Date(inquiry.createdAt)),
           status: inquiry.status,
           response: inquiry.response || null,
+          attachments: inquiry.attachments || null,
         });
       }
 
@@ -515,33 +559,72 @@ export class AdminService {
     return this.inquiryRepository.save(inquiry);
   }
 
+  async deleteInquiry(id: number): Promise<void> {
+    const inquiry = await this.findInquiryById(id);
+
+    // 첨부파일 삭제
+    if (inquiry.attachments && Array.isArray(inquiry.attachments)) {
+      const uploadService = await getUploadService();
+          for (const attachment of inquiry.attachments) {
+            try {
+              await uploadService.deleteFile(attachment.url);
+            } catch (error) {
+              console.error(`문의사항 첨부파일 삭제 실패: ${attachment.url}`, error);
+            }
+          }
+    }
+
+    await this.inquiryRepository.remove(inquiry);
+  }
+
   async createInquiry(
     data: {
       title: string;
       content: string;
-      courseName?: string;
-      courseNumber?: string;
+      attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
     },
     userId: number,
   ): Promise<Inquiry> {
-    // User 테이블에서 사용자 정보 조회
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    try {
+      // User 테이블에서 사용자 정보 조회
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException('사용자를 찾을 수 없습니다.');
+      }
+
+      // 역할에 따라 userRole 설정: student = 1, instructor = 2
+      const userRole = user.role === 'instructor' ? 2 : 1;
+
+      // attachments 처리: 빈 배열이면 null로 변환
+      let attachmentsData = null;
+      if (data.attachments && Array.isArray(data.attachments) && data.attachments.length > 0) {
+        attachmentsData = data.attachments;
+      }
+
+
+      // Inquiry 엔티티 직접 생성 (타입 안전성 확보)
+      const inquiry = new Inquiry();
+      inquiry.title = data.title;
+      inquiry.content = data.content;
+      inquiry.userName = user.name;
+      inquiry.email = user.email;
+      inquiry.userRole = userRole;
+      inquiry.status = 'pending';
+      inquiry.response = null; // 초기값 명시
+      inquiry.attachments = attachmentsData;
+
+
+      try {
+        const saved = await this.inquiryRepository.save(inquiry);
+        return saved;
+      } catch (saveError) {
+        console.error('문의하기 저장 실패:', saveError.message);
+        throw saveError;
+      }
+    } catch (error) {
+      console.error('문의하기 생성 서비스 에러:', error.message, error.stack);
+      throw error;
     }
-
-    // 역할에 따라 userRole 설정: student = 1, instructor = 2
-    const userRole = user.role === 'instructor' ? 2 : 1;
-
-    const inquiry = this.inquiryRepository.create({
-      title: data.title,
-      content: data.content,
-      userName: user.name,
-      email: user.email,
-      userRole: userRole,
-      status: 'pending',
-    });
-    return this.inquiryRepository.save(inquiry);
   }
 
   async findInquiriesByEmail(email: string): Promise<InquiryResponseDto[]> {
@@ -564,7 +647,7 @@ export class AdminService {
         inquiries = await queryRunner.query(`
           SELECT
             id, title, content, user_name as "userName",
-            email, user_role as "userRole", status, response, "createdAt"
+            email, user_role as "userRole", status, response, attachments, "createdAt"
           FROM inquiries
           WHERE email = $1
           ORDER BY "createdAt" DESC
@@ -573,7 +656,7 @@ export class AdminService {
         inquiries = await queryRunner.query(`
           SELECT
             id, title, content, user_name as "userName",
-            email, NULL as "userRole", status, response, "createdAt"
+            email, NULL as "userRole", status, response, attachments, "createdAt"
           FROM inquiries
           WHERE email = $1
           ORDER BY "createdAt" DESC
@@ -607,6 +690,7 @@ export class AdminService {
             : new Date(inquiry.createdAt)),
           status: inquiry.status,
           response: inquiry.response || null,
+          attachments: inquiry.attachments || null,
         });
       }
 

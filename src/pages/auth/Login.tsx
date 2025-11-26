@@ -126,9 +126,14 @@ export default function Login() {
       if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
         errorMessage = '백엔드 서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.\n\n터미널에서 다음 명령어로 백엔드를 실행하세요:\ncd apps/api && npm run start:dev';
       } else if (error.response?.status === 401) {
-        errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        const backendMessage = error.response?.data?.message || error.message || '';
+        if (backendMessage.includes('Invalid credentials') || backendMessage.includes('이메일') || backendMessage.includes('비밀번호')) {
+          errorMessage = `빠른 로그인 실패: ${email} 계정이 DB에 없거나 비밀번호가 일치하지 않습니다.\n\n해결 방법:\n1. DB에 해당 계정이 있는지 확인하세요\n2. 비밀번호가 올바르게 해시화되어 있는지 확인하세요\n3. 회원가입을 통해 새 계정을 생성하세요`;
+        } else {
+          errorMessage = `이메일 또는 비밀번호가 올바르지 않습니다.\n\n시도한 계정: ${email}`;
+        }
       } else if (error.response?.status === 404) {
-        errorMessage = '해당 계정이 존재하지 않습니다.';
+        errorMessage = `해당 계정이 존재하지 않습니다.\n\n시도한 계정: ${email}\n\n회원가입을 통해 새 계정을 생성하세요.`;
       } else {
         errorMessage = error.response?.data?.message || error.message || errorMessage;
       }

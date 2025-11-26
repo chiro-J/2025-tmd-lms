@@ -126,6 +126,12 @@ export function useQuestionForm(
       const now = new Date().toISOString().split('T')[0]
       const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 
+      // examId가 필수인지 확인
+      if (!examId) {
+        alert('시험 정보가 없습니다. 먼저 시험을 생성해주세요.')
+        return
+      }
+
       // 백엔드에 저장할 데이터 변환
       const questionData: any = {
         type: formData.type,
@@ -135,11 +141,7 @@ export function useQuestionForm(
         points: formData.points,
         explanation: formData.explanation || undefined,
         status: 'review',
-      }
-
-      // examId가 제공된 경우 포함
-      if (examId) {
-        questionData.examId = examId
+        examId: examId, // examId 필수 포함
       }
 
       // 임시 ID인지 확인 (temp-로 시작하면 새 문제)
@@ -214,6 +216,12 @@ export function useQuestionForm(
       const now = new Date().toISOString().split('T')[0]
       const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 
+      // examId가 필수인지 확인
+      if (!examId) {
+        alert('시험 정보가 없습니다. 먼저 시험을 생성해주세요.')
+        return
+      }
+
       // 백엔드에 저장할 데이터 변환
       const questionData: any = {
         type: formData.type,
@@ -223,11 +231,7 @@ export function useQuestionForm(
         points: formData.points,
         explanation: formData.explanation || undefined,
         status: 'completed',
-      }
-
-      // examId가 제공된 경우 포함
-      if (examId) {
-        questionData.examId = examId
+        examId: examId, // examId 필수 포함
       }
 
       // 임시 ID인지 확인 (temp-로 시작하면 새 문제)

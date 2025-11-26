@@ -427,15 +427,16 @@ function StudentCalendar() {
           onClick={(e) => handleDateClick(day, e)}
           className={`
             aspect-square flex items-center justify-center text-xs font-medium rounded-lg cursor-pointer
-            ${isToday ? 'border-2 border-black text-neutral-900 font-bold' : ''}
-            ${ledClassName}
+            ${isToday ? 'bg-yellow-50 text-neutral-900 font-bold' : ''}
+            ${!isToday ? ledClassName : ''}
             ${!isToday && !isHighlighted && isSunday ? 'text-red-500' : ''}
             ${!isToday && !isHighlighted && isSaturday ? 'text-blue-500' : ''}
             ${!isToday && !isHighlighted && !isSunday && !isSaturday ? 'text-neutral-700' : ''}
-            ${!isHighlighted ? 'hover:bg-neutral-100' : ''}
+            ${!isHighlighted && !isToday ? 'hover:bg-neutral-100' : ''}
+            ${isToday ? 'hover:bg-yellow-100' : ''}
             transition-all duration-200
           `}
-          style={ledStyleObj}
+          style={!isToday ? ledStyleObj : undefined}
         >
           {day}
         </div>

@@ -7,14 +7,14 @@ import apiClient from './client'
  * @param type 파일 타입
  * @param source 파일 출처 (lesson, thumbnail, assignment, resource)
  */
-export const uploadFile = async (file: File, type: 'pdf' | 'image' | 'video', source: 'lesson' | 'thumbnail' | 'assignment' | 'resource' = 'lesson'): Promise<{ url: string }> => {
+export const uploadFile = async (file: File, type: 'pdf' | 'image' | 'video', source: 'lesson' | 'thumbnail' | 'assignment' | 'resource' | 'notice' | 'inquiry' = 'lesson'): Promise<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> => {
   try {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('type', type)
     formData.append('source', source)
 
-    const response = await apiClient.post<{ url: string }>('/upload', formData, {
+    const response = await apiClient.post<{ url: string; filename: string; originalname: string; mimetype: string; size: number }>('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

@@ -80,6 +80,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
+
       const payload = { email: user.email, sub: user.id, role: user.role };
       const accessToken = this.jwtService.sign(payload);
       const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });

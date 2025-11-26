@@ -46,7 +46,7 @@ export class CoursesController {
   async updateCourseNotice(
     @Param('id') id: string,
     @Param('noticeId') noticeId: string,
-    @Body() data: { title: string; content: string },
+    @Body() data: { title: string; content: string; attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null },
   ) {
     try {
       return await this.coursesService.updateCourseNotice(+id, +noticeId, data);
@@ -64,12 +64,26 @@ export class CoursesController {
   @Post(':id/notices')
   async createCourseNotice(
     @Param('id') id: string,
-    @Body() data: { title: string; content: string },
+    @Body() data: { title: string; content: string; attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null },
   ) {
     try {
       return await this.coursesService.createCourseNotice(+id, data);
     } catch (error) {
       console.error('공지사항 생성 컨트롤러 에러:', error);
+      throw error;
+    }
+  }
+
+  @Delete(':id/notices/:noticeId')
+  async deleteCourseNotice(
+    @Param('id') id: string,
+    @Param('noticeId') noticeId: string,
+  ) {
+    try {
+      await this.coursesService.deleteCourseNotice(+id, +noticeId);
+      return { message: '공지사항이 삭제되었습니다.' };
+    } catch (error) {
+      console.error('공지사항 삭제 컨트롤러 에러:', error);
       throw error;
     }
   }

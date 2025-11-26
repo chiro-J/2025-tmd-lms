@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Mail, Phone, MapPin, Edit3, Save, X, AlertTriangle } from 'lucide-react'
+import { Mail, Phone, MapPin, Edit3, Save, X, AlertTriangle, Loader2 } from 'lucide-react'
 import Card from '../ui/Card'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
@@ -10,12 +10,13 @@ import AccountDeleteModal from './AccountDeleteModal'
 import * as authApi from '../../core/api/auth'
 
 export default function PersonalInfoTab() {
-  const { profileData, updateProfile, saveToLocalStorage } = useProfile()
+  const { profileData, updateAndSave } = useProfile()
   const { logout } = useAuth()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(profileData)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   // profileData가 변경될 때 formData 동기화
   useEffect(() => {
@@ -28,9 +29,15 @@ export default function PersonalInfoTab() {
   }
 
   const handleSave = async () => {
-    updateProfile(formData)
-    await saveToLocalStorage()
-    setIsEditing(false)
+    setIsSaving(true)
+    try {
+      await updateAndSave(formData)
+      setIsEditing(false)
+    } catch (error) {
+      alert('개인정보 저장에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleCancel = () => {
@@ -48,11 +55,14 @@ export default function PersonalInfoTab() {
     const today = new Date()
     const formattedDate = `${String(today.getFullYear()).slice(2)}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`
 
-    updateProfile({
-      [field]: true,
-      [dateField]: formattedDate
-    })
-    await saveToLocalStorage()
+    try {
+      await updateAndSave({
+        [field]: true,
+        [dateField]: formattedDate
+      })
+    } catch (error) {
+      alert('소셜 로그인 연동 저장에 실패했습니다. 다시 시도해주세요.')
+    }
   }
 
   const handleDeleteAccount = async () => {
@@ -158,13 +168,24 @@ export default function PersonalInfoTab() {
                 <Button
                   onClick={handleSave}
                   className="btn-primary"
+                  disabled={isSaving}
                 >
-                  <Save className="h-4 w-4" />
-                  저장
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      저장 중...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      저장
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={handleCancel}
                   className="btn-outline"
+                  disabled={isSaving}
                 >
                   <X className="h-4 w-4" />
                   취소

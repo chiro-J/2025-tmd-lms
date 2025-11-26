@@ -19,6 +19,9 @@ export class CourseNotice {
   @Column({ type: 'text' })
   content: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  attachments: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

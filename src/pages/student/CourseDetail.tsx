@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronUp, FileText, CheckCircle, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut, Calendar, Lock, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle, BookOpen, MessageSquare, Download, Image, Code, Link, Search, LogOut, Calendar, Lock, ChevronLeft, ChevronRight, Eye, File } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
@@ -10,10 +10,13 @@ import { transformApiToDetailFormat } from '../../utils/curriculumTransform'
 import { getCourse, getCourseNotices, getCourseQnAs, createCourseQnA, createCourseQnAAnswer, getCourseResources, unenrollFromCourse, type CourseNotice, type CourseQnA, type CourseResource } from '../../core/api/courses'
 import { normalizeThumbnailUrl } from '../../utils/thumbnail'
 import { getAssignments, getMySubmission } from '../../core/api/assignments'
+import { getExamsByCourse, getMyExamSubmission } from '../../core/api/exams'
+import { getLearningProgress } from '../../core/api/learning-progress'
 import { safeHtml } from '../../utils/safeHtml'
 import { getYouTubeVideoId } from '../../utils/youtube'
 import type { Course } from '../../types'
 import type { Assignment } from '../../types/assignment'
+import type { Exam } from '../../types/exam'
 
 function CourseNotices({ courseId }: { courseId: number }) {
   const navigate = useNavigate()
@@ -67,10 +70,20 @@ function CourseNotices({ courseId }: { courseId: number }) {
                 className="border border-gray-200 rounded-lg p-4 bg-white hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
                 onClick={() => navigate(`/student/course/${courseId}/notice/${notice.id}`)}
               >
-                <h4 className="font-medium text-gray-900 mb-2">{notice.title}</h4>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>{formatDate(notice.createdAt)}</span>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 mb-2">{notice.title}</h4>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      <span>{formatDate(notice.createdAt)}</span>
+                    </div>
+                  </div>
+                  {notice.attachments && notice.attachments.length > 0 && (
+                    <div className="flex items-center gap-1 text-blue-600 ml-2">
+                      <File className="h-4 w-4" />
+                      <span className="text-xs">{notice.attachments.length}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -100,7 +113,7 @@ export default function CourseDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'home' | 'info' | 'exam' | 'notice' | 'resources' | 'qna'>('home')
+  const [activeTab, setActiveTab] = useState<'home' | 'info' | 'exam' | 'assignment' | 'notice' | 'resources' | 'qna'>('home')
 
   // 강의 자료 관련 상태
   const [resources, setResources] = useState<CourseResource[]>([])
@@ -124,8 +137,12 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null)
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [exams, setExams] = useState<Exam[]>([])
+  const [examsLoading, setExamsLoading] = useState(true)
+  const [examSubmissionStatus, setExamSubmissionStatus] = useState<Record<number, boolean>>({})
   const [submissionStatuses, setSubmissionStatuses] = useState<Record<number, boolean>>({})
   const [lastLearnedLessonTitle, setLastLearnedLessonTitle] = useState<string | null>(null)
+  const [lastLearnedDate, setLastLearnedDate] = useState<string | null>(null)
   const [instructorInfo, setInstructorInfo] = useState<{ name: string; email: string; userId?: number } | null>(null)
 
   // 강좌 목록에서 제거
@@ -187,6 +204,63 @@ export default function CourseDetail() {
 
     loadCourse()
   }, [courseId])
+
+  // DB에서 시험 목록 로드
+  useEffect(() => {
+    const loadExams = async () => {
+      try {
+        setExamsLoading(true)
+        const examsData = await getExamsByCourse(courseId)
+        setExams(examsData || [])
+      } catch (error: any) {
+        // 네트워크 오류는 조용히 처리 (백엔드가 꺼져있을 수 있음)
+        if (error.code === 'ERR_NETWORK' || error.code === 'ERR_CONNECTION_REFUSED') {
+          setExams([])
+        } else {
+          console.error('시험 목록 로드 실패:', error)
+          setExams([])
+        }
+      } finally {
+        setExamsLoading(false)
+      }
+    }
+
+    loadExams()
+  }, [courseId])
+
+  // 시험 제출 상태 확인
+  useEffect(() => {
+    const loadExamSubmissions = async () => {
+      if (!exams || exams.length === 0) {
+        setExamSubmissionStatus({})
+        return
+      }
+
+      const statuses: Record<number, boolean> = {}
+      // 순차 처리로 변경하여 에러 로그 감소
+      for (const exam of exams) {
+        try {
+          const submission = await getMyExamSubmission(courseId, exam.id)
+          statuses[exam.id] = Boolean(submission)
+        } catch (error: any) {
+          // 401, 404, 네트워크 오류는 정상적인 경우이므로 조용히 처리
+          const isSilentError =
+            error.response?.status === 401 ||
+            error.response?.status === 404 ||
+            error.code === 'ERR_NETWORK' ||
+            error.code === 'ERR_CONNECTION_REFUSED';
+
+          if (!isSilentError) {
+            console.error(`시험 ${exam.id} 제출 상태 확인 실패:`, error)
+          }
+          statuses[exam.id] = false
+        }
+      }
+      setExamSubmissionStatus(statuses)
+    }
+
+    loadExamSubmissions()
+  }, [courseId, exams])
 
   // DB에서 과제 목록 로드
   useEffect(() => {
@@ -297,26 +371,83 @@ export default function CourseDetail() {
 
         setCurriculum(transformed)
 
-        // 마지막 수강한 레슨 찾기
-        const lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
-        if (lastLearnedLessonId && transformed.length > 0) {
-          for (const module of transformed) {
-            const lesson = module.lessons.find(l => {
-              if (l.id === lastLearnedLessonId || l.id === `lesson-${lastLearnedLessonId}`) {
-                return true
+        // 마지막 수강한 레슨 찾기 (API 우선, localStorage 폴백)
+        if (user?.id) {
+          try {
+            const userId = typeof user.id === 'number' ? user.id : Number(user.id)
+            const progress = await getLearningProgress(userId, courseId)
+
+            if (progress?.lessonId && transformed.length > 0) {
+              const lastLearnedLessonId = String(progress.lessonId)
+              for (const module of transformed) {
+                const lesson = module.lessons.find(l => {
+                  if (l.id === lastLearnedLessonId || l.id === `lesson-${lastLearnedLessonId}`) {
+                    return true
+                  }
+                  if (l.id.includes('-')) {
+                    const parts = l.id.split('-')
+                    const lessonIdPart = parts[parts.length - 1]
+                    return lessonIdPart === lastLearnedLessonId || Number(lessonIdPart) === Number(lastLearnedLessonId)
+                  }
+                  const lessonIdNum = Number(l.id.replace('lesson-', '').replace(/^.*-/, ''))
+                  const lastLearnedNum = Number(lastLearnedLessonId)
+                  return !isNaN(lessonIdNum) && !isNaN(lastLearnedNum) && lessonIdNum === lastLearnedNum
+                })
+                if (lesson) {
+                  setLastLearnedLessonTitle(lesson.title)
+                  if (progress.lastAccessedAt) {
+                    setLastLearnedDate(progress.lastAccessedAt)
+                  }
+                  break
+                }
               }
-              if (l.id.includes('-')) {
-                const parts = l.id.split('-')
-                const lessonIdPart = parts[parts.length - 1]
-                return lessonIdPart === lastLearnedLessonId || Number(lessonIdPart) === Number(lastLearnedLessonId)
+            } else {
+              // API에 데이터가 없으면 localStorage 폴백
+              const lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
+              if (lastLearnedLessonId && transformed.length > 0) {
+                for (const module of transformed) {
+                  const lesson = module.lessons.find(l => {
+                    if (l.id === lastLearnedLessonId || l.id === `lesson-${lastLearnedLessonId}`) {
+                      return true
+                    }
+                    if (l.id.includes('-')) {
+                      const parts = l.id.split('-')
+                      const lessonIdPart = parts[parts.length - 1]
+                      return lessonIdPart === lastLearnedLessonId || Number(lessonIdPart) === Number(lastLearnedLessonId)
+                    }
+                    const lessonIdNum = Number(l.id.replace('lesson-', '').replace(/^.*-/, ''))
+                    const lastLearnedNum = Number(lastLearnedLessonId)
+                    return !isNaN(lessonIdNum) && !isNaN(lastLearnedNum) && lessonIdNum === lastLearnedNum
+                  })
+                  if (lesson) {
+                    setLastLearnedLessonTitle(lesson.title)
+                  }
+                }
               }
-              const lessonIdNum = Number(l.id.replace('lesson-', '').replace(/^.*-/, ''))
-              const lastLearnedNum = Number(lastLearnedLessonId)
-              return !isNaN(lessonIdNum) && !isNaN(lastLearnedNum) && lessonIdNum === lastLearnedNum
-            })
-            if (lesson) {
-              setLastLearnedLessonTitle(lesson.title)
-              break
+            }
+          } catch (error) {
+            console.error('학습 진행률 조회 실패:', error)
+            // 실패 시 localStorage 폴백
+            const lastLearnedLessonId = localStorage.getItem(`lastLearnedLesson_${courseId}`)
+            if (lastLearnedLessonId && transformed.length > 0) {
+              for (const module of transformed) {
+                const lesson = module.lessons.find(l => {
+                  if (l.id === lastLearnedLessonId || l.id === `lesson-${lastLearnedLessonId}`) {
+                    return true
+                  }
+                  if (l.id.includes('-')) {
+                    const parts = l.id.split('-')
+                    const lessonIdPart = parts[parts.length - 1]
+                    return lessonIdPart === lastLearnedLessonId || Number(lessonIdPart) === Number(lastLearnedLessonId)
+                  }
+                  const lessonIdNum = Number(l.id.replace('lesson-', '').replace(/^.*-/, ''))
+                  const lastLearnedNum = Number(lastLearnedLessonId)
+                  return !isNaN(lessonIdNum) && !isNaN(lastLearnedNum) && lessonIdNum === lastLearnedNum
+                })
+                if (lesson) {
+                  setLastLearnedLessonTitle(lesson.title)
+                }
+              }
             }
           }
         }
@@ -562,7 +693,9 @@ export default function CourseDetail() {
   const tabs = [
     { id: 'home', label: '강좌 홈', icon: BookOpen },
     { id: 'info', label: '강좌 정보', icon: FileText },
-    { id: 'exam', label: '시험/과제', icon: CheckCircle },
+    { id: 'exam', label: '시험', icon: CheckCircle },
+    { id: 'assignment', label: '과제', icon: FileText },
+    { id: 'notice', label: '공지사항', icon: FileText },
     { id: 'resources', label: '강의 자료', icon: FileText },
     { id: 'qna', label: 'Q&A', icon: MessageSquare }
   ] as const
@@ -586,34 +719,41 @@ export default function CourseDetail() {
         {/* Course Header */}
         <div className="card p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-6">
-            <div className="w-full lg:w-80 h-48 rounded-xl overflow-hidden flex-shrink-0 relative">
+            <div className="w-full lg:w-80 aspect-video rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
               <img
                 src={normalizeThumbnailUrl(course?.thumbnail, '/thumbnails/bbb.jpg')}
                 alt={course?.title || '강좌 썸네일'}
                 className="w-full h-full object-cover"
               />
-              {course?.title && (
-                <div className="absolute bottom-2 left-2 text-white font-bold text-sm">
-                  {course.title.length > 10 ? course.title.substring(0, 10) + '...' : course.title}
-                </div>
-              )}
             </div>
             <div className="flex-1">
               <div className="mb-4">
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   {course?.title || '강좌 제목'}
                 </h1>
-                {lastLearnedLessonTitle ? (
-                  <p className="text-gray-600 mb-4">마지막 수강: {lastLearnedLessonTitle}</p>
-                ) : (
-                  <p className="text-gray-600 mb-4">마지막 수강: 수강 기록이 없습니다</p>
-                )}
+                <div className="mb-4 space-y-1">
+                  {lastLearnedLessonTitle ? (
+                    <p className="text-gray-600">마지막 수강 강의: {lastLearnedLessonTitle}</p>
+                  ) : (
+                    <p className="text-gray-600">마지막 수강 강의: 수강 기록이 없습니다</p>
+                  )}
+                  {lastLearnedDate ? (
+                    <p className="text-gray-600">
+                      마지막 학습 일자: {(() => {
+                        const date = new Date(lastLearnedDate)
+                        return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
+                      })()}
+                    </p>
+                  ) : (
+                    <p className="text-gray-600">마지막 학습 일자: 기록 없음</p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex space-x-3 mb-4">
+              <div className="flex justify-end space-x-3 mb-4">
                 <Button
                   onClick={() => navigate(`/student/learning/${id}`)}
-                  className="px-8 py-3 flex items-center justify-center"
+                  className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center justify-center space-x-2"
                 >
                   이어하기
                 </Button>
@@ -738,10 +878,10 @@ export default function CourseDetail() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1 flex items-center space-x-2">
-                            <span className="text-primary font-medium text-sm">
+                            <span className="text-primary font-semibold text-sm">
                               {String(index + 1).padStart(2, '0')}
                             </span>
-                            <h4 className="font-medium text-base-content text-sm">
+                            <h4 className="font-semibold text-base-content text-base">
                               {item.title}
                             </h4>
                           </div>
@@ -771,16 +911,9 @@ export default function CourseDetail() {
                                 handleLessonClick(lesson.id)
                               }}
                             >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3 ml-4">
-                                  <FileText className="h-4 w-4 text-base-content/60" />
-                                  <span className="text-sm text-base-content/80">{lesson.title}</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  {lesson.completed && (
-                                    <CheckCircle className="h-4 w-4 text-primary" />
-                                  )}
-                                </div>
+                              <div className="flex items-center space-x-3 ml-6">
+                                <FileText className="h-4 w-4 text-base-content/60" />
+                                <span className="text-sm font-normal text-base-content/70">{lesson.title}</span>
                               </div>
                             </div>
                           ))}
@@ -794,49 +927,199 @@ export default function CourseDetail() {
 
             {activeTab === 'info' && (
               <div id="tabpanel-info" role="tabpanel" aria-labelledby="tab-info">
-                <div className="space-y-6">
-                  {/* Course Content - 강좌 소개를 위로 이동 */}
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">강좌 소개</h3>
-                    {course?.content ? (
-                      <div
-                        className="text-gray-700 prose max-w-none"
-                        dangerouslySetInnerHTML={{ __html: safeHtml(course.content) }}
-                      />
-                    ) : (
-                      <div className="text-gray-500">강좌 소개 내용이 없습니다.</div>
-                    )}
-                  </Card>
-
-                  {/* Course Video - 소개 영상을 아래로 이동 */}
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">소개 영상</h3>
-                    {course?.videoUrl ? (
-                      <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                        <iframe
-                          width="100%"
-                          height="100%"
-                          src={`https://www.youtube.com/embed/${getYouTubeVideoId(course.videoUrl) || ''}`}
-                          title="강좌 소개 영상"
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
+                <Card className="p-6">
+                  <div className="space-y-8">
+                    {/* 1. 강좌 소개 */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">강좌 소개</h3>
+                      {course?.content ? (
+                        <div
+                          className="text-gray-700 prose max-w-none"
+                          dangerouslySetInnerHTML={{ __html: safeHtml(course.content) }}
                         />
+                      ) : (
+                        <div className="text-gray-500">강좌 소개 내용이 없습니다.</div>
+                      )}
+                    </div>
+
+                    {/* 구분선 */}
+                    <div className="border-t border-gray-200"></div>
+
+                    {/* 2. 기간, 시간, 강사 */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">강의 정보</h3>
+                      <div className="space-y-4">
+                        {/* 강의 기간 */}
+                        {((course as any)?.lecturePeriodStart || (course as any)?.lecturePeriodEnd) && (
+                          <div>
+                            <span className="text-lg font-semibold text-blue-600">강의 기간:</span>{' '}
+                            <span className="text-base text-gray-900">
+                              {(course as any).lecturePeriodStart
+                                ? new Date((course as any).lecturePeriodStart).toLocaleDateString('ko-KR')
+                                : '미정'}{' '}
+                              ~{' '}
+                              {(course as any).lecturePeriodEnd
+                                ? new Date((course as any).lecturePeriodEnd).toLocaleDateString('ko-KR')
+                                : '미정'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 교육시간 */}
+                        {(course as any)?.educationSchedule && (
+                          <div>
+                            <span className="text-lg font-semibold text-blue-600">교육시간:</span>{' '}
+                            <span className="text-base text-gray-900">{(course as any).educationSchedule}</span>
+                          </div>
+                        )}
+
+                        {/* 강사 정보 */}
+                        {((course as any)?.instructors || instructorInfo) && (
+                          <div>
+                            <span className="text-lg font-semibold text-blue-600">강사:</span>{' '}
+                            <span className="text-base text-gray-900">
+                              {(course as any)?.instructors || instructorInfo?.name || '미지정'}
+                            </span>
+                            {instructorInfo?.email && (
+                              <>
+                                {' '}
+                                <span className="text-sm text-gray-500">({instructorInfo.email})</span>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                        <p className="text-gray-500">소개 영상이 없습니다.</p>
-                      </div>
-                    )}
-                  </Card>
-                </div>
+                    </div>
+
+                    {/* 구분선 */}
+                    <div className="border-t border-gray-200"></div>
+
+                    {/* 3. 소개 영상 */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">소개 영상</h3>
+                      {course?.videoUrl ? (
+                        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={`https://www.youtube.com/embed/${getYouTubeVideoId(course.videoUrl) || ''}`}
+                            title="강좌 소개 영상"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                          <p className="text-gray-500">소개 영상이 없습니다.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
               </div>
             )}
 
             {activeTab === 'exam' && (
               <div id="tabpanel-exam" role="tabpanel" aria-labelledby="tab-exam">
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">시험/과제</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">시험</h3>
+
+                  {examsLoading ? (
+                    <div className="text-center py-8 text-gray-500">시험 목록을 불러오는 중...</div>
+                  ) : exams.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">등록된 시험이 없습니다</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* 시험 목록 */}
+                      {exams.map((exam) => {
+                        const now = new Date()
+                        const startDate = new Date(exam.startDate)
+                        const endDate = new Date(exam.endDate)
+                        const isUpcoming = now < startDate
+                        const isActive = now >= startDate && now <= endDate
+                        const isPast = now > endDate
+                        const isSubmitted = !!examSubmissionStatus[exam.id]
+
+                        let statusBadge
+                        if (isUpcoming) {
+                          statusBadge = <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">예정</span>
+                        } else if (isActive) {
+                          statusBadge = <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">진행중</span>
+                        } else {
+                          statusBadge = <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">완료</span>
+                        }
+
+                        return (
+                          <div
+                            key={`exam-${exam.id}`}
+                            className="card p-4 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => {
+                              if ((isActive && !isSubmitted) || isPast || isSubmitted) {
+                                navigate(`/student/course/${courseId}/quiz/${exam.id}`)
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <BookOpen className="h-5 w-5 text-blue-500" />
+                                <h4 className="font-medium text-gray-900">{exam.title}</h4>
+                                <span className="text-xs text-gray-500">(시험)</span>
+                              </div>
+                              {statusBadge}
+                            </div>
+
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm text-gray-500">
+                                {isUpcoming ? '시작일' : isActive ? '종료일' : '종료일'}: {new Date(isUpcoming ? exam.startDate : exam.endDate).toLocaleDateString('ko-KR')}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                문제 수: {exam.totalQuestions || 0}개
+                              </span>
+                            </div>
+
+                            {exam.timeLimit && (
+                              <p className="text-sm text-gray-600 mb-3">
+                                제한 시간: {exam.timeLimit}분
+                              </p>
+                            )}
+
+                            <div className="flex items-center justify-end">
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if ((isActive && !isSubmitted) || isPast || isSubmitted) {
+                                    navigate(`/student/course/${courseId}/quiz/${exam.id}`)
+                                  }
+                                }}
+                                className="btn-primary"
+                                disabled={isUpcoming}
+                              >
+                                {isUpcoming
+                                  ? '시험 시작 전'
+                                  : isSubmitted
+                                    ? '결과 보기'
+                                    : isActive
+                                      ? '시험 시작하기'
+                                      : '결과 보기'}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'assignment' && (
+              <div id="tabpanel-assignment" role="tabpanel" aria-labelledby="tab-assignment">
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">과제</h3>
 
                   {assignmentsLoading ? (
                     <div className="text-center py-8 text-gray-500">과제 목록을 불러오는 중...</div>
@@ -847,6 +1130,7 @@ export default function CourseDetail() {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* 과제 목록 */}
                       {assignments.map((assignment) => {
                         const isPastDue = new Date(assignment.dueDate) < new Date()
                         const statusBadge = isPastDue ? (
@@ -909,7 +1193,7 @@ export default function CourseDetail() {
                                   }}
                                   className="btn-primary"
                                 >
-                                  제출 조회하기
+                                  제출물 보기
                                 </Button>
                               ) : (
                                 <Button
@@ -918,9 +1202,8 @@ export default function CourseDetail() {
                                     navigate(`/student/assignment/${assignment.id}`)
                                   }}
                                   className="btn-primary"
-                                  disabled={isPastDue}
                                 >
-                                  {isPastDue ? '마감됨' : '과제 제출하기'}
+                                  과제 제출하기
                                 </Button>
                               )}
                             </div>
@@ -930,6 +1213,12 @@ export default function CourseDetail() {
                     </div>
                   )}
                 </Card>
+              </div>
+            )}
+
+            {activeTab === 'notice' && (
+              <div id="tabpanel-notice" role="tabpanel" aria-labelledby="tab-notice">
+                <CourseNotices courseId={courseId} />
               </div>
             )}
 

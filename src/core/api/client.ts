@@ -25,6 +25,10 @@ apiClient.interceptors.request.use(
     if (config.url?.includes('/learning/')) {
       config.validateStatus = (status) => status < 500;
     }
+    // /auth/me는 401을 정상 응답으로 처리 (토큰이 없을 때 정상)
+    if (config.url?.includes('/auth/me')) {
+      config.validateStatus = (status) => status < 500;
+    }
     return config;
   },
   (error) => {
@@ -71,6 +75,11 @@ apiClient.interceptors.response.use(
         // 401 에러를 조용히 reject (콘솔 에러 출력 방지)
         // 에러 객체에 조용히 처리 플래그 추가
         error.silent = true;
+        error.config = error.config || {};
+        error.config.silent = true;
+        error.message = '';
+        // axios의 기본 에러 출력을 방지하기 위해 에러 객체 수정
+        error.toJSON = () => ({});
         return Promise.reject(error);
       }
 
@@ -81,6 +90,12 @@ apiClient.interceptors.response.use(
 
       // /auth/logout은 refresh token이 없을 수 있으므로 조용히 처리
       if (originalRequest.url?.includes('/auth/logout')) {
+        error.silent = true;
+        return Promise.reject(error);
+      }
+
+      // /my-submission 엔드포인트는 제출물이 없을 때 401이 정상일 수 있으므로 조용히 처리
+      if (originalRequest.url?.includes('/my-submission')) {
         error.silent = true;
         return Promise.reject(error);
       }

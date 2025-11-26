@@ -182,7 +182,7 @@ export default function CurriculumSidebar({
 
       <div className="flex-1 overflow-y-auto">
         <div className="overflow-y-auto">
-          {curriculums.map((curriculum) => {
+          {curriculums.map((curriculum, moduleIndex) => {
             const isExpanded = expandedCurriculums.includes(curriculum.id)
             const isEditing = editingCurriculumId === curriculum.id
             const isDragged = draggedCurriculumId === curriculum.id
@@ -212,6 +212,9 @@ export default function CurriculumSidebar({
                       ) : (
                         <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
                       )}
+                      <span className="text-primary font-semibold text-sm flex-shrink-0">
+                        {String(moduleIndex + 1).padStart(2, '0')}
+                      </span>
                       {isEditing ? (
                         <div className="flex-1 space-y-2">
                           <input

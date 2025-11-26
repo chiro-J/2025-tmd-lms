@@ -12,7 +12,21 @@
       "Bash(find:*)",
       "Bash(cat:*)",
       "Bash(git checkout:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(node add-profile-fields.js:*)",
+      "Bash(node remove-profile-image.js:*)",
+      "Bash(node run-social-migration.js:*)",
+      "Bash(node -e:*)",
+      "Bash(pgrep:*)",
+      "Bash(npm run start:dev:*)",
+      "Bash(node:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(nul)",
+      "Bash(npm run migration:create:*)",
+      "Bash(npm run typeorm:*)",
+      "Bash(PGPASSWORD=monstera psql:*)"
     ],
     "deny": [],
     "ask": []

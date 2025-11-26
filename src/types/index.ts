@@ -14,7 +14,6 @@ export interface User {
   role: 'instructor' | 'student' | 'admin' | 'sub-admin'
   name: string
   phone?: string
-  avatar?: string | null
   bio?: string
   address?: string
   githubUrl?: string
@@ -374,7 +373,7 @@ export interface Quiz {
   courseId: string
   courseTitle: string
   questions: QuizQuestion[]
-  timeLimit: number // total time in minutes
+  timeLimit?: number // total time in minutes (optional)
   totalPoints: number
   dueDate: string
   isCompleted?: boolean

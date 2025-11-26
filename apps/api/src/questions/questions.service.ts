@@ -76,6 +76,10 @@ export class QuestionsService {
   }
 
   async create(questionData: Partial<Question>): Promise<any> {
+    // examId가 필수인지 확인
+    if (!questionData.examId) {
+      throw new Error('시험 ID(examId)는 필수입니다. 문제는 반드시 시험에 연결되어야 합니다.');
+    }
     const question = this.questionRepository.create(questionData);
     const saved = await this.questionRepository.save(question);
 

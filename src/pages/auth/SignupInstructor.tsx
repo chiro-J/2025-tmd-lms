@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Phone, CheckCircle, XCircle } from 'lucide-react';
 import Header from '../../layout/Header';
 import { sendVerificationCode, verifyCode, registerWithVerification, checkEmail, checkPhone } from '../../core/api/auth';
-import { useAuth } from '../../contexts/AuthContext';
 
 export default function SignupInstructor() {
   const navigate = useNavigate();
@@ -19,7 +18,10 @@ export default function SignupInstructor() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVerified, setIsVerified] = useState(false);
-  const { refreshUserProfile } = useAuth();
+  const [passwordMatch, setPasswordMatch] = useState<{
+    match: boolean | null;
+    message: string;
+  }>({ match: null, message: '' });
 
   // 유효성 검사 상태
   const [emailValidation, setEmailValidation] = useState<{
@@ -99,8 +101,8 @@ export default function SignupInstructor() {
       // 사용자명 자동 생성 (이메일 앞부분)
       const username = formData.email.split('@')[0];
 
-      // 회원가입 (이미 토큰 포함)
-      const result = await registerWithVerification({
+      // 회원가입
+      await registerWithVerification({
         email: formData.email,
         password: formData.password,
         name: formData.name,
@@ -109,17 +111,8 @@ export default function SignupInstructor() {
         role: 'instructor',
       });
 
-      // 회원가입 응답에서 받은 토큰으로 직접 로그인 처리
-      localStorage.setItem('accessToken', result.accessToken);
-      localStorage.setItem('refreshToken', result.refreshToken);
-      localStorage.setItem('user', JSON.stringify(result.user));
-      localStorage.setItem('isLoggedIn', 'true');
-
-      // AuthContext 상태 업데이트
-      await refreshUserProfile();
-
-      alert('회원가입이 완료되었습니다. 관리자 승인을 기다려주세요.');
-      navigate('/signup/pending');
+      // 성공 페이지로 이동
+      setStep(3);
     } catch (err: any) {
       setError(err.message || err.response?.data?.message || '인증 또는 회원가입에 실패했습니다.');
       setIsVerified(false);
@@ -152,6 +145,20 @@ export default function SignupInstructor() {
         const nextInput = document.getElementById(`code-${index + 1}`);
         nextInput?.focus();
       }
+    }
+  };
+
+  const handleCodePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, ''); // 숫자만 추출
+
+    if (pastedData.length === 6) {
+      const newCode = pastedData.split('');
+      setVerificationCode(newCode);
+
+      // 마지막 입력칸으로 포커스 이동
+      const lastInput = document.getElementById('code-5');
+      lastInput?.focus();
     }
   };
 
@@ -217,6 +224,58 @@ export default function SignupInstructor() {
     alert('Kakao OAuth는 아직 구현되지 않았습니다.');
   };
 
+  // 비밀번호 확인 실시간 검증
+  useEffect(() => {
+    if (!formData.passwordConfirm) {
+      setPasswordMatch({ match: null, message: '' });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setPasswordMatch({ match: false, message: '비밀번호는 최소 6자 이상이어야 합니다.' });
+      return;
+    }
+
+    if (formData.password === formData.passwordConfirm) {
+      setPasswordMatch({ match: true, message: '비밀번호가 일치합니다.' });
+    } else {
+      setPasswordMatch({ match: false, message: '비밀번호가 일치하지 않습니다.' });
+    }
+  }, [formData.password, formData.passwordConfirm]);
+
+  // 회원가입 성공 페이지
+  if (step === 3) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-12 max-w-md w-full text-center">
+          {/* Success Icon */}
+          <div className="flex justify-center mb-6">
+            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-16 h-16 text-green-600" />
+            </div>
+          </div>
+
+          {/* Success Message */}
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            회원가입이 완료되었습니다!
+          </h1>
+          <p className="text-gray-600 mb-8">
+            {formData.name}님, 환영합니다!<br />
+            관리자 승인 후 LMS의 모든 기능을 이용하실 수 있습니다.
+          </p>
+
+          {/* Pending Button */}
+          <button
+            onClick={() => navigate('/signup/pending')}
+            className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 font-semibold text-lg shadow-lg"
+          >
+            승인 대기 페이지로 이동
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 2) {
     return (
       <div className="min-h-screen bg-white">
@@ -264,6 +323,7 @@ export default function SignupInstructor() {
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleCodeChange(index, e.target.value)}
+                  onPaste={handleCodePaste}
                   className="w-12 h-14 text-center text-xl font-semibold bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                 />
               ))}
@@ -429,9 +489,28 @@ export default function SignupInstructor() {
                   value={formData.passwordConfirm}
                   onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:outline-none transition-colors ${
+                    passwordMatch.match === true
+                      ? 'border-green-500 focus:ring-green-500 focus:border-green-500'
+                      : passwordMatch.match === false
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                  }`}
                 />
+                {passwordMatch.match === true && (
+                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 w-5 h-5" />
+                )}
+                {passwordMatch.match === false && formData.passwordConfirm && (
+                  <XCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 w-5 h-5" />
+                )}
               </div>
+              {passwordMatch.message && (
+                <p className={`mt-1 text-sm ${
+                  passwordMatch.match === true ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {passwordMatch.message}
+                </p>
+              )}
             </div>
 
             <div>

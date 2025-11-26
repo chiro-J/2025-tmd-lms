@@ -1,300 +1,263 @@
-import { useState } from 'react'
-import { BarChart3, Download, Filter, TrendingUp, Users, Award, Target } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { useParams } from 'react-router-dom'
+import { Users, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react'
 import Card from '../../components/ui/Card'
-import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
+import { getCourseEnrollments, type CourseEnrollment } from '../../core/api/courses'
+import { getExamsByCourse } from '../../core/api/exams'
+
+interface StudentScore {
+  studentId: number
+  studentName: string
+  studentEmail: string
+  scores: {
+    examId: number
+    examTitle: string
+    score: number | null
+    totalPoints: number | null
+    submittedAt: string | null
+  }[]
+}
 
 export default function ResultsAnalysis() {
-  const [selectedPeriod, setSelectedPeriod] = useState('week')
+  const { id } = useParams()
+  const courseId = Number(id) || 1
+  const [loading, setLoading] = useState(true)
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([])
+  const [exams, setExams] = useState<any[]>([])
+  const [selectedExamId, setSelectedExamId] = useState<number | null>(null)
+  const [studentScores, setStudentScores] = useState<StudentScore[]>([])
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
-  // Mock data
-  const examResults = [
-    {
-      id: 1,
-      title: '중간고사',
-      totalStudents: 25,
-      averageScore: 78.5,
-      passRate: 84,
-      completionRate: 100,
-      date: '2024-10-20'
-    },
-    {
-      id: 2,
-      title: '과제 1',
-      totalStudents: 25,
-      averageScore: 85.2,
-      passRate: 92,
-      completionRate: 96,
-      date: '2024-10-10'
-    },
-    {
-      id: 3,
-      title: '퀴즈 1',
-      totalStudents: 25,
-      averageScore: 72.1,
-      passRate: 76,
-      completionRate: 100,
-      date: '2024-10-05'
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+
+        // 수강자 목록 조회
+        const enrollmentsData = await getCourseEnrollments(courseId)
+        setEnrollments(enrollmentsData)
+
+        // 시험 목록 조회
+        const examsData = await getExamsByCourse(courseId)
+        setExams(examsData)
+
+        // 첫 번째 시험을 기본 선택
+        if (examsData.length > 0 && !selectedExamId) {
+          setSelectedExamId(examsData[0].id)
+        }
+
+        // TODO: 추후 백엔드 API 연동
+        // 각 수강자별 시험 점수 조회
+        // const scores = await getExamScoresByCourse(courseId)
+        // setStudentScores(scores)
+
+        // 임시: mock 데이터 구조 (추후 API로 교체)
+        const mockScores: StudentScore[] = enrollmentsData.map((enrollment) => {
+          // 수강자 이름: name > username > email 순으로 사용
+          const studentName = enrollment.user.name || enrollment.user.username || enrollment.user.email.split('@')[0] || '수강자'
+
+          return {
+            studentId: enrollment.user.id,
+            studentName,
+            studentEmail: enrollment.user.email,
+            scores: examsData.map((exam) => ({
+              examId: exam.id,
+              examTitle: exam.title,
+              score: null, // 추후 API에서 가져올 점수
+              totalPoints: exam.questions?.reduce((sum: number, q: any) => sum + (q.points || 10), 0) || 0,
+              submittedAt: null, // 추후 API에서 가져올 제출 시간
+            })),
+          }
+        })
+        setStudentScores(mockScores)
+      } catch (error) {
+        console.error('데이터 로드 실패:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
 
-  const studentPerformance = [
-    {
-      id: 1,
-      name: '김학생',
-      email: 'student1@example.com',
-      averageScore: 85.5,
-      totalExams: 3,
-      completedExams: 3,
-      rank: 1
-    },
-    {
-      id: 2,
-      name: '이학생',
-      email: 'student2@example.com',
-      averageScore: 82.3,
-      totalExams: 3,
-      completedExams: 3,
-      rank: 2
-    },
-    {
-      id: 3,
-      name: '박학생',
-      email: 'student3@example.com',
-      averageScore: 78.9,
-      totalExams: 3,
-      completedExams: 2,
-      rank: 3
-    }
-  ]
+    loadData()
+  }, [courseId])
 
-  const rightActions = (
-    <>
-      <Button variant="outline" className="text-base-content/70 rounded-xl">
-        <Filter className="h-4 w-4 mr-1" />
-        필터
-      </Button>
-      <Button variant="outline" className="text-base-content/70 rounded-xl">
-        <Download className="h-4 w-4 mr-1" />
-        보고서 다운로드
-      </Button>
-    </>
+  // 선택한 시험의 점수 데이터 준비 및 정렬
+  const sortedStudentScores = useMemo(() => {
+    if (!selectedExamId) return []
+
+    const scoresWithData = studentScores.map(student => {
+      const score = student.scores.find(s => s.examId === selectedExamId)
+      return {
+        ...student,
+        scoreData: score || null
+      }
+    })
+
+    // 점수별 정렬 (null은 맨 뒤로)
+    return scoresWithData.sort((a, b) => {
+      const scoreA = a.scoreData?.score ?? -1
+      const scoreB = b.scoreData?.score ?? -1
+
+      if (scoreA === -1 && scoreB === -1) return 0
+      if (scoreA === -1) return 1
+      if (scoreB === -1) return -1
+
+      return sortOrder === 'desc' ? scoreB - scoreA : scoreA - scoreB
+    })
+  }, [studentScores, selectedExamId, sortOrder])
+
+  // 제출한 사람 수 계산
+  const submittedCount = useMemo(() => {
+    return sortedStudentScores.filter(student => student.scoreData?.score !== null).length
+  }, [sortedStudentScores])
+
+  const selectedExam = exams.find(exam => exam.id === selectedExamId)
+
+  if (loading) {
+    return (
+      <CoursePageLayout currentPageTitle="시험 점수 조회">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">데이터를 불러오는 중...</p>
+        </div>
+      </CoursePageLayout>
+    )
+  }
+
+  const rightActions = exams.length > 0 && (
+    <div className="flex items-center space-x-2">
+      <label className="text-sm text-gray-700 font-medium">시험 선택:</label>
+      <div className="relative">
+        <select
+          value={selectedExamId || ''}
+          onChange={(e) => setSelectedExamId(Number(e.target.value))}
+          className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+        >
+          {exams.map((exam) => (
+            <option key={exam.id} value={exam.id}>
+              {exam.title}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+      </div>
+    </div>
   )
 
   return (
-    <CoursePageLayout
-      currentPageTitle="결과 분석"
-      rightActions={rightActions}
-    >
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Users className="h-6 w-6 text-primary" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-base-content/70">총 수강생</p>
-              <p className="text-2xl font-bold text-base-content">25</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-success/10 rounded-lg">
-              <Award className="h-6 w-6 text-success" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-base-content/70">평균 점수</p>
-              <p className="text-2xl font-bold text-base-content">78.5</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-warning/10 rounded-lg">
-              <Target className="h-6 w-6 text-warning" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-base-content/70">통과율</p>
-              <p className="text-2xl font-bold text-base-content">84%</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-info/10 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-info" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm text-base-content/70">완료율</p>
-              <p className="text-2xl font-bold text-base-content">98%</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* 시험 결과 테이블 */}
-      <Card className="mb-6">
-        <div className="px-3 py-2 border-b border-base-300 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-base-content">시험 결과</h2>
-          <div className="flex space-x-2">
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="text-sm border border-base-300 rounded-lg px-3 py-1 bg-base-100 text-base-content"
-            >
-              <option value="week">최근 1주</option>
-              <option value="month">최근 1개월</option>
-              <option value="all">전체</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-base-300">
-            <thead className="bg-base-200">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  시험명
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  수강생 수
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  평균 점수
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  통과율
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  완료율
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  날짜
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-base-100 divide-y divide-base-300">
-              {examResults.map((exam) => (
-                <tr key={exam.id} className="hover:bg-base-200">
-                  <td className="pl-4 pr-3 py-2 whitespace-nowrap">
-                    <div className="text-sm font-medium text-base-content">{exam.title}</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm text-base-content/70">{exam.totalStudents}명</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm text-base-content/70">{exam.averageScore}점</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm text-base-content/70">{exam.passRate}%</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm text-base-content/70">{exam.completionRate}%</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm text-base-content/70">{exam.date}</div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* 학생 성과 테이블 */}
+    <CoursePageLayout currentPageTitle="시험 점수 조회" rightActions={rightActions}>
       <Card>
-        <div className="px-3 py-2 border-b border-base-300 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-base-content">학생 성과</h2>
-          <span className="text-sm text-base-content/70">{studentPerformance.length}명</span>
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Users className="h-5 w-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              {selectedExam ? `${selectedExam.title} 점수` : '시험 점수 조회'}
+            </h2>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-500">
+              {selectedExamId ? `${submittedCount}명 / ${enrollments.length}명` : `${enrollments.length}명`}
+            </span>
+            {selectedExamId && (
+              <button
+                onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                className="flex items-center space-x-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                title={sortOrder === 'desc' ? '내림차순 (높은 점수 순)' : '오름차순 (낮은 점수 순)'}
+              >
+                {sortOrder === 'desc' ? (
+                  <>
+                    <ArrowDown className="h-4 w-4" />
+                    <span>내림차순</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowUp className="h-4 w-4" />
+                    <span>오름차순</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-base-300">
-            <thead className="bg-base-200">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  순위
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  학생
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  평균 점수
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  완료 시험
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-base-content/70 uppercase tracking-wider">
-                  진행률
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-base-100 divide-y divide-base-300">
-              {studentPerformance.map((student) => (
-                <tr key={student.id} className="hover:bg-base-200">
-                  <td className="pl-4 pr-3 py-2 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium text-base-content">#{student.rank}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-8 w-8">
-                        <div className="h-8 w-8 rounded-full bg-base-300 flex items-center justify-center text-sm font-medium text-base-content">
-                          {student.name.charAt(0)}
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-base-content">{student.name}</div>
-                        <div className="text-sm text-base-content/70">{student.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm text-base-content/70">{student.averageScore}점</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="text-sm text-base-content/70">{student.completedExams}/{student.totalExams}</div>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-16 bg-base-300 rounded-full h-2 mr-2">
-                        <div
-                          className="bg-primary h-2 rounded-full"
-                          style={{ width: `${(student.completedExams / student.totalExams) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm text-base-content/70">
-                        {Math.round((student.completedExams / student.totalExams) * 100)}%
-                      </span>
-                    </div>
-                  </td>
+        {studentScores.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-gray-500">수강자가 없습니다.</p>
+          </div>
+        ) : !selectedExamId ? (
+          <div className="p-8 text-center">
+            <p className="text-gray-500">시험을 선택해주세요.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    수강자
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    점수
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    제출일
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedStudentScores.map((student) => {
+                  const score = student.scoreData
+                  return (
+                    <tr key={student.studentId} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium text-blue-600">
+                              {student.studentName.charAt(0).toUpperCase()}
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">{student.studentName}</div>
+                            <div className="text-sm text-gray-500">{student.studentEmail}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {score && score.score !== null ? (
+                          <div className="text-sm">
+                            <span className="font-medium text-gray-900">
+                              {score.score}점
+                            </span>
+                            {score.totalPoints && (
+                              <span className="text-gray-500"> / {score.totalPoints}점</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">미제출</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {score && score.submittedAt ? (
+                          <span className="text-sm text-gray-600">
+                            {new Date(score.submittedAt).toLocaleDateString('ko-KR', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </CoursePageLayout>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

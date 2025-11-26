@@ -43,9 +43,6 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
-  @Column({ nullable: true })
-  avatar: string;
-
   @Column({ name: 'bio', nullable: true })
   bio: string;
 
@@ -64,6 +61,22 @@ export class User {
   @Column({ name: 'language', nullable: true })
   language: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  profile: any; // 이력서 및 프로필 상세 정보 (JSONB)
+
+  @Column({ name: 'google_linked', default: false })
+  googleLinked: boolean;
+
+  @Column({ name: 'kakao_linked', default: false })
+  kakaoLinked: boolean;
+
+  @Column({ name: 'google_linked_date', nullable: true })
+  googleLinkedDate: string;
+
+  @Column({ name: 'kakao_linked_date', nullable: true })
+  kakaoLinkedDate: string;
+
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -71,8 +84,17 @@ export class User {
   updatedAt: Date;
 
   @BeforeInsert()
+  async hashPasswordOnInsert() {
+    if (this.password && !this.password.startsWith('$2b$')) {
+      // bcrypt로 해시된 비밀번호가 아닐 경우에만 해시
+      this.password = await bcrypt.hash(this.password, 10);
+    }
+  }
+
   @BeforeUpdate()
-  async hashPassword() {
+  async hashPasswordOnUpdate() {
+    // update 시에는 password가 변경된 경우에만 해시
+    // TypeORM의 변경 감지로 인해 password가 실제로 변경되었는지 확인
     if (this.password && !this.password.startsWith('$2b$')) {
       // bcrypt로 해시된 비밀번호가 아닐 경우에만 해시
       this.password = await bcrypt.hash(this.password, 10);

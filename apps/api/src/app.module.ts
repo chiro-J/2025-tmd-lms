@@ -28,6 +28,7 @@ import { User } from './users/entities/user.entity';
 import { UploadModule } from './upload/upload.module';
 import { ExamsModule } from './exams/exams.module';
 import { Exam } from './exams/entities/exam.entity';
+import { ExamSubmission } from './exams/entities/exam-submission.entity';
 import { QuestionsModule } from './questions/questions.module';
 import { Question } from './questions/entities/question.entity';
 import { FaqModule } from './faq/faq.module';
@@ -39,6 +40,9 @@ import { LearningProgressModule } from './learning-progress/learning-progress.mo
 import { LearningProgress } from './learning-progress/entities/learning-progress.entity';
 import { MemosModule } from './memos/memos.module';
 import { Memo } from './memos/entities/memo.entity';
+import { LearningSessionsModule } from './learning-sessions/learning-sessions.module';
+import { UserSession } from './learning-sessions/entities/user-session.entity';
+import { DailyLearningStats } from './learning-sessions/entities/daily-learning-stats.entity';
 
 // .env 파일 로드 (모듈 로드 전에 실행 - TypeORM 설정 시 환경 변수 필요)
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -77,12 +81,15 @@ process.env.TZ = 'Asia/Seoul';
         CourseQnA,
         CourseQnAAnswer,
         Exam,
+        ExamSubmission,
         Question,
         FAQ,
         Inquiry,
         Notification,
         LearningProgress,
         Memo,
+        UserSession,
+        DailyLearningStats,
       ],
       synchronize: false, // 공유 DB 사용 시 false로 설정 (스키마 수동 관리)
     }),
@@ -99,6 +106,7 @@ process.env.TZ = 'Asia/Seoul';
     NotificationsModule,
     LearningProgressModule,
     MemosModule,
+    LearningSessionsModule,
   ],
 })
 export class AppModule {}

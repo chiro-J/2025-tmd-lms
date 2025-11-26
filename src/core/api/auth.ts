@@ -8,7 +8,6 @@ export interface User {
   role: 'instructor' | 'student' | 'admin' | 'sub-admin';
   name: string;
   phone?: string;
-  avatar?: string;
 }
 
 export interface LoginResponse {
@@ -59,16 +58,43 @@ export const logout = async (): Promise<void> => {
 
 export const getProfile = async (): Promise<User> => {
   try {
-    const response = await apiClient.get<User>('/auth/me');
+    // 401을 정상 응답으로 처리하기 위해 validateStatus 설정
+    const response = await apiClient.get<User>('/auth/me', {
+      validateStatus: (status) => status < 500, // 500 이상만 에러로 처리
+    });
+
+    // 401인 경우 에러로 처리
+    if (response.status === 401) {
+      const error: any = new Error('Unauthorized');
+      error.response = { status: 401 };
+      error.silent = true;
+      throw error;
+    }
+
     return response.data;
   } catch (error: any) {
     // 401 에러는 로그인하지 않은 상태로 정상적인 상황이므로 조용히 처리
-    if (error.response?.status === 401 || error.silent) {
-      // 토큰이 없거나 만료된 경우이므로 에러를 그대로 throw하되 로깅은 하지 않음
+    if (error.response?.status === 401) {
+      error.silent = true;
+      error.config = error.config || {};
+      error.config.silent = true;
+      // 에러 메시지를 빈 문자열로 설정하여 콘솔 출력 최소화
+      error.message = '';
+      throw error;
+    }
+    // 네트워크 오류 (서버가 실행되지 않음)
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+      // /auth/me는 초기 로드 시 호출되므로 조용히 처리
+      error.silent = true;
+      error.config = error.config || {};
+      error.config.silent = true;
+      error.message = '';
       throw error;
     }
     // 다른 에러는 로깅
-    console.error('프로필 조회 실패:', error);
+    if (!error.silent) {
+      console.error('프로필 조회 실패:', error);
+    }
     throw error;
   }
 };
@@ -162,12 +188,11 @@ export const checkPhone = async (phone: string): Promise<{ exists: boolean; avai
   }
 };
 
-// ========== 회원 탈퇴 API ==========
+// ========== 회원 탈퇴 관련 API ==========
 
-export const deleteAccount = async (): Promise<{ message: string }> => {
+export const deleteAccount = async (): Promise<void> => {
   try {
-    const response = await apiClient.delete<{ message: string }>('/auth/account');
-    return response.data;
+    await apiClient.delete('/auth/account');
   } catch (error: any) {
     console.error('회원 탈퇴 실패:', error);
     throw new Error(error.response?.data?.message || '회원 탈퇴에 실패했습니다.');

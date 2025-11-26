@@ -143,7 +143,7 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
           커리큘럼이 없습니다.
         </div>
       ) : (
-        modules.map((module) => {
+        modules.map((module, moduleIndex) => {
           const isExpanded = expandedSection === module.id
           return (
             <div
@@ -161,6 +161,9 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
                     ) : (
                       <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     )}
+                    <span className="text-primary font-semibold text-sm flex-shrink-0">
+                      {String(moduleIndex + 1).padStart(2, '0')}
+                    </span>
                     <h4 className="text-sm font-semibold text-gray-900 truncate">{module.title}</h4>
                   </div>
                 </div>
@@ -168,7 +171,7 @@ function CurriculumContent({ courseId }: CurriculumContentProps) {
 
               {isExpanded && module.lessons && module.lessons.length > 0 && (
                 <div>
-                  {module.lessons.map((lesson: { id: number; title: string }) => (
+                  {module.lessons.map((lesson: { id: number; title: string }, lessonIndex: number) => (
                     <div
                       key={lesson.id}
                       className="group px-6 py-2 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ClipboardList, Edit3, AlertCircle, Play, Key } from 'lucide-react'
+import { ClipboardList, Edit3, AlertCircle, Play, Key, File } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import CoursePageLayout from '../../components/instructor/CoursePageLayout'
@@ -23,6 +23,7 @@ export default function CourseHome() {
   const [noticesLoading, setNoticesLoading] = useState(true)
   const [recentLesson, setRecentLesson] = useState<{ module: CurriculumModule; lesson: Lesson } | null>(null)
   const [curriculumLoading, setCurriculumLoading] = useState(true)
+  const [curriculum, setCurriculum] = useState<CurriculumModule[]>([])
 
   // DB에서 강좌 정보 로드
   useEffect(() => {
@@ -66,7 +67,8 @@ export default function CourseHome() {
     const loadRecentLesson = async () => {
       try {
         setCurriculumLoading(true)
-        const curriculum = await getCurriculum(courseId)
+        const curriculumData = await getCurriculum(courseId)
+        setCurriculum(curriculumData)
 
         // 백엔드 API에서 마지막으로 본 레슨 조회
         let lastLearnedLessonId: number | null = null
@@ -89,9 +91,9 @@ export default function CourseHome() {
           }
         }
 
-        if (lastLearnedLessonId && curriculum.length > 0) {
+        if (lastLearnedLessonId && curriculumData.length > 0) {
           // 모든 모듈과 레슨을 순회하며 마지막으로 본 레슨 찾기
-          for (const module of curriculum) {
+          for (const module of curriculumData) {
             if (module.lessons && module.lessons.length > 0) {
               const foundLesson = module.lessons.find(lesson => {
                 const lessonId = Number(lesson.id)
@@ -110,7 +112,7 @@ export default function CourseHome() {
         }
 
         // 마지막으로 본 레슨이 없으면 첫 번째 모듈의 첫 번째 레슨 표시
-        for (const module of curriculum) {
+        for (const module of curriculumData) {
           if (module.lessons && module.lessons.length > 0) {
             // order 순서대로 정렬
             const sortedLessons = [...module.lessons].sort((a, b) => a.order - b.order)
@@ -156,11 +158,11 @@ export default function CourseHome() {
       currentPageTitle="강좌 홈"
     >
       {/* Course Overview Card */}
-      <Card className="p-6 mb-8">
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex items-start space-x-6 flex-1">
+      <Card className="p-8 mb-8">
+        <div className="flex items-start gap-8">
+          <div className="flex items-start space-x-8 flex-1">
             {/* Course Image */}
-            <div className="w-32 h-24 rounded-lg overflow-hidden flex-shrink-0">
+            <div className="w-96 aspect-video rounded-xl overflow-hidden flex-shrink-0 shadow-lg bg-gray-100">
               <img
                 src={normalizeThumbnailUrl(course.thumbnail)}
                 alt={course.title}
@@ -169,30 +171,72 @@ export default function CourseHome() {
             </div>
 
             {/* Course Info */}
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-base-content mb-4">{course.title}</h2>
+            <div className="flex-1 flex flex-col justify-between min-h-[240px]">
+              <div>
+                <h2 className="text-3xl font-bold text-base-content mb-4">{course.title}</h2>
 
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-3">
+                {/* Course Metadata */}
+                <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-600">
+                  {course.instructor && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-700">강의자:</span>
+                      <span>{course.instructor}</span>
+                    </div>
+                  )}
+                  {course.status && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-700">상태:</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        course.status === '공개' ? 'bg-green-100 text-green-800' :
+                        course.status === '비공개' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {course.status}
+                      </span>
+                    </div>
+                  )}
+                  {curriculum && curriculum.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-700">모듈:</span>
+                      <span>{curriculum.length}개</span>
+                    </div>
+                  )}
+                  {curriculum && curriculum.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-700">레슨:</span>
+                      <span>{curriculum.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)}개</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Course Description (if available) */}
+                {course.content && (
+                  <div className="mb-4">
+                    <div
+                      className="text-sm text-gray-600 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: course.content }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons - 우측 하단 가로 배치 */}
+              <div className="flex items-center justify-end gap-3">
                 <Link to={`/instructor/course/${id}/info`}>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">
-                    <Edit3 className="h-4 w-4 mr-2" />
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-3 text-base">
+                    <Edit3 className="h-5 w-5 mr-2" />
                     강좌 정보 편집
                   </Button>
                 </Link>
+                <Button
+                  onClick={() => setShowEnrollmentCodeModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-3 text-base"
+                >
+                  <Key className="h-5 w-5 mr-2" />
+                  수강코드 보기
+                </Button>
               </div>
             </div>
-          </div>
-
-          {/* 수강코드 버튼 - 오른쪽 */}
-          <div className="flex-shrink-0">
-            <button
-              onClick={() => setShowEnrollmentCodeModal(true)}
-              className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors shadow-md"
-            >
-              <Key className="h-5 w-5" />
-              <span>수강코드 보기</span>
-            </button>
           </div>
         </div>
       </Card>
@@ -272,8 +316,9 @@ export default function CourseHome() {
                 >
                   <div className="flex items-center space-x-3">
                     <AlertCircle className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <h4 className="font-medium text-gray-900">{notice.title}</h4>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{notice.title}</h4>
+                    <div className="flex items-center gap-3 mt-1">
                       <p className="text-sm text-gray-600">
                         {new Date(notice.createdAt).toLocaleDateString('ko-KR', {
                           year: 'numeric',
@@ -281,7 +326,14 @@ export default function CourseHome() {
                           day: '2-digit'
                         })}
                       </p>
+                      {notice.attachments && notice.attachments.length > 0 && (
+                        <div className="flex items-center gap-1 text-blue-600 text-sm">
+                          <File className="h-3 w-3" />
+                          <span>첨부파일 {notice.attachments.length}개</span>
+                        </div>
+                      )}
                     </div>
+                  </div>
                   </div>
                 </div>
               ))}

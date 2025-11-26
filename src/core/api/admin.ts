@@ -81,6 +81,7 @@ export interface Notice {
   priority: 'low' | 'medium' | 'high';
   status: 'active' | 'inactive';
   createdDate: string;
+  attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
 }
 
 export interface CreateNoticeData {
@@ -88,6 +89,7 @@ export interface CreateNoticeData {
   content: string;
   author: string;
   priority?: 'low' | 'medium' | 'high';
+  attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
 }
 
 export interface Inquiry {
@@ -99,6 +101,7 @@ export interface Inquiry {
   createdDate: string;
   status: 'pending' | 'completed';
   response?: string;
+  attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
   // 백엔드에서 받는 필드
   userName?: string;
 }
@@ -364,8 +367,7 @@ export const getInquiry = async (id: number): Promise<Inquiry> => {
 export const createInquiry = async (data: {
   title: string;
   content: string;
-  courseName?: string;
-  courseNumber?: string;
+  attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
 }): Promise<Inquiry> => {
   try {
     const response = await apiClient.post<Inquiry>('/admin/inquiries', data);

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Calendar, User, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Bell, Calendar, User, Edit, Trash2, File, Image as ImageIcon, Download } from 'lucide-react';
 import * as adminApi from '../../core/api/admin';
 import Card from '../../components/ui/Card';
+import { getDownloadUrl } from '../../utils/download';
 
 export default function AdminNoticeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -162,11 +163,42 @@ export default function AdminNoticeDetail() {
           </div>
 
           {/* 내용 */}
-          <div className="prose max-w-none">
+          <div className="prose max-w-none mb-6">
             <div className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">
               {notice.content}
             </div>
           </div>
+
+          {/* 첨부파일 */}
+          {notice.attachments && notice.attachments.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">첨부파일</h3>
+              <div className="space-y-2">
+                {notice.attachments.map((attachment, index) => {
+                  return (
+                    <a
+                      key={index}
+                      href={getDownloadUrl(attachment)}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        {attachment.mimetype.startsWith('image/') ? (
+                          <ImageIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        ) : (
+                          <File className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{attachment.originalname}</p>
+                          <p className="text-xs text-gray-500">{(attachment.size / 1024).toFixed(2)} KB</p>
+                        </div>
+                      </div>
+                      <Download className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </Card>
       </main>
     </div>

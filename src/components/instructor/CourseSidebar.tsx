@@ -154,7 +154,7 @@ function CourseSidebar({ currentCourse }: CourseSidebarProps) {
 
 
   return (
-    <div className="w-64 bg-base-100 border-r border-base-300 min-h-screen">
+    <div className="w-64 min-w-64 flex-shrink-0 bg-base-100 border-r border-base-300 min-h-screen">
       <div className="p-6">
         {/* Course Title */}
         {currentCourse && (
@@ -362,7 +362,7 @@ function CourseSidebar({ currentCourse }: CourseSidebarProps) {
                   시험 문제
                 </Link>
                 <Link to={`/instructor/course/${courseId}/results`} className="block px-4 py-2 text-sm text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded">
-                  결과 분석
+                  점수 조회
                 </Link>
               </div>
             )}

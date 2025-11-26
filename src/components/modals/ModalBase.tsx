@@ -94,13 +94,18 @@ export default function ModalBase({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
+      onClick={(e) => {
+        // 모달 컨텐츠 영역 클릭은 무시 (backdrop 클릭만 처리)
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
     >
       {/* Backdrop - 전체화면으로 어둡게 */}
       <div
-        className={`absolute inset-0 bg-black transition-opacity duration-200 ease-out ${
+        className={`absolute inset-0 bg-black transition-opacity duration-200 ease-out pointer-events-none ${
           isAnimating ? 'bg-opacity-50' : 'bg-opacity-0'
         }`}
-        onClick={onClose}
       />
 
       {/* Modal */}
@@ -112,6 +117,10 @@ export default function ModalBase({
             : 'opacity-0 scale-95 translate-y-4'
         }`}
         tabIndex={-1}
+        onClick={(e) => {
+          // 모달 컨텐츠 내부 클릭은 이벤트 전파 중단
+          e.stopPropagation()
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">

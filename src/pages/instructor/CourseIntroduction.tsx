@@ -8,6 +8,7 @@ import { useCourseCreation } from '../../contexts/CourseCreationContext'
 import { createCourse } from '../../core/api/courses'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Course } from '../../types'
+import ThumbnailCropModal from '../../components/common/ThumbnailCropModal'
 
 export default function CourseIntroduction() {
   const { courseData, resetCourseData } = useCourseCreation()
@@ -30,6 +31,8 @@ export default function CourseIntroduction() {
   })
 
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [previewImageSrc, setPreviewImageSrc] = useState<string>('')
 
   const handleCreateCourse = async () => {
     if (!formData.title.trim()) {
@@ -78,14 +81,28 @@ export default function CourseIntroduction() {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) { alert('이미지 파일만 업로드 가능합니다.'); return }
-    if (file.size > 2 * 1024 * 1024) { alert('파일 크기는 2MB를 초과할 수 없습니다.'); return }
+    if (file.size > 5 * 1024 * 1024) { alert('파일 크기는 5MB를 초과할 수 없습니다.'); return }
 
+    // 파일을 읽어서 크롭 모달에 표시
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPreviewImageSrc(reader.result as string)
+      setCropModalOpen(true)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = '' // input 초기화
+  }
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
     try {
+      // 크롭된 이미지를 File 객체로 변환
+      const croppedFile = new File([croppedBlob], 'thumbnail.jpg', { type: 'image/jpeg' })
+
       const { uploadFile } = await import('../../core/api/upload')
-      const result = await uploadFile(file, 'image', 'thumbnail')
+      const result = await uploadFile(croppedFile, 'image', 'thumbnail')
       // 백엔드에서 절대 URL을 반환하므로 그대로 DB에 저장
       setFormData(prev => ({ ...prev, thumbnail: result.url }))
-      setThumbnailFile(file)
+      setThumbnailFile(croppedFile)
     } catch (error) {
       console.error('썸네일 업로드 실패:', error)
       alert('썸네일 업로드에 실패했습니다. 다시 시도해주세요.')
@@ -302,6 +319,15 @@ export default function CourseIntroduction() {
           </div>
         </div>
       </div>
+
+      {/* 썸네일 크롭 모달 */}
+      <ThumbnailCropModal
+        isOpen={cropModalOpen}
+        imageSrc={previewImageSrc}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={handleCropComplete}
+        aspectRatio={16 / 9}
+      />
     </div>
   )
 }

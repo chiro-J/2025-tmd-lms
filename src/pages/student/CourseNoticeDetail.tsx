@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Bell } from 'lucide-react';
-import { getCourse, getCourseNotices, type CourseNotice } from '../../core/api/courses';
+import { ArrowLeft, Calendar, Bell, File, Image as ImageIcon, Download, Trash2 } from 'lucide-react';
+import { getCourse, getCourseNotices, deleteCourseNotice, type CourseNotice } from '../../core/api/courses';
 import { useAuth } from '../../contexts/AuthContext';
+import { getDownloadUrl } from '../../utils/download';
 
 export default function CourseNoticeDetail() {
   const { courseId, noticeId } = useParams<{ courseId: string; noticeId: string }>();
@@ -83,6 +84,22 @@ export default function CourseNoticeDetail() {
     return `/student/course/${courseId}`;
   };
 
+  const handleDelete = async () => {
+    if (!courseId || !noticeId) return;
+    if (!confirm('정말 이 공지사항을 삭제하시겠습니까? 첨부된 파일도 함께 삭제됩니다.')) {
+      return;
+    }
+
+    try {
+      await deleteCourseNotice(Number(courseId), Number(noticeId));
+      alert('공지사항이 삭제되었습니다.');
+      navigate(getBackUrl());
+    } catch (error) {
+      console.error('공지사항 삭제 실패:', error);
+      alert('공지사항 삭제에 실패했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-200 flex items-center justify-center">
@@ -128,7 +145,7 @@ export default function CourseNoticeDetail() {
         {/* 좌우 레이아웃 */}
         <div className="flex gap-6">
           {/* 왼쪽: 공지 목록 */}
-          <div className="w-96 flex-shrink-0">
+          <div className="w-64 flex-shrink-0">
             <div className="card-panel p-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">공지 목록</h3>
               <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto">
@@ -184,15 +201,50 @@ export default function CourseNoticeDetail() {
                 </div>
               </div>
 
-              {/* 강의자 수정 버튼 */}
-              {user?.role === 'instructor' && (
+              {/* 첨부파일 */}
+              {notice.attachments && notice.attachments.length > 0 && (
                 <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">첨부파일</h3>
+                  <div className="space-y-2">
+                    {notice.attachments.map((attachment, index) => (
+                      <a
+                        key={index}
+                        href={getDownloadUrl(attachment)}
+                        download
+                        className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        {attachment.mimetype.startsWith('image/') ? (
+                          <ImageIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        ) : (
+                          <File className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                        )}
+                        <span className="text-sm text-gray-700 flex-1 truncate">{attachment.originalname}</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          ({(attachment.size / 1024).toFixed(1)} KB)
+                        </span>
+                        <Download className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 강의자 수정/삭제 버튼 */}
+              {user?.role === 'instructor' && (
+                <div className="mt-8 pt-6 border-t border-gray-200 flex items-center gap-3">
                   <Link
                     to={`/instructor/course/${courseId}/notices/${noticeId}/edit`}
                     className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                   >
                     수정하기
                   </Link>
+                  <button
+                    onClick={handleDelete}
+                    className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    삭제하기
+                  </button>
                 </div>
               )}
             </div>

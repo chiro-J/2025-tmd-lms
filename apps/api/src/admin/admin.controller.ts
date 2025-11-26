@@ -170,8 +170,15 @@ export class AdminController {
     content: string;
     author: string;
     priority?: 'low' | 'medium' | 'high';
+    attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
   }): Promise<Notice> {
-    return this.adminService.createNotice(data);
+    try {
+      const result = await this.adminService.createNotice(data);
+      return result;
+    } catch (error) {
+      console.error('공지사항 생성 실패:', error.message);
+      throw error;
+    }
   }
 
   @Put('notices/:id')
@@ -200,16 +207,22 @@ export class AdminController {
     @Body() data: {
       title: string;
       content: string;
-      courseName?: string;
-      courseNumber?: string;
+      attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
     },
     @Request() req,
   ): Promise<Inquiry> {
-    const userId = req.user?.userId;
-    if (!userId) {
-      throw new ForbiddenException('로그인이 필요합니다.');
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        throw new ForbiddenException('로그인이 필요합니다.');
+      }
+
+      const result = await this.adminService.createInquiry(data, userId);
+      return result;
+    } catch (error) {
+      console.error('문의하기 생성 실패:', error.message);
+      throw error;
     }
-    return this.adminService.createInquiry(data, userId);
   }
 
   // 구체적인 라우트를 동적 라우트보다 먼저 배치 (라우팅 순서 중요!)
@@ -237,6 +250,12 @@ export class AdminController {
     @Body() data: { response: string },
   ): Promise<Inquiry> {
     return this.adminService.respondToInquiry(id, data.response);
+  }
+
+  @Delete('inquiries/:id')
+  async deleteInquiry(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
+    await this.adminService.deleteInquiry(id);
+    return { message: '문의사항이 삭제되었습니다.' };
   }
 
   // ========== 시스템 설정 관련 ==========

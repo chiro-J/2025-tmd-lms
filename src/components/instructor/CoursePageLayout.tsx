@@ -59,10 +59,10 @@ export default function CoursePageLayout({ currentPageTitle, rightActions, child
         currentPageTitle={currentPageTitle}
       />
 
-      <div className="flex">
+      <div className="flex overflow-hidden">
         <CourseSidebar currentCourse={currentCourse || undefined} />
 
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 overflow-y-auto min-w-0">
           {/* Page Title and Actions */}
           <div className="mb-6">
             <div className="flex items-center justify-between">

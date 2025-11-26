@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { UploadController } from './upload.controller';
+import { DownloadController } from './download.controller';
 import { UploadService } from './upload.service';
 
 @Module({
   imports: [ConfigModule],
-  controllers: [UploadController],
+  controllers: [UploadController, DownloadController],
   providers: [UploadService],
   exports: [UploadService],
 })

@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { MessageSquare, Search, X, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { MessageSquare, Search, X, ChevronDown, File, Image as ImageIcon, Download } from "lucide-react";
 import Card from "../ui/Card";
 import * as adminApi from "../../core/api/admin";
+import { getDownloadUrl } from "../../utils/download";
 
 interface Inquiry {
   id: number;
@@ -15,6 +17,7 @@ interface Inquiry {
   courseName?: string;
   courseNumber?: string;
   role?: string;
+  attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number } | string> | null;
 }
 
 interface InquiryManagementProps {
@@ -36,6 +39,18 @@ export default function InquiryManagement({
   const [filterCourseNumber, setFilterCourseNumber] = useState("");
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed'>('all');
   const [filterRole, setFilterRole] = useState<'all' | 'student' | 'instructor'>('all');
+
+  // 모달이 열릴 때 body에 클래스 추가/제거
+  useEffect(() => {
+    if (showInquiryModal) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [showInquiryModal]);
 
   const handleInquiryResponse = (inquiry: Inquiry) => {
     setSelectedInquiry(inquiry);
@@ -310,8 +325,8 @@ export default function InquiryManagement({
       </Card>
 
       {/* 문의사항 답변 모달 */}
-      {showInquiryModal && selectedInquiry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      {showInquiryModal && selectedInquiry && createPortal(
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
           <Card className="max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -345,7 +360,79 @@ export default function InquiryManagement({
                       {selectedInquiry.status === 'pending' ? '대기' : '완료'}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 mt-2 break-words whitespace-pre-wrap">{selectedInquiry.content}</p>
+                  <p className="text-sm text-gray-700 mt-2 break-words whitespace-pre-wrap mb-3">{selectedInquiry.content}</p>
+
+                  {/* 첨부파일 */}
+                  {selectedInquiry.attachments && selectedInquiry.attachments.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">첨부파일:</p>
+                      <div className="space-y-3">
+                        {selectedInquiry.attachments.map((attachment, index) => {
+                          // attachment가 문자열인지 객체인지 확인
+                          const isString = typeof attachment === 'string';
+                          const attachmentUrl = isString ? attachment : attachment.url;
+                          const attachmentName = isString
+                            ? attachment.split('/').pop() || `첨부파일 ${index + 1}`
+                            : attachment.originalname || attachment.filename || `첨부파일 ${index + 1}`;
+                          const attachmentSize = isString ? null : attachment.size;
+                          const attachmentMimeType = isString
+                            ? (attachmentUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ? 'image/' : '')
+                            : attachment.mimetype || '';
+
+                          const isImage = attachmentMimeType.startsWith('image/') ||
+                                         /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(attachmentUrl);
+
+                          // 다운로드 URL 생성
+                          const downloadUrl = isString
+                            ? attachmentUrl
+                            : getDownloadUrl(attachment);
+
+                          // 이미지 미리보기 URL (다운로드 URL과 동일하게 사용)
+                          const imageUrl = downloadUrl;
+
+                          return (
+                            <div key={index} className="space-y-2">
+                              <a
+                                href={downloadUrl}
+                                download
+                                className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                  {isImage ? (
+                                    <ImageIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                  ) : (
+                                    <File className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{attachmentName}</p>
+                                    {attachmentSize && (
+                                      <p className="text-xs text-gray-500">{(attachmentSize / 1024).toFixed(2)} KB</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <Download className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                              </a>
+                              {/* 이미지 미리보기 */}
+                              {isImage && (
+                                <div className="mt-2 bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                  <img
+                                    src={imageUrl}
+                                    alt={attachmentName}
+                                    className="w-full max-w-md h-auto rounded-lg border border-gray-200 object-contain mx-auto"
+                                    onError={(e) => {
+                                      console.error('이미지 로드 실패:', imageUrl);
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
                     <div className="text-xs text-gray-500 break-words">
                       <span className="font-medium">문의자:</span> {selectedInquiry.user} ({selectedInquiry.email})
@@ -409,7 +496,8 @@ export default function InquiryManagement({
               </div>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { ChevronDown, Mail, MessageSquare, HelpCircle, Search, Send, CheckCircle, BookOpen, Clock, ArrowRight, Shield, Zap, FileText, Eye, X } from 'lucide-react'
+import { ChevronDown, Mail, MessageSquare, HelpCircle, Search, Send, CheckCircle, BookOpen, Clock, ArrowRight, Shield, Zap, FileText, Eye, X, Upload, XCircle, Image as ImageIcon, Download, File } from 'lucide-react'
+import { getDownloadUrl } from '../../utils/download'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import type { FAQItem } from '../../types'
 import * as adminApi from '../../core/api/admin'
+import { uploadFile } from '../../core/api/upload'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function Help() {
@@ -27,6 +29,8 @@ export default function Help() {
   const [showInquiryModal, setShowInquiryModal] = useState(false)
   const [enrolledCourses, setEnrolledCourses] = useState<Array<{ courseId: number; courseName: string; courseNumber: string }>>([])
   const [selectedCourse, setSelectedCourse] = useState<{ courseName: string; courseNumber: string } | null>(null)
+  const [attachments, setAttachments] = useState<Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }>>([])
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     const loadFAQ = async () => {
@@ -100,6 +104,41 @@ export default function Help() {
     loadMyInquiries()
   }, [user?.email])
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 100 * 1024 * 1024) {
+      alert('파일 크기는 100MB를 초과할 수 없습니다.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      let fileType: 'pdf' | 'image' | 'video' = 'image';
+      if (file.type === 'application/pdf') {
+        fileType = 'pdf';
+      } else if (file.type.startsWith('video/')) {
+        fileType = 'video';
+      } else if (file.type.startsWith('image/')) {
+        fileType = 'image';
+      }
+
+      const result = await uploadFile(file, fileType, 'inquiry');
+      setAttachments(prev => [...prev, result]);
+    } catch (error) {
+      console.error('파일 업로드 실패:', error);
+      alert('파일 업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -110,7 +149,8 @@ export default function Help() {
         title: contactForm.subject,
         content: contactForm.message,
         courseName: contactForm.courseName || undefined,
-        courseNumber: contactForm.courseNumber || undefined
+        courseNumber: contactForm.courseNumber || undefined,
+        attachments: attachments.length > 0 ? attachments : null
       })
 
       setSubmitSuccess(true)
@@ -120,6 +160,7 @@ export default function Help() {
         courseName: selectedCourse?.courseName || '',
         courseNumber: selectedCourse?.courseNumber || ''
       })
+      setAttachments([])
 
       // 문의사항 목록 새로고침
       if (user?.email) {
@@ -221,7 +262,15 @@ export default function Help() {
                               </span>
                             </div>
                             <p className="text-base text-gray-600 line-clamp-2 mb-2">{inquiry.content}</p>
-                            <p className="text-base text-gray-400">{inquiry.createdDate}</p>
+                            <div className="flex items-center gap-3">
+                              <p className="text-base text-gray-400">{inquiry.createdDate}</p>
+                              {inquiry.attachments && inquiry.attachments.length > 0 && (
+                                <div className="flex items-center gap-1 text-blue-600">
+                                  <File className="h-4 w-4" />
+                                  <span className="text-sm">첨부파일 {inquiry.attachments.length}개</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                           <Eye className="h-5 w-5 text-gray-400 flex-shrink-0" />
                         </div>
@@ -415,6 +464,62 @@ export default function Help() {
                     />
                   </div>
 
+                  {/* 첨부파일 */}
+                  <div>
+                    <label className="block text-base font-semibold text-gray-700 mb-2">
+                      첨부파일 (선택사항)
+                    </label>
+                    <div className="space-y-3">
+                      <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                        <div className="flex flex-col items-center space-y-1">
+                          <Upload className="h-6 w-6 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {uploading ? '업로드 중...' : '파일을 선택하세요'}
+                          </span>
+                          <span className="text-xs text-gray-500">이미지, PDF, 동영상 (최대 100MB)</span>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                          accept="image/*,application/pdf,video/*"
+                          disabled={uploading}
+                        />
+                      </label>
+
+                      {/* 첨부파일 목록 */}
+                      {attachments.length > 0 && (
+                        <div className="space-y-2">
+                          {attachments.map((attachment, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200"
+                            >
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                {attachment.mimetype.startsWith('image/') ? (
+                                  <ImageIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{attachment.originalname}</p>
+                                  <p className="text-xs text-gray-500">{(attachment.size / 1024).toFixed(2)} KB</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleRemoveAttachment(index)}
+                                className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                title="삭제"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <Button
                     type="submit"
                     disabled={isSubmitting}
@@ -511,7 +616,78 @@ export default function Help() {
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4 mb-3">
                     <p className="text-base text-gray-600 mb-2">문의일: {selectedInquiry.createdDate}</p>
-                    <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">{selectedInquiry.content}</p>
+                    <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed mb-3">{selectedInquiry.content}</p>
+
+                    {/* 첨부파일 */}
+                    {selectedInquiry.attachments && selectedInquiry.attachments.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">첨부파일:</p>
+                        <div className="space-y-3">
+                          {selectedInquiry.attachments.map((attachment, index) => {
+                            // attachment가 문자열인지 객체인지 확인
+                            const isString = typeof attachment === 'string';
+                            const attachmentUrl = isString ? attachment : attachment.url;
+                            const attachmentName = isString
+                              ? attachment.split('/').pop() || `첨부파일 ${index + 1}`
+                              : attachment.originalname || attachment.filename || `첨부파일 ${index + 1}`;
+                            const attachmentSize = isString ? null : attachment.size;
+                            const attachmentMimeType = isString
+                              ? (attachmentUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ? 'image/' : '')
+                              : attachment.mimetype || '';
+
+                            const isImage = attachmentMimeType.startsWith('image/') ||
+                                           /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(attachmentUrl);
+
+                            // 다운로드 URL 생성
+                            const downloadUrl = isString
+                              ? attachmentUrl
+                              : getDownloadUrl(attachment);
+
+                            // 이미지 미리보기 URL
+                            const imageUrl = downloadUrl;
+
+                            return (
+                              <div key={index} className="space-y-2">
+                                <a
+                                  href={downloadUrl}
+                                  download
+                                  className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors"
+                                >
+                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                    {isImage ? (
+                                      <ImageIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                    ) : (
+                                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">{attachmentName}</p>
+                                      {attachmentSize && (
+                                        <p className="text-xs text-gray-500">{(attachmentSize / 1024).toFixed(2)} KB</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <Download className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                                </a>
+                                {/* 이미지 미리보기 */}
+                                {isImage && (
+                                  <div className="mt-2 bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                    <img
+                                      src={imageUrl}
+                                      alt={attachmentName}
+                                      className="w-full max-w-md h-auto rounded-lg border border-gray-200 object-contain mx-auto"
+                                      onError={(e) => {
+                                        console.error('이미지 로드 실패:', imageUrl);
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

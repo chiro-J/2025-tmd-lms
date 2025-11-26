@@ -13,6 +13,7 @@ export default function Header() {
   const [showRoleMenu, setShowRoleMenu] = useState(false)
   const [showNotificationMenu, setShowNotificationMenu] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -147,6 +148,25 @@ export default function Header() {
     }
   }, [showRoleMenu, showNotificationMenu])
 
+  // 모달 상태 감지
+  useEffect(() => {
+    const checkModalOpen = () => {
+      setIsModalOpen(document.body.classList.contains('modal-open'))
+    }
+
+    // 초기 체크
+    checkModalOpen()
+
+    // MutationObserver로 body 클래스 변경 감지
+    const observer = new MutationObserver(checkModalOpen)
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+
+    return () => observer.disconnect()
+  }, [])
+
   const unreadCount = notifications.filter(n => !n.read).length
 
   const handleNotificationClick = (notification: Notification) => {
@@ -197,7 +217,7 @@ export default function Header() {
   }
 
   return (
-    <header className="h-14 bg-base-100 border-b border-base-300 sticky top-0 z-50 shadow-sm">
+    <header className={`h-14 border-b border-base-300 sticky top-0 z-50 shadow-sm ${isModalOpen ? 'bg-gray-100' : 'bg-base-100'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}

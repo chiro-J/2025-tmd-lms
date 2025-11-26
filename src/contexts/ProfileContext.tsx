@@ -64,27 +64,32 @@ export interface Training {
 export type ResumeTemplate = 'modern' | 'classic' | 'minimal' | 'creative'
 
 export interface ProfileData {
-  // 개인 정보
+  // 개인 정보 (users 테이블)
   name: string
-  email: string
+  email: string // LMS 로그인용
   phone: string
   address: string
-  job: string
+  job: string // 현재 직업
   language: string
-  bio: string
-  languages: string[]
+  bio: string // 개인정보용 자기소개
+  languages: string[] // 보유 기술
   githubUrl: string
   notionUrl: string
-  profileImage?: string // 프로필 사진 URL
 
-  // 소셜 로그인 연동 상태
+  // 소셜 로그인 연동 상태 (users 테이블)
   googleLinked: boolean
   kakaoLinked: boolean
   googleLinkedDate?: string
   kakaoLinkedDate?: string
 
-  // 이력서 정보
+  // 대시보드 전용 (profiles 테이블)
+  profileImage?: string // 대시보드 배경화면
+
+  // 이력서 정보 (profiles 테이블)
   resumePhoto?: string // 이력서 사진 (720x960)
+  resumeEmail?: string // 이력서 공개용 이메일
+  resumeBio?: string // 이력서용 자기소개
+  desiredPosition?: string // 희망 직무/관심 직군
   education: Education[]
   experience: Experience[]
   projects: Project[]
@@ -99,6 +104,7 @@ export interface ProfileData {
 interface ProfileContextType {
   profileData: ProfileData
   updateProfile: (data: Partial<ProfileData>) => void
+  updateAndSave: (data: Partial<ProfileData>) => Promise<void>
   addEducation: (education: Education) => void
   updateEducation: (id: string, education: Partial<Education>) => void
   deleteEducation: (id: string) => void
@@ -118,6 +124,7 @@ interface ProfileContextType {
   updateTraining: (id: string, training: Partial<Training>) => void
   deleteTraining: (id: string) => void
   saveToLocalStorage: () => void
+  saveToDatabase: () => Promise<void>
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
@@ -137,12 +144,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     languages: [],
     githubUrl: '',
     notionUrl: '',
-    profileImage: '',
     googleLinked: false,
     kakaoLinked: false,
     googleLinkedDate: undefined,
     kakaoLinkedDate: undefined,
+    profileImage: '',
     resumePhoto: '',
+    resumeEmail: '',
+    resumeBio: '',
+    desiredPosition: '',
     education: [],
     experience: [],
     projects: [],
@@ -166,12 +176,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           name: user.name || data.name || '',
           email: user.email || data.email || '',
           phone: user.phone || data.phone || '',
+          resumeEmail: data.resumeEmail || '',
+          resumeBio: data.resumeBio || data.bio || '',
+          desiredPosition: data.desiredPosition || '',
           languageSkills: data.languageSkills || [],
           trainings: data.trainings || []
         })
       } catch (error: any) {
         // API 실패 시 localStorage에서 로드
-        console.log('Loading from localStorage (API not available)')
         const savedProfile = localStorage.getItem(`profile_${userId}`)
 
         if (savedProfile) {
@@ -186,7 +198,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
               trainings: parsed.trainings || []
             })
           } catch (parseError) {
-            console.error('Failed to parse profile data:', parseError)
             // 파싱 실패 시 기본값으로 설정
             setProfileData(prev => ({
               ...prev,
@@ -222,6 +233,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             googleLinkedDate: undefined,
             kakaoLinkedDate: undefined,
             resumePhoto: '',
+            resumeEmail: '',
+            resumeBio: '',
+            desiredPosition: '',
             education: [],
             experience: [],
             projects: [],
@@ -238,22 +252,29 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     loadProfile()
   }, [user, userId])
 
-  const saveToLocalStorage = async () => {
+  // localStorage에만 저장 (편집 중 자동 저장용)
+  const saveToLocalStorage = () => {
+    if (!userId) return
+    localStorage.setItem(`profile_${userId}`, JSON.stringify(profileData))
+  }
+
+  // DB(API)에 저장 (저장 버튼 클릭 시)
+  const saveToDatabase = async () => {
     if (!userId) return
 
     try {
-      // API에 저장 시도
+      // API에 저장
       await profileApi.updateProfile(userId, profileData)
       // 성공 시 localStorage에도 백업
       localStorage.setItem(`profile_${userId}`, JSON.stringify(profileData))
     } catch (error) {
-      // API 실패 시 localStorage만 저장
-      console.log('Saving to localStorage only (API not available)')
+      // API 실패 시에도 localStorage에는 저장
       localStorage.setItem(`profile_${userId}`, JSON.stringify(profileData))
+      throw error // 에러를 다시 던져서 UI에서 처리할 수 있도록
     }
   }
 
-  // 자동 저장: profileData 변경 시 자동으로 localStorage에 저장 (API는 저장 버튼 클릭 시만)
+  // 자동 저장: profileData 변경 시 자동으로 localStorage에만 저장
   useEffect(() => {
     if (!userId || !user) return
 
@@ -264,21 +285,40 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer)
   }, [profileData, userId, user])
 
-  const updateProfile = async (data: Partial<ProfileData>) => {
+  const updateProfile = (data: Partial<ProfileData>) => {
     setProfileData(prev => ({ ...prev, ...data }))
-    // API 업데이트는 saveToLocalStorage에서 처리
+  }
+
+  // 업데이트하고 즉시 DB에 저장하는 함수
+  const updateAndSave = async (data: Partial<ProfileData>) => {
+    if (!userId) return
+
+    const updatedData = { ...profileData, ...data }
+
+    // 상태 업데이트
+    setProfileData(updatedData)
+
+    try {
+      // 업데이트된 데이터를 즉시 DB에 저장
+      await profileApi.updateProfile(userId, updatedData)
+      // 성공 시 localStorage에도 백업
+      localStorage.setItem(`profile_${userId}`, JSON.stringify(updatedData))
+    } catch (error) {
+      // API 실패 시에도 localStorage에는 저장
+      localStorage.setItem(`profile_${userId}`, JSON.stringify(updatedData))
+      throw error // 에러를 다시 던져서 UI에서 처리할 수 있도록
+    }
   }
 
   // Education 관리
-  const addEducation = async (education: Education) => {
+  const addEducation = (education: Education) => {
     setProfileData(prev => ({
       ...prev,
       education: [...prev.education, education]
     }))
-    // API 호출은 즉시 진행하지 않고 localStorage 자동 저장에 의존
   }
 
-  const updateEducation = async (id: string, education: Partial<Education>) => {
+  const updateEducation = (id: string, education: Partial<Education>) => {
     setProfileData(prev => ({
       ...prev,
       education: prev.education.map(edu =>
@@ -287,7 +327,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }))
   }
 
-  const deleteEducation = async (id: string) => {
+  const deleteEducation = (id: string) => {
     setProfileData(prev => ({
       ...prev,
       education: prev.education.filter(edu => edu.id !== id)
@@ -295,14 +335,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }
 
   // Experience 관리
-  const addExperience = async (experience: Experience) => {
+  const addExperience = (experience: Experience) => {
     setProfileData(prev => ({
       ...prev,
       experience: [...prev.experience, experience]
     }))
   }
 
-  const updateExperience = async (id: string, experience: Partial<Experience>) => {
+  const updateExperience = (id: string, experience: Partial<Experience>) => {
     setProfileData(prev => ({
       ...prev,
       experience: prev.experience.map(exp =>
@@ -311,7 +351,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }))
   }
 
-  const deleteExperience = async (id: string) => {
+  const deleteExperience = (id: string) => {
     setProfileData(prev => ({
       ...prev,
       experience: prev.experience.filter(exp => exp.id !== id)
@@ -319,14 +359,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }
 
   // Project 관리
-  const addProject = async (project: Project) => {
+  const addProject = (project: Project) => {
     setProfileData(prev => ({
       ...prev,
       projects: [...prev.projects, project]
     }))
   }
 
-  const updateProject = async (id: string, project: Partial<Project>) => {
+  const updateProject = (id: string, project: Partial<Project>) => {
     setProfileData(prev => ({
       ...prev,
       projects: prev.projects.map(proj =>
@@ -335,7 +375,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }))
   }
 
-  const deleteProject = async (id: string) => {
+  const deleteProject = (id: string) => {
     setProfileData(prev => ({
       ...prev,
       projects: prev.projects.filter(proj => proj.id !== id)
@@ -343,14 +383,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }
 
   // Certificate 관리
-  const addCertificate = async (certificate: Certificate) => {
+  const addCertificate = (certificate: Certificate) => {
     setProfileData(prev => ({
       ...prev,
       certificates: [...prev.certificates, certificate]
     }))
   }
 
-  const updateCertificate = async (id: string, certificate: Partial<Certificate>) => {
+  const updateCertificate = (id: string, certificate: Partial<Certificate>) => {
     setProfileData(prev => ({
       ...prev,
       certificates: prev.certificates.map(cert =>
@@ -359,7 +399,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }))
   }
 
-  const deleteCertificate = async (id: string) => {
+  const deleteCertificate = (id: string) => {
     setProfileData(prev => ({
       ...prev,
       certificates: prev.certificates.filter(cert => cert.id !== id)
@@ -367,14 +407,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }
 
   // LanguageSkill 관리
-  const addLanguageSkill = async (language: Language) => {
+  const addLanguageSkill = (language: Language) => {
     setProfileData(prev => ({
       ...prev,
       languageSkills: [...prev.languageSkills, language]
     }))
   }
 
-  const updateLanguageSkill = async (id: string, language: Partial<Language>) => {
+  const updateLanguageSkill = (id: string, language: Partial<Language>) => {
     setProfileData(prev => ({
       ...prev,
       languageSkills: prev.languageSkills.map(lang =>
@@ -383,7 +423,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }))
   }
 
-  const deleteLanguageSkill = async (id: string) => {
+  const deleteLanguageSkill = (id: string) => {
     setProfileData(prev => ({
       ...prev,
       languageSkills: prev.languageSkills.filter(lang => lang.id !== id)
@@ -391,14 +431,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }
 
   // Training 관리
-  const addTraining = async (training: Training) => {
+  const addTraining = (training: Training) => {
     setProfileData(prev => ({
       ...prev,
       trainings: [...prev.trainings, training]
     }))
   }
 
-  const updateTraining = async (id: string, training: Partial<Training>) => {
+  const updateTraining = (id: string, training: Partial<Training>) => {
     setProfileData(prev => ({
       ...prev,
       trainings: prev.trainings.map(train =>
@@ -407,7 +447,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }))
   }
 
-  const deleteTraining = async (id: string) => {
+  const deleteTraining = (id: string) => {
     setProfileData(prev => ({
       ...prev,
       trainings: prev.trainings.filter(train => train.id !== id)
@@ -419,6 +459,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       value={{
         profileData,
         updateProfile,
+        updateAndSave,
         addEducation,
         updateEducation,
         deleteEducation,
@@ -437,7 +478,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         addTraining,
         updateTraining,
         deleteTraining,
-        saveToLocalStorage
+        saveToLocalStorage,
+        saveToDatabase
       }}
     >
       {children}

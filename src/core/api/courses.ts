@@ -82,6 +82,7 @@ export interface CourseNotice {
   content: string;
   createdAt: string;
   updatedAt: string;
+  attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
 }
 
 export const getCourseNotices = async (courseId: number): Promise<CourseNotice[]> => {
@@ -100,7 +101,7 @@ export const getCourseNotices = async (courseId: number): Promise<CourseNotice[]
  */
 export const createCourseNotice = async (
   courseId: number,
-  data: { title: string; content: string }
+  data: { title: string; content: string; attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null }
 ): Promise<CourseNotice> => {
   try {
     const response = await apiClient.post<CourseNotice>(`/courses/${courseId}/notices`, data);
@@ -118,13 +119,29 @@ export const createCourseNotice = async (
 export const updateCourseNotice = async (
   courseId: number,
   noticeId: number,
-  data: { title: string; content: string }
+  data: { title: string; content: string; attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null }
 ): Promise<CourseNotice> => {
   try {
     const response = await apiClient.put<CourseNotice>(`/courses/${courseId}/notices/${noticeId}`, data);
     return response.data;
   } catch (error) {
     console.error('강좌별 공지사항 수정 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 강좌별 공지사항 삭제
+ * DELETE /api/courses/:id/notices/:noticeId
+ */
+export const deleteCourseNotice = async (
+  courseId: number,
+  noticeId: number
+): Promise<void> => {
+  try {
+    await apiClient.delete(`/courses/${courseId}/notices/${noticeId}`);
+  } catch (error) {
+    console.error('강좌별 공지사항 삭제 실패:', error);
     throw error;
   }
 };

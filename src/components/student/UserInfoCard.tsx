@@ -1,65 +1,33 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Image as ImageIcon, Clock } from 'lucide-react'
-import { Github } from 'lucide-react'
+import { User, Image as ImageIcon, Github } from 'lucide-react'
 import Card from '../ui/Card'
 import ProfileBackgroundModal from './ProfileBackgroundModal'
+import { useProfile } from '../../contexts/ProfileContext'
 import type { UserInfoCardProps } from '../../types'
 
 export default function UserInfoCard({ user }: UserInfoCardProps) {
+  const { profileData, updateAndSave } = useProfile()
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false)
   const [backgroundImage, setBackgroundImage] = useState<string>('')
-  const [sessionTime, setSessionTime] = useState<string>('0분')
-  const [loginTime] = useState<number>(Date.now())
-  const [githubUrl, setGithubUrl] = useState<string>('')
-  const [notionUrl, setNotionUrl] = useState<string>('')
 
-  // localStorage에서 배경 이미지 로드
+  // ProfileContext에서 배경 이미지 로드
   useEffect(() => {
-    const savedBackground = localStorage.getItem(`profile_background_${user.id}`)
-    if (savedBackground) {
-      setBackgroundImage(savedBackground)
+    if (profileData.profileImage) {
+      setBackgroundImage(profileData.profileImage)
     }
-  }, [user.id])
+  }, [profileData.profileImage])
 
-  // localStorage에서 소셜 링크 로드
-  useEffect(() => {
-    const savedGithub = localStorage.getItem(`github_url_${user.id}`)
-    const savedNotion = localStorage.getItem(`notion_url_${user.id}`)
-    if (savedGithub) setGithubUrl(savedGithub)
-    if (savedNotion) setNotionUrl(savedNotion)
-  }, [user.id])
-
-  // 세션 시간 업데이트
-  useEffect(() => {
-    const updateSessionTime = () => {
-      const elapsed = Date.now() - loginTime
-      const minutes = Math.floor(elapsed / 60000)
-      const hours = Math.floor(minutes / 60)
-      const days = Math.floor(hours / 24)
-
-      if (days > 0) {
-        setSessionTime(`${days}일 ${hours % 24}시간`)
-      } else if (hours > 0) {
-        setSessionTime(`${hours}시간 ${minutes % 60}분`)
-      } else {
-        setSessionTime(`${minutes}분`)
-      }
-    }
-
-    updateSessionTime()
-    const interval = setInterval(updateSessionTime, 60000) // 1분마다 업데이트
-
-    return () => clearInterval(interval)
-  }, [loginTime])
-
-  const handleApplyBackground = (imageData: string) => {
+  const handleApplyBackground = async (imageData: string) => {
     setBackgroundImage(imageData)
-    // localStorage에 저장
-    if (imageData) {
-      localStorage.setItem(`profile_background_${user.id}`, imageData)
-    } else {
-      localStorage.removeItem(`profile_background_${user.id}`)
+
+    try {
+      // ProfileContext의 updateAndSave를 사용하여 상태 업데이트 및 DB 저장을 한 번에 처리
+      await updateAndSave({ profileImage: imageData })
+
+    } catch (error) {
+      console.error('프로필 배경 이미지 저장 실패:', error)
+      alert('배경 이미지 저장에 실패했습니다. 다시 시도해주세요.')
     }
   }
 
@@ -76,18 +44,6 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-transparent group-hover/card:from-black/20 group-hover/card:via-black/40 group-hover/card:to-black/60 transition-all"></div>
           </div>
         )}
-
-        {/* 세션 시간 표시 - 좌상단, hover 시 보임 */}
-        <div className="absolute top-3 left-3 z-20 opacity-0 group-hover/card:opacity-100 transition-all">
-          <div className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border-2 text-xs font-medium shadow-lg backdrop-blur-sm ${
-            backgroundImage
-              ? 'border-white/80 text-white'
-              : 'border-gray-700 text-gray-700'
-          }`}>
-            <Clock className="h-3.5 w-3.5" />
-            <span>{sessionTime}</span>
-          </div>
-        </div>
 
         {/* 배경 편집 버튼 - hover 시 보임, 보라색 glow */}
         <button
@@ -132,11 +88,11 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
             </Link>
 
             {/* Social Links - hover 시 보임 */}
-            {(githubUrl || notionUrl) && (
+            {(profileData.githubUrl || profileData.notionUrl) && (
               <div className="flex items-center justify-center space-x-3 opacity-0 group-hover/card:opacity-100 transition-all">
-                {githubUrl && (
+                {profileData.githubUrl && (
                   <a
-                    href={githubUrl}
+                    href={profileData.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`p-2.5 rounded-lg border-2 transition-all hover:scale-110 shadow-lg backdrop-blur-sm ${
@@ -150,9 +106,9 @@ export default function UserInfoCard({ user }: UserInfoCardProps) {
                     <Github className="h-4 w-4" />
                   </a>
                 )}
-                {notionUrl && (
+                {profileData.notionUrl && (
                   <a
-                    href={notionUrl}
+                    href={profileData.notionUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`p-2.5 rounded-lg border-2 transition-all hover:scale-110 shadow-lg backdrop-blur-sm ${

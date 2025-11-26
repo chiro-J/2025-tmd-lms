@@ -24,6 +24,8 @@ export class UploadService {
     lessonPdf: string;
     lessonImage: string;
     lessonVideo: string;
+    notice: string;
+    inquiry: string;
   };
 
   constructor(private configService: ConfigService) {
@@ -44,6 +46,8 @@ export class UploadService {
       lessonPdf: this.configService.get<string>('UPLOAD_PATH_LESSON_PDF') || 'lessons/pdfs',
       lessonImage: this.configService.get<string>('UPLOAD_PATH_LESSON_IMAGE') || 'lessons/images',
       lessonVideo: this.configService.get<string>('UPLOAD_PATH_LESSON_VIDEO') || 'lessons/videos',
+      notice: this.configService.get<string>('UPLOAD_PATH_NOTICE') || 'notices',
+      inquiry: this.configService.get<string>('UPLOAD_PATH_INQUIRY') || 'inquiries',
     };
   }
 
@@ -74,6 +78,10 @@ export class UploadService {
       relativePath = `/${this.uploadPaths.assignment}/${file.filename}`;
     } else if (source === 'resource') {
       relativePath = `/${this.uploadPaths.resource}/${file.filename}`;
+    } else if (source === 'notice') {
+      relativePath = `/${this.uploadPaths.notice}/${file.filename}`;
+    } else if (source === 'inquiry') {
+      relativePath = `/${this.uploadPaths.inquiry}/${file.filename}`;
     } else {
       // lesson (기본값)
       if (type === 'pdf') {
@@ -113,10 +121,23 @@ export class UploadService {
     // 절대 URL로 반환 (환경변수 base URL 사용)
     const absoluteUrl = `${this.fileStorageBaseUrl}${relativePath}`;
 
+    // 한글 파일명 인코딩 처리
+    // Multer가 multipart/form-data에서 파일명을 latin1로 인코딩하므로 utf8로 변환
+    let originalname = file.originalname || file.filename;
+    if (file.originalname) {
+      try {
+        // Buffer를 통해 올바른 인코딩으로 변환
+        originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      } catch (e) {
+        // 변환 실패 시 원본 사용
+        originalname = file.originalname;
+      }
+    }
+
     return {
       url: absoluteUrl,
       filename: file.filename,
-      originalname: file.originalname,
+      originalname: originalname,
       mimetype: file.mimetype,
       size: file.size,
     };
@@ -144,6 +165,10 @@ export class UploadService {
       s3Key = `${this.uploadPaths.assignment}/${file.filename}`;
     } else if (source === 'resource') {
       s3Key = `${this.uploadPaths.resource}/${file.filename}`;
+    } else if (source === 'notice') {
+      s3Key = `${this.uploadPaths.notice}/${file.filename}`;
+    } else if (source === 'inquiry') {
+      s3Key = `${this.uploadPaths.inquiry}/${file.filename}`;
     } else {
       // lesson (기본값)
       if (type === 'pdf') {
@@ -197,15 +222,12 @@ export class UploadService {
       // 로컬 파일 삭제
       // URL에서 상대 경로 추출
       let filePath = url;
-      console.log('deleteFile 호출:', { originalUrl: url, storageType: this.storageType });
 
       if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
         try {
           const urlObj = new URL(filePath);
           filePath = urlObj.pathname;
-          console.log('절대 URL에서 경로 추출:', filePath);
         } catch (e) {
-          console.warn('URL 파싱 실패:', e);
           // URL 파싱 실패 시 그대로 사용
         }
       }
@@ -213,41 +235,32 @@ export class UploadService {
       // 상대 경로 정규화
       filePath = filePath.replace(/^\//, '');
 
-      // 경로가 이미 thumbnails/로 시작하는지 확인
-      // DB에 저장된 경로 형식: /thumbnails/file.jpg 또는 thumbnails/file.jpg
-      // 절대 URL에서 추출한 경로: /thumbnails/file.jpg
+      // 경로가 이미 특정 폴더로 시작하는지 확인
+      // DB에 저장된 경로 형식: /notices/file.jpg, /inquiries/file.jpg, /thumbnails/file.jpg 등
+      // 절대 URL에서 추출한 경로: /notices/file.jpg
       let fullPath: string;
-      if (filePath.startsWith('thumbnails/')) {
-        // thumbnails/file.jpg 형식
+
+      // notices, inquiries, thumbnails, assignments, resources, lessons 등 모든 경로 처리
+      if (filePath.startsWith('notices/') ||
+          filePath.startsWith('inquiries/') ||
+          filePath.startsWith('thumbnails/') ||
+          filePath.startsWith('assignments/') ||
+          filePath.startsWith('resources/') ||
+          filePath.startsWith('lessons/')) {
+        // 경로가 포함된 경우 (예: notices/file.jpg, inquiries/file.jpg)
+        fullPath = path.join(this.publicPath, filePath);
+      } else if (filePath.includes('/')) {
+        // 다른 경로가 포함된 경우
         fullPath = path.join(this.publicPath, filePath);
       } else {
-        // 파일명만 있거나 다른 경로인 경우
-        // 썸네일 파일은 thumbnails 폴더에 있다고 가정
-        // 하지만 다른 파일 타입도 처리할 수 있도록 경로 확인
-        if (filePath.includes('/')) {
-          // 경로가 포함된 경우 (예: lessons/pdfs/file.pdf)
-          fullPath = path.join(this.publicPath, filePath);
-        } else {
-          // 파일명만 있는 경우 - 썸네일로 가정 (다른 타입은 호출 시점에서 경로를 포함해야 함)
-          fullPath = path.join(this.publicPath, 'thumbnails', filePath);
-        }
+        // 파일명만 있는 경우 - 썸네일로 가정 (하위 호환성)
+        fullPath = path.join(this.publicPath, 'thumbnails', filePath);
       }
-
-      console.log('파일 삭제 경로:', {
-        originalUrl: url,
-        extractedPath: filePath,
-        fullPath: fullPath,
-        exists: fs.existsSync(fullPath),
-        publicPath: this.publicPath
-      });
 
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
-        console.log(`✅ 파일 삭제 성공: ${fullPath}`);
-      } else {
-        console.warn(`⚠️ 파일이 존재하지 않음: ${fullPath}`);
-        // 파일이 없어도 에러를 던지지 않음 (이미 삭제되었을 수 있음)
       }
+      // 파일이 없어도 에러를 던지지 않음 (이미 삭제되었을 수 있음)
     }
   }
 }

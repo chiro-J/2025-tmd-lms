@@ -34,6 +34,8 @@ async function bootstrap() {
   const uploadPathLessonPdf = process.env.UPLOAD_PATH_LESSON_PDF || 'lessons/pdfs';
   const uploadPathLessonImage = process.env.UPLOAD_PATH_LESSON_IMAGE || 'lessons/images';
   const uploadPathLessonVideo = process.env.UPLOAD_PATH_LESSON_VIDEO || 'lessons/videos';
+  const uploadPathNotice = process.env.UPLOAD_PATH_NOTICE || 'notices';
+  const uploadPathInquiry = process.env.UPLOAD_PATH_INQUIRY || 'inquiries';
 
   // 출처별 폴더 구조 생성 (환경변수 기반)
   const lessonsPdfsPath = path.join(publicPath, uploadPathLessonPdf);
@@ -42,6 +44,8 @@ async function bootstrap() {
   const thumbnailsPath = path.join(publicPath, uploadPathThumbnail);
   const assignmentsPath = path.join(publicPath, uploadPathAssignment);
   const resourcesPath = path.join(publicPath, uploadPathResource);
+  const noticesPath = path.join(publicPath, uploadPathNotice);
+  const inquiriesPath = path.join(publicPath, uploadPathInquiry);
 
   // 기존 submissions 폴더의 파일들을 assignments로 이동 (한 번만 실행)
   const submissionsPath = path.join(publicPath, 'submissions');
@@ -215,7 +219,7 @@ async function bootstrap() {
   }
 
   // 모든 새 폴더 생성
-  [lessonsPdfsPath, lessonsImagesPath, lessonsVideosPath, thumbnailsPath, assignmentsPath, resourcesPath].forEach((folder) => {
+  [lessonsPdfsPath, lessonsImagesPath, lessonsVideosPath, thumbnailsPath, assignmentsPath, resourcesPath, noticesPath, inquiriesPath].forEach((folder) => {
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder, { recursive: true });
     }
@@ -229,6 +233,8 @@ async function bootstrap() {
   console.log('  강의 PDF:', uploadPathLessonPdf, '→', lessonsPdfsPath);
   console.log('  강의 이미지:', uploadPathLessonImage, '→', lessonsImagesPath);
   console.log('  강의 비디오:', uploadPathLessonVideo, '→', lessonsVideosPath);
+  console.log('  공지사항:', uploadPathNotice, '→', noticesPath);
+  console.log('  문의하기:', uploadPathInquiry, '→', inquiriesPath);
 
   // 정적 파일 서빙 (public 폴더) - API prefix 전에 설정하여 직접 접근 가능
   // CORS 헤더 추가
@@ -240,6 +246,8 @@ async function bootstrap() {
     `/${uploadPathThumbnail}`,
     `/${uploadPathAssignment}`,
     `/${uploadPathResource}`,
+    `/${uploadPathNotice}`,
+    `/${uploadPathInquiry}`,
     // 기존 경로 호환성 유지
     '/images', '/pdfs', '/videos', '/photo'
   ];
@@ -269,6 +277,8 @@ async function bootstrap() {
   expressApp.use(`/${uploadPathThumbnail}`, express.static(thumbnailsPath));
   expressApp.use(`/${uploadPathAssignment}`, express.static(assignmentsPath));
   expressApp.use(`/${uploadPathResource}`, express.static(resourcesPath));
+  expressApp.use(`/${uploadPathNotice}`, express.static(noticesPath));
+  expressApp.use(`/${uploadPathInquiry}`, express.static(inquiriesPath));
   // 기존 경로 호환성 유지
   expressApp.use('/pdfs', express.static(lessonsPdfsPath));
   expressApp.use('/images', express.static(lessonsImagesPath));

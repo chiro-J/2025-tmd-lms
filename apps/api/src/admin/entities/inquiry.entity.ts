@@ -26,6 +26,9 @@ export class Inquiry {
   @Column({ type: 'text', nullable: true })
   response: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  attachments: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null;
+
   @Column({ type: 'date', default: () => 'CURRENT_DATE', name: 'createdDate' })
   createdDate: Date;
 

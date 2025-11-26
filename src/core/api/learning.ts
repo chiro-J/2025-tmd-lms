@@ -29,7 +29,6 @@ export async function getWeeklyLearningData(userId: number): Promise<WeeklyLearn
     return response.data
   } catch (error) {
     // API가 구현되지 않았으므로 조용히 처리 (404 오류는 무시)
-    // console.error('주간 학습 데이터 조회 실패:', error)
     // 에러 시 빈 데이터 반환
     return {
       thisWeek: [null, null, null, null, null, null, null],

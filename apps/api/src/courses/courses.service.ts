@@ -8,6 +8,7 @@ import { CourseEnrollment } from './entities/course-enrollment.entity';
 import { CourseQnA } from './entities/course-qna.entity';
 import { CourseQnAAnswer } from './entities/course-qna-answer.entity';
 import { User } from '../users/entities/user.entity';
+import { getUploadService } from '../utils/upload-helper';
 
 @Injectable()
 export class CoursesService {
@@ -111,68 +112,32 @@ export class CoursesService {
       throw new Error(`Course with ID ${id} not found`);
     }
 
-    console.log('🔍 Course.update 호출:', {
-      courseId: id,
-      currentThumbnail: course.thumbnail,
-      newThumbnail: updateCourseDto.thumbnail,
-      thumbnailDefined: updateCourseDto.thumbnail !== undefined,
-      thumbnailsEqual: course.thumbnail === updateCourseDto.thumbnail
-    });
 
     // 썸네일이 변경되거나 삭제되는 경우 기존 파일 삭제
     if (updateCourseDto.thumbnail !== undefined) {
       const oldThumbnail = course.thumbnail;
       const newThumbnail = updateCourseDto.thumbnail;
 
-      console.log('📸 썸네일 변경 체크:', {
-        oldThumbnail,
-        newThumbnail,
-        areEqual: oldThumbnail === newThumbnail,
-        oldThumbnailType: typeof oldThumbnail,
-        newThumbnailType: typeof newThumbnail,
-        oldThumbnailLength: oldThumbnail?.length,
-        newThumbnailLength: newThumbnail?.length
-      });
 
       // 기존 썸네일이 있고, 새로운 썸네일과 다르며, 기본 썸네일이 아닌 경우 삭제
       if (oldThumbnail && oldThumbnail !== newThumbnail &&
           !oldThumbnail.includes('aaa.jpg') && !oldThumbnail.includes('bbb.jpg') && !oldThumbnail.includes('ccc.jpg')) {
-        console.log('🗑️ 썸네일 삭제 조건 만족, 삭제 시작...');
         try {
           // UploadService를 통해 파일 삭제 (환경변수 기반 경로 처리)
           const { UploadService } = await import('../upload/upload.service');
           const { ConfigService } = await import('@nestjs/config');
           const configService = new ConfigService();
           const uploadService = new UploadService(configService);
-          console.log('🗑️ 썸네일 삭제 시도:', oldThumbnail);
           await uploadService.deleteFile(oldThumbnail);
-          console.log(`✅ 기존 썸네일 파일 삭제 성공: ${oldThumbnail}`);
         } catch (error) {
-          console.error('❌ 기존 썸네일 파일 삭제 실패:', error);
-          console.error('삭제 실패 상세:', {
-            oldThumbnail,
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
-          });
+          console.error('썸네일 파일 삭제 실패:', error instanceof Error ? error.message : String(error));
           // 파일 삭제 실패해도 계속 진행
         }
-      } else {
-        console.log('⏭️ 썸네일 삭제 건너뜀:', {
-          reason: !oldThumbnail ? '기존 썸네일 없음' :
-                  oldThumbnail === newThumbnail ? '썸네일 동일' :
-                  oldThumbnail.includes('aaa.jpg') || oldThumbnail.includes('bbb.jpg') || oldThumbnail.includes('ccc.jpg') ? '기본 썸네일' : '알 수 없는 이유'
-        });
       }
-    } else {
-      console.log('⏭️ 썸네일 업데이트 없음 (updateCourseDto.thumbnail === undefined)');
     }
 
     Object.assign(course, updateCourseDto);
     const savedCourse = await this.courseRepository.save(course);
-    console.log('💾 강좌 저장 완료:', {
-      courseId: savedCourse.id,
-      thumbnail: savedCourse.thumbnail
-    });
     return savedCourse;
   }
 
@@ -238,12 +203,19 @@ export class CoursesService {
     });
   }
 
-  async createCourseNotice(courseId: number, data: { title: string; content: string }): Promise<CourseNotice> {
+  async createCourseNotice(courseId: number, data: { title: string; content: string; attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null }): Promise<CourseNotice> {
     try {
+      // attachments 처리: 빈 배열이면 null로 변환
+      let attachmentsData = null;
+      if (data.attachments && Array.isArray(data.attachments) && data.attachments.length > 0) {
+        attachmentsData = data.attachments;
+      }
+
       const notice = this.courseNoticeRepository.create({
         courseId,
         title: data.title,
         content: data.content,
+        attachments: attachmentsData,
       });
       return await this.courseNoticeRepository.save(notice);
     } catch (error) {
@@ -252,7 +224,7 @@ export class CoursesService {
     }
   }
 
-  async updateCourseNotice(courseId: number, noticeId: number, data: { title: string; content: string }): Promise<CourseNotice> {
+  async updateCourseNotice(courseId: number, noticeId: number, data: { title: string; content: string; attachments?: Array<{ url: string; filename: string; originalname: string; mimetype: string; size: number }> | null }): Promise<CourseNotice> {
     try {
       const notice = await this.courseNoticeRepository.findOne({
         where: { id: noticeId, courseId },
@@ -260,11 +232,66 @@ export class CoursesService {
       if (!notice) {
         throw new Error('공지사항을 찾을 수 없습니다.');
       }
+
+      // 첨부파일이 변경되는 경우, 이전 첨부파일 삭제
+      if (data.attachments !== undefined && notice.attachments) {
+        const uploadService = await getUploadService();
+        const oldAttachments = Array.isArray(notice.attachments) ? notice.attachments : [];
+        const newAttachments = data.attachments ? (Array.isArray(data.attachments) ? data.attachments : []) : [];
+
+        // 이전 첨부파일 중 새로운 목록에 없는 파일 삭제
+        const newUrls = new Set(newAttachments.map(a => a.url));
+        for (const attachment of oldAttachments) {
+          if (!newUrls.has(attachment.url)) {
+            try {
+              await uploadService.deleteFile(attachment.url);
+            } catch (error) {
+              console.error(`강의 공지사항 첨부파일 삭제 실패: ${attachment.url}`, error);
+            }
+          }
+        }
+      }
+
+      // attachments 처리: 빈 배열이면 null로 변환
+      let attachmentsData = null;
+      if (data.attachments && Array.isArray(data.attachments) && data.attachments.length > 0) {
+        attachmentsData = data.attachments;
+      }
+
       notice.title = data.title;
       notice.content = data.content;
+      notice.attachments = attachmentsData;
       return await this.courseNoticeRepository.save(notice);
     } catch (error) {
       console.error('공지사항 수정 실패:', error);
+      throw error;
+    }
+  }
+
+  async deleteCourseNotice(courseId: number, noticeId: number): Promise<void> {
+    try {
+      const notice = await this.courseNoticeRepository.findOne({
+        where: { id: noticeId, courseId },
+      });
+      if (!notice) {
+        throw new Error('공지사항을 찾을 수 없습니다.');
+      }
+
+      // 첨부파일 삭제
+      if (notice.attachments && Array.isArray(notice.attachments)) {
+        const uploadService = await getUploadService();
+        for (const attachment of notice.attachments) {
+          try {
+            await uploadService.deleteFile(attachment.url);
+          } catch (error) {
+            console.error(`강의 공지사항 첨부파일 삭제 실패: ${attachment.url}`, error);
+          }
+        }
+      }
+
+      await this.courseNoticeRepository.remove(notice);
+    } catch (error) {
+      console.error('공지사항 삭제 실패:', error);
       throw error;
     }
   }

@@ -14,7 +14,7 @@ export default function InstructorSidebar() {
   const isIntroduction = location.pathname === '/instructor/introduction'
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
+    <div className="w-64 min-w-64 flex-shrink-0 bg-white border-r border-gray-200 min-h-screen">
       <div className="p-6">
         {/* Profile Section */}
         <div className="text-center mb-6">
