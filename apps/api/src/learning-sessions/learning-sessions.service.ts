@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, LessThan } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { DailyLearningStats } from './entities/daily-learning-stats.entity';
+import { UserSession } from './entities/user-session.entity';
+import { SyncSessionDto } from './dto/sync-session.dto';
 
 @Injectable()
 export class LearningSessionsService {
   constructor(
     @InjectRepository(DailyLearningStats)
     private dailyStatsRepo: Repository<DailyLearningStats>,
+    @InjectRepository(UserSession)
+    private userSessionRepo: Repository<UserSession>,
   ) {}
 
   /**
@@ -72,8 +77,8 @@ export class LearningSessionsService {
       order: { date: 'ASC' },
     });
 
-    // 요일별로 매핑
-    const thisWeek: (number | null)[] = Array(7).fill(null);
+    // 요일별로 매핑 - 이번 주도 0으로 초기화 (null 대신)
+    const thisWeek: number[] = Array(7).fill(0);
     const lastWeek: number[] = Array(7).fill(0);
 
     stats.forEach(stat => {
@@ -107,5 +112,69 @@ export class LearningSessionsService {
     const monday = new Date(d.setDate(diff));
     monday.setHours(0, 0, 0, 0);
     return monday;
+  }
+
+  /**
+   * 학습 세션 동기화 (자정 넘어가는 경우 날짜별 자동 분리)
+   * - 각 interval의 timestamp를 파싱
+   * - 날짜별로 그룹핑하여 학습 시간 누적
+   */
+  async syncSession(sessionId: number, dto: SyncSessionDto): Promise<void> {
+    // Get session to find userId
+    const session = await this.userSessionRepo.findOne({
+      where: { id: sessionId },
+    });
+
+    if (!session) {
+      console.error(`[Sync] Session ${sessionId} not found`);
+      return;
+    }
+
+    const userId = session.userId;
+
+    // Group intervals by date
+    const dateGroups = new Map<string, number>();
+
+    dto.intervals.forEach((interval) => {
+      // Parse timestamp: "2025-11-26 23:50:00"
+      const date = interval.timestamp.split(' ')[0]; // "2025-11-26"
+      const currentSeconds = dateGroups.get(date) || 0;
+      dateGroups.set(date, currentSeconds + interval.durationSeconds);
+    });
+
+    // Save each date's learning time
+    for (const [date, totalSeconds] of dateGroups.entries()) {
+      await this.addLearningTime(userId, date, totalSeconds);
+    }
+
+    console.log(
+      `[Sync] Session ${sessionId} synced: ${dateGroups.size} dates, total ${dto.intervals.length} intervals`,
+    );
+  }
+
+  /**
+   * 14일 이상 된 학습 데이터 자동 삭제
+   * - 매일 자정(00:00)에 실행
+   * - 최근 14일 데이터만 유지
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async cleanupOldLearningData(): Promise<void> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 14);
+    cutoffDate.setHours(0, 0, 0, 0);
+
+    try {
+      const result = await this.dailyStatsRepo.delete({
+        date: LessThan(cutoffDate),
+      });
+
+      if (result.affected && result.affected > 0) {
+        console.log(
+          `[Cleanup] Deleted ${result.affected} old learning records (before ${cutoffDate.toISOString().split('T')[0]})`,
+        );
+      }
+    } catch (error) {
+      console.error('[Cleanup] Failed to delete old learning data:', error);
+    }
   }
 }

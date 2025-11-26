@@ -7,7 +7,7 @@ export default function WeeklyActivity() {
   const [dataLoading, setDataLoading] = useState(true);
   const [weeklyData, setWeeklyData] = useState({
     days: ["월", "화", "수", "목", "금", "토", "일"],
-    thisWeek: [null, null, null, null, null, null, null] as (number | null)[],
+    thisWeek: [0, 0, 0, 0, 0, 0, 0] as number[],
     lastWeek: [0, 0, 0, 0, 0, 0, 0] as number[],
   });
 
@@ -28,6 +28,7 @@ export default function WeeklyActivity() {
 
       try {
         setDataLoading(true);
+
         const data = await getWeeklyLearningData(
           typeof user.id === 'number' ? user.id : Number(user.id)
         );
@@ -42,7 +43,7 @@ export default function WeeklyActivity() {
         // 에러 시 빈 데이터 표시
         setWeeklyData(prev => ({
           ...prev,
-          thisWeek: [null, null, null, null, null, null, null],
+          thisWeek: [0, 0, 0, 0, 0, 0, 0],
           lastWeek: [0, 0, 0, 0, 0, 0, 0],
         }));
       } finally {
@@ -54,15 +55,43 @@ export default function WeeklyActivity() {
   }, [user?.id]);
 
   const maxValue = Math.max(
-    ...weeklyData.thisWeek.filter((v): v is number => v !== null),
+    ...weeklyData.thisWeek,
     ...weeklyData.lastWeek
   );
 
-  // Calculate nice y-axis values with minimum display range
-  const minDisplayMax = 10; // Minimum 10 hours for realistic LMS usage
-  const yAxisMax = Math.max(Math.ceil(maxValue * 1.2), minDisplayMax); // Add 20% padding but at least 10 hours
+  // Calculate dynamic y-axis to center graph lines at roughly 1/2 height
+  // Add ~33% padding above max value for visual balance
+  const calculateYAxisMax = (max: number): number => {
+    if (max === 0) return 10; // Default when no data
+
+    // Add 33% padding so max data appears around 75% height (visually centered)
+    const withPadding = max * 1.33;
+
+    // Round to nice numbers for better readability
+    if (withPadding <= 2) return 2;
+    if (withPadding <= 5) return 5;
+    if (withPadding <= 6) return 6;
+    if (withPadding <= 10) return 10;
+    if (withPadding <= 12) return 12;
+    if (withPadding <= 15) return 15;
+    if (withPadding <= 20) return 20;
+    if (withPadding <= 24) return 24; // Maximum 24 hours (one day)
+
+    // Cap at 24 hours (one day limit)
+    return 24;
+  };
+
+  const yAxisMax = calculateYAxisMax(maxValue);
   const yAxisStep = Math.ceil(yAxisMax / 3);
   const yAxisValues = [yAxisMax, yAxisMax - yAxisStep, yAxisMax - yAxisStep * 2, 0];
+
+  // Get current day of week (0=월, 1=화, ..., 6=일)
+  const getCurrentDayOfWeek = () => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+    // Convert to Monday=0, Tuesday=1, ..., Sunday=6
+    return currentDay === 0 ? 6 : currentDay - 1;
+  };
 
   // Calculate dates for this week and last week
   const getWeekDate = (dayIndex: number, isLastWeek: boolean) => {
@@ -74,8 +103,7 @@ export default function WeeklyActivity() {
     return date;
   };
 
-  const formatTime = (value: number | null) => {
-    if (value === null) return '데이터 없음';
+  const formatTime = (value: number) => {
     const hours = Math.floor(value);
     const minutes = Math.round((value - hours) * 60);
     return `${hours}시간 ${minutes}분`;
@@ -163,14 +191,15 @@ export default function WeeklyActivity() {
                   vectorEffect="non-scaling-stroke"
                 />
 
-                {/* This week line */}
+                {/* This week line - only up to current day */}
                 <polyline
                   points={weeklyData.thisWeek
-                    .map((value, i) =>
-                      value !== null
-                        ? `${i * 100 + 50},${120 - (value / yAxisMax) * 120}`
-                        : null
-                    )
+                    .map((value, i) => {
+                      const currentDayIndex = getCurrentDayOfWeek();
+                      // Only show data up to current day
+                      if (i > currentDayIndex) return null;
+                      return `${i * 100 + 50},${120 - (value / yAxisMax) * 120}`;
+                    })
                     .filter((p): p is string => p !== null)
                     .join(" ")}
                   fill="none"
@@ -180,23 +209,26 @@ export default function WeeklyActivity() {
                 />
               </svg>
 
-              {/* Hover areas for each day - MUST be above points */}
+              {/* Hover areas for each day - centered on data points */}
               {weeklyData.days.map((day, i) => {
-                const left = (i / 7) * 100;
-                const width = (1 / 7) * 100;
+                const centerX = ((i + 0.5) / 7) * 100;
+                // Create a circular hover area around each point (about 30px diameter)
                 return (
                   <div
                     key={`hover-area-${i}`}
-                    className="absolute top-0 bottom-0 z-10"
+                    className="absolute z-10 cursor-pointer"
                     style={{
-                      left: `${left}%`,
-                      width: `${width}%`,
+                      left: `${centerX}%`,
+                      top: '50%',
+                      width: '30px',
+                      height: '120px', // Full height to make it easier to hover
+                      transform: 'translate(-50%, -50%)',
                     }}
                     onMouseEnter={() => {
                       setHoveredDay({
                         dayIndex: i,
                         day,
-                        x: ((i + 0.5) / 7) * 100,
+                        x: centerX,
                         y: 0,
                       });
                     }}
@@ -266,8 +298,11 @@ export default function WeeklyActivity() {
                 );
               })}
 
-              {weeklyData.thisWeek.map((value, i) =>
-                value !== null ? (
+              {weeklyData.thisWeek.map((value, i) => {
+                const currentDayIndex = getCurrentDayOfWeek();
+                // Only show points up to current day
+                if (i > currentDayIndex) return null;
+                return (
                   <div
                     key={`thisweek-point-${i}`}
                     className="absolute w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-white pointer-events-none"
@@ -277,8 +312,8 @@ export default function WeeklyActivity() {
                       transform: 'translate(-50%, -50%)',
                     }}
                   />
-                ) : null
-              )}
+                );
+              })}
             </div>
           </div>
 

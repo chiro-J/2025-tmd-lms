@@ -7,7 +7,7 @@ export interface DailyLearningData {
 }
 
 export interface WeeklyLearningData {
-  thisWeek: (number | null)[] // 7개 요소, 시간 단위
+  thisWeek: number[] // 7개 요소, 시간 단위
   lastWeek: number[] // 7개 요소, 시간 단위
 }
 
@@ -31,7 +31,7 @@ export async function getWeeklyLearningData(userId: number): Promise<WeeklyLearn
     // API가 구현되지 않았으므로 조용히 처리 (404 오류는 무시)
     // 에러 시 빈 데이터 반환
     return {
-      thisWeek: [null, null, null, null, null, null, null],
+      thisWeek: [0, 0, 0, 0, 0, 0, 0],
       lastWeek: [0, 0, 0, 0, 0, 0, 0]
     }
   }

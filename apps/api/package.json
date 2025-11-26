@@ -20,7 +20,8 @@
     "db:add-title-to-qna": "node scripts/add-title-to-course-qna.js",
     "db:add-comments-to-qna": "node scripts/add-comments-to-qna-answers.js",
     "db:add-ispublic-to-qna": "node scripts/add-ispublic-to-course-qna.js",
-    "db:seed-test-users": "node scripts/seed-test-users.js"
+    "db:seed-test-users": "node scripts/seed-test-users.js",
+    "db:seed-learning-mock": "node scripts/seed-learning-mock-data.js"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
